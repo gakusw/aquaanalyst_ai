@@ -15,7 +15,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   late final Stream<AppUser?> _userProfileStream;
-  bool _strictMode = false;
   double _expertiseLevel = 5.0;
 
   @override
@@ -230,7 +229,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           final user = snapshot.data;
-          final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+          
+          // Firestoreの値でローカル状態を同期
+          if (user != null) {
+            final savedLevel = (user.baseProfile['expertiseLevel'] as num?)?.toDouble();
+            if (savedLevel != null && savedLevel != _expertiseLevel) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) setState(() => _expertiseLevel = savedLevel);
+              });
+            }
+          }
           
           // 表示用の仮データまたはFirestoreのデータ
           final visionText = user?.vision?.isNotEmpty == true ? user!.vision : '未設定（タップして編集）';
@@ -350,12 +358,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 const Icon(Icons.psychology, color: Colors.grey),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('専門性要求レベル', style: TextStyle(fontSize: 16)),
-                      Text('1: 平易 〜 10: 最新論文レベル', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      const Text('専門性要求レベル', style: TextStyle(fontSize: 16)),
+                      Text(
+                        _expertiseLevel <= 3 ? '1: 初心者向き（平易な解説）'
+                            : _expertiseLevel <= 6 ? '中級者向き（実践的なアドバイス）'
+                            : _expertiseLevel <= 8 ? '上級者向き（科学的な視点を含む）'
+                            : '10: トップスイマー向き（最新研究ベース）',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
                     ],
                   ),
                 ),
@@ -367,15 +381,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Slider(
             value: _expertiseLevel,
             min: 1, max: 10, divisions: 9,
-            onChanged: (val) => setState(() => _expertiseLevel = val),
-          ),
-          SwitchListTile(
-            secondary: const Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
-            title: const Text('【厳格モード】'),
-            subtitle: const Text('希望的観測を排除し，客観的データのみに基づく厳しいフィードバックを返します．'),
-            value: _strictMode,
-            activeColor: Colors.redAccent,
-            onChanged: (val) => setState(() => _strictMode = val),
+            onChanged: (val) async {
+              setState(() => _expertiseLevel = val);
+              if (user != null) {
+                Map<String, dynamic> updatedProfile = Map.from(user.baseProfile);
+                updatedProfile['expertiseLevel'] = val;
+                final updatedUser = AppUser(
+                  uid: user.uid,
+                  displayName: user.displayName,
+                  vision: user.vision,
+                  baseProfile: updatedProfile,
+                  createdAt: user.createdAt,
+                );
+                await _firestoreService.saveUserProfile(updatedUser);
+              }
+            },
           ),
           ListTile(
             leading: const Icon(Icons.refresh),

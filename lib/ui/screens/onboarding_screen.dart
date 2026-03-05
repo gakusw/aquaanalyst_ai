@@ -12,7 +12,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _visionController = TextEditingController();
   final _coachController = TextEditingController();
   double _expertiseLevel = 5;
-  bool _strictMode = false;
 
   @override
   void dispose() {
@@ -66,7 +65,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Text('専門性レベル (初心者1 〜 エリート10):'),
+                    const Text('専門性レベル (1: 初心者向き 〜 10: トップスイマー向き):'),
                     Expanded(
                       child: Slider(
                         value: _expertiseLevel,
@@ -91,16 +90,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // 3. 厳格モード
-                const Text('3. コーチングモード', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  title: const Text('【厳格モード】をオンにする'),
-                  subtitle: const Text('希望的観測を徹底的に排除し，極めて現実的で厳しいフィードバックのみを返します．'),
-                  value: _strictMode,
-                  activeColor: Colors.redAccent,
-                  onChanged: (value) => setState(() => _strictMode = value),
-                ),
                 const SizedBox(height: 48),
 
                 FilledButton(
