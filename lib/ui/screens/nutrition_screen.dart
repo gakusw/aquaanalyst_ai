@@ -36,7 +36,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
     try {
       final bytes = await pickedFile.readAsBytes();
       final mimeType = pickedFile.mimeType ?? 'image/jpeg';
-      final prompt = "画像内の食事を解析し、含まれるメニュー内容のリストと、推定されるPFC（タンパク質・脂質・炭水化物）バランス、および特筆すべき栄養素を箇条書きで出力してください。挨拶や不要な装飾は省いてください。";
+      final prompt = "画像内の食事内容を解析し、何を食べたか（料理名や食材）のみを箇条書きで抽出してください。栄養バランスに対する評価やアドバイス、挨拶などの不要な記述は一切含めず、客観的な事実のみを出力してください。";
 
       final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType);
       

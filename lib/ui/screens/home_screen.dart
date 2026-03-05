@@ -435,6 +435,9 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
   List<double> _nutritionCarbs = [];
   List<String> _nutritionLabels = [];
 
+  String? _aiEvaluation;
+  bool _isAiLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -532,6 +535,31 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     }
   }
 
+  Future<void> _generateAiEvaluation(String nutritionMenu, double p, double f, double c) async {
+    setState(() => _isAiLoading = true);
+    try {
+      final prompt = """
+あなたは水泳のAIコーチです。以下の本日の食事内容とメニュー内容から、本日の栄養状態に対する1-2文の簡潔なフィードバックを行ってください。
+【食事内容（合算）】
+$nutritionMenu
+【PFC自己評価（各15点満点）】
+P: $p, F: $f, C: $c
+
+評価は具体的に不足している栄養素を補うアドバイスか、よく摂れている点に対する称賛を含めてください。
+""";
+      final result = await GeminiService().generateContent(prompt);
+      if (mounted) {
+        setState(() => _aiEvaluation = result);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('AI評価の取得に失敗しました: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isAiLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // derived variables
@@ -547,9 +575,15 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
 
     double proteinValue = 0.0;
     double carbsValue = 0.0;
+    String allNutritionMenu = '';
     for (var r in widget.nutritionRecords) {
       proteinValue += r.subjectiveMetrics['protein']?.toDouble() ?? 0.0;
       carbsValue += r.subjectiveMetrics['carbs']?.toDouble() ?? 0.0;
+      if (r.details.isNotEmpty) {
+        final content = r.details.first['content'] as String;
+        if (allNutritionMenu.isNotEmpty) allNutritionMenu += '\n';
+        allNutritionMenu += '【${r.subjectiveMetrics['meal_label'] ?? '未分類'}】\n$content';
+      }
     }
 
     return Container(
@@ -698,26 +732,40 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
           const _PfcStatusRow(label: '脂質 (F)', value: 8, maxValue: 15, color: Colors.amberAccent, status: '適正'), // モック
           _PfcStatusRow(label: '炭水化物 (C)', value: carbsValue, maxValue: 15, color: Colors.redAccent, status: carbsValue >= 12 ? '達成' : (carbsValue >= 8 ? '適正' : '不足')),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12.0),
-            decoration: BoxDecoration(
-              color: Colors.orangeAccent.withOpacity(0.1),
-              border: Border.all(color: Colors.orangeAccent),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.orangeAccent, size: 20),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '【AIコーチ警告】今日の炭水化物摂取量が，午後の高強度練習に対して不足しています．超回復に影響します．',
-                    style: TextStyle(fontSize: 12, height: 1.4),
+          if (_aiEvaluation != null)
+            Container(
+              padding: const EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.1),
+                border: Border.all(color: Colors.blueAccent),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.wb_twilight, color: Colors.blueAccent, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _aiEvaluation!,
+                      style: const TextStyle(fontSize: 12, height: 1.4),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+            )
+          else
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: widget.nutritionRecords.isEmpty || _isAiLoading 
+                    ? null 
+                    : () => _generateAiEvaluation(allNutritionMenu, proteinValue, 8.0, carbsValue),
+                icon: _isAiLoading 
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.psychology, size: 18),
+                label: const Text('AIから今日の栄養評価をもらう'),
+              ),
             ),
-          ),
         ],
       ),
     );
