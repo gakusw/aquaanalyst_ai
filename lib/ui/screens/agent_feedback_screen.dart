@@ -48,7 +48,8 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
     try {
       final user = await _firestoreService.getUserProfileStream().first;
       _globalAiModelName = user?.baseProfile['aiModel'] as String? ?? 'Gemini 2.5 Flash';
-      final records = await _firestoreService.getTrainingRecordsStream(limit: 5).first;
+      final expertiseLevel = (user?.baseProfile['expertiseLevel'] as num?)?.toDouble() ?? 5.0;
+      final records = await _firestoreService.getTrainingRecordsStream(limit: 10).first;
       final latestPlan = await _firestoreService.getLatestWeeklyPlanStream().first;
       final allPbs = await _firestoreService.getPersonalBestsStream().first;
 
@@ -67,44 +68,53 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
           latestPlan.dailyPlans.map((d) => "  - ${d.dateStr}: 水中[${d.waterMenu}] 陸上[${d.dryland}] (強度: ${d.intensity})").join('\n');
       }
 
-      // 最新自己ベストの抽出
-      String pbText = "登録されている自己ベストはありません。";
-      if (allPbs.isNotEmpty) {
-        final Map<String, PersonalBest> latestPbs = {};
-        for (var pb in allPbs.reversed) {
-          latestPbs[pb.event] = pb;
-        }
-        pbText = "現在の自己ベスト:\n" + latestPbs.values.map((pb) => 
-          "- ${pb.event}: ${pb.value} ${pb.category == 'swim' ? '秒' : 'kg'} (${pb.date.year}/${pb.date.month}/${pb.date.day})"
-        ).join('\n');
-      }
+      String pbText = "自己ベスト:\n" + (allPbs.isEmpty ? "未登録" : allPbs.reversed.map((pb) => 
+        "- ${pb.event}: ${pb.value} ${pb.category == 'swim' ? '秒' : 'kg'} (${pb.date.year}/${pb.date.month}/${pb.date.day})"
+      ).join('\n'));
 
       final sysInst = '''
-あなたは水泳競技のAIコーチ「AquaAnalyst AI」です。
-ユーザーのパートナーとして、データに基づきつつも、親身で励みになるアドバイスを提供してください。
-【ユーザー情報】
-- ビジョン(最終目標): ${user?.vision ?? '未設定'}
-- 基本プロフィール: ${user?.baseProfile.toString() ?? '未設定'}
+# Role
+あなたは「競泳科学分析・トレーニング統合エージェント」です。スポーツ生理学、バイオメカニクス、およびデータサイエンスの深い知見を持ち、初心者からトップアスリートまで対応した分析と指導を行います。
 
-【最新の週間トレーニング計画】
-$planText
+# Expertise Level
+現在の専門性要求レベル: $expertiseLevel / 10
+(1: 初心者向けに平易な言葉で、10: 専門用語や最新論文の知見を用いた極めて科学的な解説)
 
-【最新のデータ】
-$recordsText
+# Mission
+ユーザーから提供される個別のデータを客観的に分析し、以下の2つのアウトプットを統合して提供してください。
+1. **科学的トレーニング案:** 生理学的背景（ATP-CP系、解糖系、有酸素系の貢献割合等）に基づいたメニュー構成と技術的アドバイス。
+2. **タイム予測・レース分析:** CSSやRiegelの公式、ストローク効率（DPS/SR）等を用いた分析。
 
-【現在の自己ベスト】
-$pbText
+# Analysis Framework
+- エネルギー系分析 (ターゲット距離に応じた代謝特性の最適化)
+- ストローク効率 (DPSとSRの相関)
+- 予測アルゴリズム (複数距離の相関による推定)
+- 耐乳酸能力の評価
 
-ユーザーからの質問や発言に対して、上記データ・計画に加えて自己ベストの成長も踏まえた実践的かつ客観的なコーチングを行ってください。
-ただし、「感情や希望的観測を一切排除した」といった冷たすぎる表現や、内部プロセス（「Phase C」など）の名称は絶対に出さないでください。専門的でありながら、ユーザーのモチベーションを高める温かいトーンを心がけてください。
+# Interaction Protocol (First Step)
+以下の情報を確認してください。既に【ユーザーコンテキスト】にある情報は、それを踏まえた上で、不足している具体的な詳細（翼幅、柔軟性の特徴、特定の練習セットのタイム等）について質問してください。
+
+【ユーザーコンテキスト】
+- プロフィール: ${user?.baseProfile.toString() ?? '未設定'}
+- 週間計画: $planText
+- 直近の練習: $recordsText
+- 自己ベスト: $pbText
+
+# Guidelines
+- 客観的かつ論理的なトーンを維持する。
+- 提案には必ず科学的根拠（なぜその練習が必要か等）を添える。
+- 初回は「AIコーチシステムが起動しました」と述べ、不足情報の確認から入る。
 ''';
 
       _globalChatSession = GeminiService().startChat(systemInstruction: sysInst);
 
       if (mounted) {
+        // AIに初回挨拶と不足情報の質問を生成させる
+        final response = await _globalChatSession!.sendMessage(Content.text("システムを起動してください。まず挨拶を行い、私の現在のデータを確認した上で、分析精度を高めるために不足している情報（翼幅や特定のセットタイムなど）を具体的に1つからいくつか私に求めてください。"));
+        
         setState(() {
           _globalMessages.add(CoachMessage(
-            text: 'AIコーチシステムが起動しました。最新のデータと基本プロフィールを読み込み完了しました。現在のコンディションやトレーニングについて報告してください。',
+            text: response.text ?? 'AIコーチシステムが起動しました。コンディションや詳細データを教えてください。',
             isAi: true,
             type: MessageType.normal,
           ));
@@ -434,4 +444,3 @@ class CoachMessage {
     this.type = MessageType.normal,
   });
 }
-

@@ -21,6 +21,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _userProfileStream = _firestoreService.getUserProfileStream();
+    
+    // アプリ起動時のテーマ同期
+    _firestoreService.getUserProfileStream().first.then((user) {
+      if (user != null) {
+        final savedTheme = user.baseProfile['themeMode'] as String?;
+        if (savedTheme != null && mounted) {
+          appThemeMode.value = savedTheme == 'dark' ? ThemeMode.dark 
+                             : savedTheme == 'light' ? ThemeMode.light 
+                             : ThemeMode.system;
+        }
+      }
+    });
   }
 
   Future<void> _editProfileField(BuildContext context, AppUser currentUser, String title, String fieldKey, String currentValue) async {
@@ -339,7 +351,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode), label: Text('ライト')),
                       ],
                       selected: {mode},
-                      onSelectionChanged: (s) => appThemeMode.value = s.first,
+                      onSelectionChanged: (s) async {
+                        final newMode = s.first;
+                        appThemeMode.value = newMode;
+                        if (user != null) {
+                          Map<String, dynamic> updatedProfile = Map.from(user.baseProfile);
+                          updatedProfile['themeMode'] = newMode == ThemeMode.dark ? 'dark' 
+                                                      : newMode == ThemeMode.light ? 'light' 
+                                                      : 'system';
+                          final updatedUser = AppUser(
+                            uid: user.uid,
+                            displayName: user.displayName,
+                            vision: user.vision,
+                            baseProfile: updatedProfile,
+                            createdAt: user.createdAt,
+                          );
+                          await _firestoreService.saveUserProfile(updatedUser);
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -381,8 +410,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Slider(
             value: _expertiseLevel,
             min: 1, max: 10, divisions: 9,
-            onChanged: (val) async {
+            onChanged: (val) {
               setState(() => _expertiseLevel = val);
+            },
+            onChangeEnd: (val) async {
               if (user != null) {
                 Map<String, dynamic> updatedProfile = Map.from(user.baseProfile);
                 updatedProfile['expertiseLevel'] = val;

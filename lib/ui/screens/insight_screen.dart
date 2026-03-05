@@ -68,7 +68,7 @@ class _InsightScreenState extends State<InsightScreen> {
   late final Stream<AppUser?> _userStream;
 
   int _selectedEventIndex = 0;
-  int _selectedViewIndex = 0; // 0:相関, 1:体組成, 2:タイム予測, 3:ビジョン
+  int _selectedViewIndex = 0; // 0:相関, 1:体組成, 2:タイム予測 (3:ビジョンは非表示)
   bool _showPredictedTime = false; // 予測タイムレンジ表示フラグ
 
   @override
@@ -185,7 +185,7 @@ class _InsightScreenState extends State<InsightScreen> {
               ButtonSegment(value: 0, icon: Icon(Icons.scatter_plot, size: 18), label: Text('相関')),
               ButtonSegment(value: 1, icon: Icon(Icons.fitness_center, size: 18), label: Text('身体・栄養')),
               ButtonSegment(value: 2, icon: Icon(Icons.timer, size: 18), label: Text('タイム予測')),
-              ButtonSegment(value: 3, icon: Icon(Icons.track_changes, size: 18), label: Text('ビジョン')),
+              // ButtonSegment(value: 3, icon: Icon(Icons.track_changes, size: 18), label: Text('ビジョン')),
             ],
             selected: {_selectedViewIndex},
             onSelectionChanged: (Set<int> newSelection) {
@@ -201,7 +201,7 @@ class _InsightScreenState extends State<InsightScreen> {
           if (_selectedViewIndex == 0) _buildCorrelationView(context, insight, records),
           if (_selectedViewIndex == 1) _buildBodyNutritionView(context, insight, records),
           if (_selectedViewIndex == 2) _buildPredictionView(context, insight, pbs),
-          if (_selectedViewIndex == 3) _buildVisionAlignmentView(context, insight, user),
+          // if (_selectedViewIndex == 3) _buildVisionAlignmentView(context, insight, user),
           
           const SizedBox(height: 40),
         ],
@@ -228,8 +228,8 @@ class _InsightScreenState extends State<InsightScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: _buildPredictionView(context, insight, pbs)),
-              const SizedBox(width: 24),
-              Expanded(child: _buildVisionAlignmentView(context, insight, user)),
+              // const SizedBox(width: 24),
+              // Expanded(child: _buildVisionAlignmentView(context, insight, user)),
             ],
           ),
         ],
