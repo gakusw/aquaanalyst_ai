@@ -362,10 +362,10 @@ class _TrainingScreenState extends State<TrainingScreen> {
                             });
                           }
                         } else {
-                          // 数値が含まれない場合は新しい種目名とみなす
-                          // ただし「閉じる」などの操作用テキストは除外
                           if (!trimmed.contains('続きを読む') && !trimmed.contains('閉じる')) {
-                            currentExercise = trimmed;
+                            currentExercise = trimmed
+                                .replaceAll(RegExp(r'[\(（][^)）]*[\)）]'), '')
+                                .trim();
                           }
                         }
                       }

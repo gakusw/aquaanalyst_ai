@@ -489,26 +489,68 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _confirmDeletePb(BuildContext context, PersonalBest pb) {
+  void _showPbOptionsDialog(BuildContext context, PersonalBest pb) {
+    final eventController = TextEditingController(text: pb.event);
+    final valueController = TextEditingController(text: pb.value.toString());
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('自己ベストの削除'),
-        content: Text('「${pb.event}」の自己ベスト記録を削除しますか？\n(誤認識された場合などに利用します)'),
+        title: Text('「${pb.event}」の自己ベスト'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: eventController, decoration: const InputDecoration(labelText: '種目名')),
+            TextField(controller: valueController, decoration: InputDecoration(labelText: pb.category == 'swim' ? 'タイム (秒)' : '重量 (kg)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
           TextButton(
             onPressed: () async {
-              await FirestoreService().deletePersonalBest(pb.id);
-              if (ctx.mounted) Navigator.pop(ctx);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('自己ベストを削除しました')));
+              final confirm = await showDialog<bool>(
+                context: ctx,
+                builder: (c) => AlertDialog(
+                  title: const Text('削除の確認'),
+                  content: const Text('この自己ベストを削除してもよろしいですか？'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('キャンセル')),
+                    TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('削除', style: TextStyle(color: Colors.red))),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await FirestoreService().deletePersonalBest(pb.id);
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('自己ベストを削除しました')));
+                }
               }
             },
             child: const Text('削除', style: TextStyle(color: Colors.red)),
           ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          ElevatedButton(
+            onPressed: () async {
+              final newVal = double.tryParse(valueController.text);
+              if (eventController.text.isNotEmpty && newVal != null) {
+                final updatedPb = PersonalBest(
+                  id: pb.id,
+                  category: pb.category,
+                  event: eventController.text,
+                  value: newVal,
+                  date: pb.date,
+                );
+                await FirestoreService().savePersonalBest(updatedPb);
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('自己ベストを更新しました')));
+                }
+              }
+            },
+            child: const Text('保存'),
+          ),
         ],
-      )
+      ),
     );
   }
 
@@ -521,7 +563,7 @@ class _HomeScreenState extends State<HomeScreen> {
         trailing: Text(pb.value.toStringAsFixed(2), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal.shade300)),
         subtitle: Text('${pb.date.year}/${pb.date.month}/${pb.date.day}'),
         onTap: () => _showPbHistoryDialog(context, pb.event, history, isTime: true),
-        onLongPress: () => _confirmDeletePb(context, pb),
+        onLongPress: () => _showPbOptionsDialog(context, pb),
       ),
     );
   }
@@ -535,7 +577,7 @@ class _HomeScreenState extends State<HomeScreen> {
         trailing: Text('${pb.value.toStringAsFixed(1)} kg', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange.shade300)),
         subtitle: Text('達成日: ${pb.date.year}/${pb.date.month}/${pb.date.day}'),
         onTap: () => _showPbHistoryDialog(context, pb.event, history, isTime: false),
-        onLongPress: () => _confirmDeletePb(context, pb),
+        onLongPress: () => _showPbOptionsDialog(context, pb),
       ),
     );
   }
@@ -968,6 +1010,9 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
               
               if (confirm == true) {
                 await FirestoreService().deleteTrainingRecord(record.id);
+                if (record.type == 'dryland') {
+                  await FirestoreService().generateInitialDrylandPbs();
+                }
                 if (ctx.mounted) Navigator.pop(ctx);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('記録を削除しました。')));
@@ -1016,7 +1061,9 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
                     }
                   } else {
                     if (!trimmed.contains('続きを読む') && !trimmed.contains('閉じる')) {
-                      currentExercise = trimmed;
+                      currentExercise = trimmed
+                          .replaceAll(RegExp(r'[\(（][^)）]*[\)）]'), '')
+                          .trim();
                     }
                   }
                 }

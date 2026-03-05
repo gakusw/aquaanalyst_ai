@@ -236,14 +236,47 @@ class FirestoreService {
     await docRef.set(pb.toMap(), SetOptions(merge: true));
   }
 
+  /// 種目名を正規化するヘルパー。
+  /// 括弧とその中身を除去し、前後の空白をトリムする。
+  static String _normalizeExerciseName(String name) {
+    return name
+        .replaceAll(RegExp(r'[\(（][^)）]*[\)）]'), '') // 括弧とその中身を除去
+        .replaceAll(RegExp(r'\d+セット目|set\s*\d+|回目|第\d+'), '') // セット情報除去
+        .trim();
+  }
+
+  /// 正規化後の種目名が有効かどうかを判定する。
+  static bool _isValidExerciseName(String name) {
+    if (name.isEmpty || name.length < 2) return false;
+    if (name.contains('セット') || name.contains('回') || name.contains('種目')) return false;
+    if (name.length > 20) return false;
+    // 記号のみの名前を除外（例: °)、・、etc.）
+    if (RegExp(r'^[^\p{L}]+$', unicode: true).hasMatch(name)) return false;
+    return true;
+  }
+
   /// 陸上トレーニングのすべての履歴をスキャンし、各エクササイズの最大重量を計算して
-  /// 自己ベスト（PersonalBest）として一括登録・更新する。
-  /// （すでにPBが存在する場合は、履歴の最大重量が上回っている場合のみ更新）
+  /// 自己ベスト（PersonalBest）として全件再構築する。
+  /// トレーニング記録の削除・更新時にも呼び出すことで同期を保証する。
   Future<void> generateInitialDrylandPbs() async {
     final uid = currentUserId;
     if (uid == null) throw Exception('ログインしていません');
 
-    // 1. 過去のすべてのトレーニング記録（drylandのみ）を取得
+    // 1. 既存のdryland PBをすべて削除（全件再構築のため）
+    final existingPbSnapshot = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('personal_bests')
+        .where('category', isEqualTo: 'dryland')
+        .get();
+
+    final deleteBatch = _db.batch();
+    for (var doc in existingPbSnapshot.docs) {
+      deleteBatch.delete(doc.reference);
+    }
+    await deleteBatch.commit();
+
+    // 2. 過去のすべてのトレーニング記録（drylandのみ）を取得
     final snapshot = await _db
         .collection('users')
         .doc(uid)
@@ -256,8 +289,6 @@ class FirestoreService {
     // 種目ごとの最大重量とその達成日を保持するマップ
     final Map<String, _BestRecord> bestRecords = {};
 
-    // 正規表現の改善: 種目名の後に重量が来るパターン。
-    // 括弧内の補助情報は後で正規化する。
     final RegExp legacyWeightRegex = RegExp(r'([^\d\s\n:：,、.。\+\-\*\/×÷]+)[\s　]*(?:\d+セット目|set\s*\d+)?[\s　]*(\d+\.?\d*)[\s　]*kg', caseSensitive: false);
 
     for (var doc in snapshot.docs) {
@@ -269,11 +300,11 @@ class FirestoreService {
       
       if (drylandSets.isNotEmpty) {
         for (var set in drylandSets) {
-          final eventName = set['exercise']?.toString().trim();
+          final rawName = set['exercise']?.toString().trim() ?? '';
           final weight = (set['weight'] as num?)?.toDouble() ?? 0.0;
+          final eventName = _normalizeExerciseName(rawName);
           
-          if (eventName != null && eventName.isNotEmpty && weight > 0) {
-            // トレーニング名はそのまま使用（括弧等も保持）
+          if (_isValidExerciseName(eventName) && weight > 0) {
             if (!bestRecords.containsKey(eventName) || bestRecords[eventName]!.weight < weight) {
               bestRecords[eventName] = _BestRecord(weight: weight, date: record.date);
             } else if (bestRecords[eventName]!.weight == weight && record.date.isBefore(bestRecords[eventName]!.date)) {
@@ -286,26 +317,13 @@ class FirestoreService {
         final fullText = detailsList.map((d) => d['content']?.toString() ?? '').join('\n');
         final matches = legacyWeightRegex.allMatches(fullText);
         for (final match in matches) {
-          String eventName = match.group(1)?.trim() ?? '';
+          final rawName = match.group(1)?.trim() ?? '';
           final weightStr = match.group(2);
+          final eventName = _normalizeExerciseName(rawName);
           
-          if (eventName.isNotEmpty && weightStr != null) {
-            // 不要な単語やメタ情報のクリーンアップ（括弧はトレーニング名の一部として保持）
-            eventName = eventName
-                .replaceAll(RegExp(r'\d+セット目|set\s*\d+|回目|第\d+'), '')
-                .trim();
-
-            if (eventName.contains('セット') || 
-                eventName.contains('回') || 
-                eventName.contains('種目') || 
-                eventName.length > 20 ||
-                eventName.length < 2 || // 1文字以下の誤検知（例: °) ）を排除
-                eventName.isEmpty) {
-              continue;
-            }
-
+          if (weightStr != null && _isValidExerciseName(eventName)) {
             final weight = double.tryParse(weightStr);
-            if (weight != null) {
+            if (weight != null && weight > 0) {
               if (!bestRecords.containsKey(eventName) || bestRecords[eventName]!.weight < weight) {
                 bestRecords[eventName] = _BestRecord(weight: weight, date: record.date);
               } else if (bestRecords[eventName]!.weight == weight && record.date.isBefore(bestRecords[eventName]!.date)) {
@@ -319,49 +337,20 @@ class FirestoreService {
 
     if (bestRecords.isEmpty) return;
 
-    // 3. 現在の自己ベスト（dryland）を取得
-    final pbSnapshot = await _db
-        .collection('users')
-        .doc(uid)
-        .collection('personal_bests')
-        .where('category', isEqualTo: 'dryland')
-        .get();
-
-    final Map<String, PersonalBest> currentPbs = {};
-    for (var doc in pbSnapshot.docs) {
-      final pb = PersonalBest.fromMap(doc.data(), doc.id);
-      // 同じ種目の最新のPBを保持（日付順に整理）
-      if (!currentPbs.containsKey(pb.event) || pb.date.isAfter(currentPbs[pb.event]!.date)) {
-        currentPbs[pb.event] = pb;
-      }
-    }
-
-    // 4. 最大重量が現在のPBを上回っている（または未登録の）場合にのみ新規保存
-    final batch = _db.batch();
-    bool hasUpdates = false;
-
+    // 3. 新しいPBを一括作成
+    final createBatch = _db.batch();
     for (final entry in bestRecords.entries) {
-      final event = entry.key;
-      final best = entry.value;
-
-      final currentPb = currentPbs[event];
-      if (currentPb == null || best.weight > currentPb.value) {
-        final newPbRef = _db.collection('users').doc(uid).collection('personal_bests').doc();
-        final newPb = PersonalBest(
-          id: newPbRef.id,
-          category: 'dryland',
-          event: event,
-          value: best.weight,
-          date: best.date,
-        );
-        batch.set(newPbRef, newPb.toMap());
-        hasUpdates = true;
-      }
+      final newPbRef = _db.collection('users').doc(uid).collection('personal_bests').doc();
+      final newPb = PersonalBest(
+        id: newPbRef.id,
+        category: 'dryland',
+        event: entry.key,
+        value: entry.value.weight,
+        date: entry.value.date,
+      );
+      createBatch.set(newPbRef, newPb.toMap());
     }
-
-    if (hasUpdates) {
-      await batch.commit();
-    }
+    await createBatch.commit();
   }
 }
 
