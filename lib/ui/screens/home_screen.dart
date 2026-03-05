@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../data/services/firestore_service.dart';
+import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
+import '../../data/models/personal_best.dart';
 import '../widgets/add_record_fab.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,11 +17,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   late final Stream<List<TrainingRecord>> _recordsStream;
+  late final Stream<List<PersonalBest>> _pbsStream;
 
   @override
   void initState() {
     super.initState();
     _recordsStream = _firestoreService.getTrainingRecordsStream(limit: 50);
+    _pbsStream = _firestoreService.getPersonalBestsStream();
   }
 
   @override
@@ -52,11 +56,33 @@ class _HomeScreenState extends State<HomeScreen> {
           final poolRecord = todayRecords.where((r) => r.type == 'pool').firstOrNull;
           final drylandRecord = todayRecords.where((r) => r.type == 'dryland').firstOrNull;
           final nutritionRecord = todayRecords.where((r) => r.type == 'nutrition').firstOrNull;
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          
+          return StreamBuilder<List<PersonalBest>>(
+            stream: _pbsStream,
+            builder: (context, pbSnapshot) {
+              final allPbs = pbSnapshot.data ?? [];
+              
+              // 最新の自己ベストをカテゴリーと種目ごとに抽出
+              final Map<String, PersonalBest> latestSwimPbs = {};
+              final Map<String, PersonalBest> latestDrylandPbs = {};
+              final Map<String, List<PersonalBest>> swimPbHistory = {};
+              final Map<String, List<PersonalBest>> drylandPbHistory = {};
+              
+              for (var pb in allPbs.reversed) { // 古い順から処理して最新で上書き
+                if (pb.category == 'swim') {
+                  latestSwimPbs[pb.event] = pb;
+                  swimPbHistory.putIfAbsent(pb.event, () => []).add(pb);
+                } else if (pb.category == 'dryland') {
+                  latestDrylandPbs[pb.event] = pb;
+                  drylandPbHistory.putIfAbsent(pb.event, () => []).add(pb);
+                }
+              }
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 // 今日のサマリー
                 _TodaySummaryCard(
                   poolRecord: poolRecord,
@@ -74,19 +100,33 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
 
             // 現在の自己ベスト
-            const Text('現在の自己ベスト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('現在の自己ベスト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(icon: const Icon(Icons.add_circle, color: Colors.teal), onPressed: () => _showAddPbDialog(context, 'swim')),
+              ],
+            ),
             const SizedBox(height: 16),
-            _buildBestTimeCard('50m 自由形 (Fr)', '22.85', '2023/08/10（インカレ）'),
-            _buildBestTimeCard('100m 自由形 (Fr)', '50.12', '2023/04/05（日本選手権）'),
-            _buildBestTimeCard('50m バタフライ (Fly)', '24.30', '2022/10/20（国体）'),
+            if (latestSwimPbs.isEmpty) const Text('自己ベストがまだ登録されていません。', style: TextStyle(color: Colors.grey)),
+            ...latestSwimPbs.values.toList().reversed.map((pb) => 
+               _buildBestTimeCard(context, pb.event, pb.value.toStringAsFixed(2), '${pb.date.year}/${pb.date.month}/${pb.date.day}', swimPbHistory[pb.event]!)
+            ),
             const SizedBox(height: 24),
 
             // ウエイトトレーニングの自己ベスト
-            const Text('ウエイトトレーニング自己ベスト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('ウエイトトレーニング自己ベスト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(icon: const Icon(Icons.add_circle, color: Colors.orange), onPressed: () => _showAddPbDialog(context, 'dryland')),
+              ],
+            ),
             const SizedBox(height: 16),
-            _buildWeightBestCard('ベンチプレス', '85 kg', '2026/02/15'),
-            _buildWeightBestCard('スクワット', '110 kg', '2026/01/20'),
-            _buildWeightBestCard('デッドリフト', '130 kg', '2025/12/10'),
+            if (latestDrylandPbs.isEmpty) const Text('自己ベストがまだ登録されていません。', style: TextStyle(color: Colors.grey)),
+            ...latestDrylandPbs.values.toList().reversed.map((pb) => 
+               _buildWeightBestCard(context, pb.event, '${pb.value.toStringAsFixed(1)} kg', '${pb.date.year}/${pb.date.month}/${pb.date.day}', drylandPbHistory[pb.event]!)
+            ),
             const SizedBox(height: 24),
 
             // 現在の体組成（自己ベスト下）
@@ -287,12 +327,121 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       );
-     }, // StreamBuilder.builder
-    ), // StreamBuilder
-   ); // Scaffold
+     }, // StreamBuilder.builder PB
+    ); // PB StreamBuilder
+   }, // StreamBuilder.builder Records
+  ), // StreamBuilder Records
+ ); // Scaffold
+}
+
+  void _showAddPbDialog(BuildContext context, String category) {
+    final eventController = TextEditingController();
+    final valueController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(category == 'swim' ? '水泳のPBを追加' : '陸トレのPBを追加'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: eventController, decoration: InputDecoration(labelText: category == 'swim' ? '種目 (例: 50m Fr)' : '種目 (例: ベンチプレス)')),
+            TextField(controller: valueController, decoration: InputDecoration(labelText: category == 'swim' ? 'タイム (秒)' : '重量 (kg)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          ElevatedButton(
+            onPressed: () async {
+              final val = double.tryParse(valueController.text);
+              if (eventController.text.isNotEmpty && val != null) {
+                final pb = PersonalBest(
+                  id: '',
+                  category: category,
+                  event: eventController.text,
+                  value: val,
+                  date: DateTime.now(),
+                );
+                await _firestoreService.savePersonalBest(pb);
+                if (ctx.mounted) Navigator.pop(ctx);
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildBestTimeCard(String event, String time, String date) {
+  void _showPbHistoryDialog(BuildContext context, String event, List<PersonalBest> history, {required bool isTime}) {
+    if (history.isEmpty) return;
+    
+    // Y軸設定のために最小・最大値を計算
+    final values = history.map((e) => e.value).toList();
+    final minY = values.reduce((a, b) => a < b ? a : b) * 0.95;
+    final maxY = values.reduce((a, b) => a > b ? a : b) * 1.05;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text('$event の推移', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 300,
+            child: history.length == 1
+                ? const Center(child: Text('データが1件のみのためグラフ化できません。', style: TextStyle(color: Colors.grey, fontSize: 13)))
+                : LineChart(
+                    LineChartData(
+                      minY: minY,
+                      maxY: maxY,
+                      minX: 0,
+                      maxX: (history.length - 1).toDouble(),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: history.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.value)).toList(),
+                          isCurved: true,
+                          color: isTime ? Colors.teal : Colors.orange,
+                          barWidth: 3,
+                          isStrokeCapRound: true,
+                          dotData: const FlDotData(show: true),
+                        ),
+                      ],
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final index = value.toInt();
+                              if (index < 0 || index >= history.length) return const SizedBox.shrink();
+                              final date = history[index].date;
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text('${date.month}/${date.day}', style: const TextStyle(fontSize: 10)),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      gridData: const FlGridData(show: true, drawVerticalLine: false),
+                      borderData: FlBorderData(show: false),
+                    ),
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('閉じる'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildBestTimeCard(BuildContext context, String event, String time, String date, List<PersonalBest> history) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8.0),
       child: ListTile(
@@ -300,11 +449,12 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text(event, style: const TextStyle(fontWeight: FontWeight.bold)),
         trailing: Text(time, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal.shade300)),
         subtitle: Text(date),
+        onTap: () => _showPbHistoryDialog(context, event, history, isTime: true),
       ),
     );
   }
 
-  Widget _buildWeightBestCard(String event, String weight, String date) {
+  Widget _buildWeightBestCard(BuildContext context, String event, String weight, String date, List<PersonalBest> history) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8.0),
       child: ListTile(
@@ -312,6 +462,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text(event, style: const TextStyle(fontWeight: FontWeight.bold)),
         trailing: Text(weight, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange.shade300)),
         subtitle: Text('達成日: $date'),
+        onTap: () => _showPbHistoryDialog(context, event, history, isTime: false),
       ),
     );
   }

@@ -50,6 +50,7 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
       _globalAiModelName = user?.baseProfile['aiModel'] as String? ?? 'Gemini 2.5 Flash';
       final records = await _firestoreService.getTrainingRecordsStream(limit: 5).first;
       final latestPlan = await _firestoreService.getLatestWeeklyPlanStream().first;
+      final allPbs = await _firestoreService.getPersonalBestsStream().first;
 
       String recordsText = "直近のトレーニング記録はありません。";
       if (records.isNotEmpty) {
@@ -66,6 +67,18 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
           latestPlan.dailyPlans.map((d) => "  - ${d.dateStr}: 水中[${d.waterMenu}] 陸上[${d.dryland}] (強度: ${d.intensity})").join('\n');
       }
 
+      // 最新自己ベストの抽出
+      String pbText = "登録されている自己ベストはありません。";
+      if (allPbs.isNotEmpty) {
+        final Map<String, PersonalBest> latestPbs = {};
+        for (var pb in allPbs.reversed) {
+          latestPbs[pb.event] = pb;
+        }
+        pbText = "現在の自己ベスト:\n" + latestPbs.values.map((pb) => 
+          "- ${pb.event}: ${pb.value} ${pb.category == 'swim' ? '秒' : 'kg'} (${pb.date.year}/${pb.date.month}/${pb.date.day})"
+        ).join('\n');
+      }
+
       final sysInst = '''
 あなたは水泳競技のAIコーチ「AquaAnalyst AI」です。
 ユーザーのパートナーとして、データに基づきつつも、親身で励みになるアドバイスを提供してください。
@@ -79,7 +92,10 @@ $planText
 【最新のデータ】
 $recordsText
 
-ユーザーからの質問や発言に対して、上記データ・計画も踏まえた実践的かつ客観的なコーチングを行ってください。
+【現在の自己ベスト】
+$pbText
+
+ユーザーからの質問や発言に対して、上記データ・計画に加えて自己ベストの成長も踏まえた実践的かつ客観的なコーチングを行ってください。
 ただし、「感情や希望的観測を一切排除した」といった冷たすぎる表現や、内部プロセス（「Phase C」など）の名称は絶対に出さないでください。専門的でありながら、ユーザーのモチベーションを高める温かいトーンを心がけてください。
 ''';
 

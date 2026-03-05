@@ -4,6 +4,7 @@ import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/app_user.dart';
 import '../../data/models/weekly_plan.dart';
+import '../../data/models/personal_best.dart';
 
 /// 週間トレーニング計画画面
 /// コーチとの対話で生成された計画を見やすく表示する
@@ -362,13 +363,27 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
       final targetSleep = _sleepController.text;
       final profile = _currentUser!.baseProfile.toString();
       final vision = _currentUser!.vision;
+      final allPbs = await _firestoreService.getPersonalBestsStream().first;
+      
+      String pbText = "登録されている自己ベストはありません。";
+      if (allPbs.isNotEmpty) {
+        final Map<String, PersonalBest> latestPbs = {};
+        for (var pb in allPbs.reversed) {
+          latestPbs[pb.event] = pb;
+        }
+        pbText = latestPbs.values.map((pb) => 
+          "- ${pb.event}: ${pb.value} ${pb.category == 'swim' ? '秒' : 'kg'} (${pb.date.year}/${pb.date.month}/${pb.date.day})"
+        ).join('\n');
+      }
 
       final prompt = '''
-あなたは競泳のプロコーチです。以下のユーザー情報と目標に基づいて、次週月曜日始まりの1週間（7日間）のトレーニング計画を作成してください。
+あなたは競泳のプロコーチです。以下のユーザー情報と自己ベスト、目標に基づいて、次週月曜日始まりの1週間（7日間）のトレーニング計画を作成してください。
 【ユーザー情報】
 $profile
 【最終目標(ビジョン)】
 $vision
+【現在の自己ベスト】
+$pbText
 【陸上トレーニング目標】
 $targetDryland
 【睡眠・リカバリー目標】

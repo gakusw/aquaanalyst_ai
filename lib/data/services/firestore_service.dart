@@ -4,6 +4,7 @@ import '../models/app_user.dart';
 import '../models/training_record.dart';
 import '../models/weekly_plan.dart';
 import '../models/training_insight.dart';
+import '../models/personal_best.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -188,5 +189,35 @@ class FirestoreService {
         .collection('training_insights')
         .doc(insight.id)
         .set(insight.toMap());
+  }
+
+  // --- 自己ベスト関連 ---
+
+  /// 自己ベストの履歴を取得するStream
+  Stream<List<PersonalBest>> getPersonalBestsStream() {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
+
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('personal_bests')
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => PersonalBest.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// 自己ベストを保存・追加する
+  Future<void> savePersonalBest(PersonalBest pb) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    final docRef = pb.id.isEmpty 
+        ? _db.collection('users').doc(uid).collection('personal_bests').doc()
+        : _db.collection('users').doc(uid).collection('personal_bests').doc(pb.id);
+
+    await docRef.set(pb.toMap(), SetOptions(merge: true));
   }
 }
