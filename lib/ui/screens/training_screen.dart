@@ -315,7 +315,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
                       );
                       await _firestoreService.addTrainingRecord(drylandRecord);
                       // 保存後に陸上トレーニングの自己ベスト自動更新を実行
-                      _firestoreService.generateInitialDrylandPbs();
+                      await _firestoreService.generateInitialDrylandPbs();
                     }
 
                     if (mounted) {

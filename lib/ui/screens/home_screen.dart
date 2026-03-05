@@ -1118,7 +1118,7 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
               });
               
               if (record.type == 'dryland') {
-                FirestoreService().generateInitialDrylandPbs();
+                await FirestoreService().generateInitialDrylandPbs();
               }
               
               if (ctx.mounted) Navigator.pop(ctx);
