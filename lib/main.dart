@@ -18,6 +18,7 @@ import 'ui/screens/nutrition_screen.dart';
 import 'ui/screens/analysis_sheet_form.dart';
 import 'ui/screens/auth_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 /// アプリ全体で共有するテーマ通知子（グローバル）
 final ValueNotifier<ThemeMode> appThemeMode = ValueNotifier(ThemeMode.dark);
@@ -125,6 +126,14 @@ class MyApp extends StatelessWidget {
           ),
           themeMode: mode,
           routerConfig: _router,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('ja', 'JP'),
+          ],
         );
       },
     );

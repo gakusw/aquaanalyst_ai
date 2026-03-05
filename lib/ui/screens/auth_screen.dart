@@ -25,6 +25,29 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
+  String _getAuthErrorMessage(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return '無効なメールアドレス形式です。';
+      case 'user-disabled':
+        return 'このアカウントは無効化されています。';
+      case 'user-not-found':
+        return 'ユーザーが見つかりません。';
+      case 'wrong-password':
+        return 'パスワードが間違っています。';
+      case 'email-already-in-use':
+        return 'このメールアドレスは既に登録されています。';
+      case 'operation-not-allowed':
+        return 'この認証方法は許可されていません。';
+      case 'weak-password':
+        return 'パスワードが弱すぎます（6文字以上必要です）。';
+      case 'invalid-credential':
+        return 'メールアドレスまたはパスワードが間違っています。';
+      default:
+        return '認証エラーが発生しました（${e.code}）';
+    }
+  }
+
   Future<void> _submit() async {
     setState(() {
       _isLoading = true;
@@ -68,7 +91,7 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
-        _errorMessage = e.message ?? '認証エラーが発生しました';
+        _errorMessage = _getAuthErrorMessage(e);
       });
     } catch (e) {
       setState(() {
@@ -111,7 +134,7 @@ class _AuthScreenState extends State<AuthScreen> {
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.message ?? 'Google認証エラーが発生しました';
+          _errorMessage = _getAuthErrorMessage(e);
         });
       }
     } catch (e) {
