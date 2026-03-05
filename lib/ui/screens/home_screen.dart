@@ -993,10 +993,15 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
                   const SizedBox(height: 16),
                   ...dayRecords.map((r) {
                     final typeStr = r.type == 'pool' ? '🏊 水中トレーニング' : (r.type == 'dryland' ? '🏋 陸トレ' : '🍎 栄養');
+                    
+                    final detailsList = r.details as List<dynamic>? ?? [];
+                    final previewText = detailsList.map((d) => d['content']?.toString() ?? '').join(' ');
+
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(typeStr),
-                      subtitle: Text('${r.durationMinutes != null ? '${r.durationMinutes}分 ' : ''}${r.details}'),
+                      subtitle: Text('${r.durationMinutes != null ? '${r.durationMinutes}分 ' : ''}$previewText'
+                        .characters.take(50).toString() + (previewText.length > 50 ? '...' : '')),
                       trailing: const Icon(Icons.edit, size: 20, color: Colors.grey),
                       onTap: () {
                         Navigator.pop(ctx);
@@ -1014,7 +1019,11 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
   }
 
   void _showEditRecordDialog(BuildContext context, TrainingRecord record) {
-    final detailsController = TextEditingController(text: record.details);
+    // detailsはList<Map>なので、テキストコンテントを抽出してStringにする
+    final detailsList = record.details as List<dynamic>? ?? [];
+    final initialText = detailsList.map((d) => d['content']?.toString() ?? '').join('\n');
+    
+    final detailsController = TextEditingController(text: initialText);
     final durationController = TextEditingController(text: record.durationMinutes?.toString() ?? '');
     final bool isNutrition = record.type == 'nutrition';
 
@@ -1070,10 +1079,16 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
           ElevatedButton(
             onPressed: () async {
-              final newDetails = detailsController.text;
+              final newDetailsText = detailsController.text;
               final newDuration = int.tryParse(durationController.text);
+              
+              // 保存時は元の形式である List<Map<String, dynamic>> に戻す
+              final newDetailsList = newDetailsText.isNotEmpty 
+                  ? [{'type': 'menu_text', 'content': newDetailsText}] 
+                  : <Map<String, dynamic>>[];
+              
               await FirestoreService().updateTrainingRecord(record.id, {
-                'details': newDetails,
+                'details': newDetailsList,
                 if (!isNutrition && newDuration != null) 'durationMinutes': newDuration,
               });
               
