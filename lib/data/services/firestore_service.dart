@@ -111,6 +111,21 @@ class FirestoreService {
         .delete();
   }
 
+  // --- 自己ベスト関連 ---
+  
+  /// 自己ベストの削除
+  Future<void> deletePersonalBest(String pbId) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('personal_bests')
+        .doc(pbId)
+        .delete();
+  }
+
   // --- 週間計画関連 ---
 
   /// 最新の週間計画を取得するStream
@@ -240,7 +255,8 @@ class FirestoreService {
 
     // 2. 正規表現で「種目名 重量(kg)」を抽出する
     // 例: "ベンチプレス 60kg", "スクワット 80.5kg" など
-    final RegExp weightRegex = RegExp(r'([^\d\s\n]+)[\s　]*(\d+\.?\d*)[\s　]*kg', caseSensitive: false);
+    // 数値や記号、'回目' 'セット目' 'kg' など種目名になり得ない文字を弾く
+    final RegExp weightRegex = RegExp(r'([^\d\s\n:：,、.。\+\-\*\/×÷]+)[\s　]*(\d+\.?\d*)[\s　]*kg', caseSensitive: false);
     
     // 種目ごとの最大重量とその達成日を保持するマップ
     final Map<String, _BestRecord> bestRecords = {};
@@ -258,6 +274,14 @@ class FirestoreService {
         final weightStr = match.group(2);
         
         if (eventName != null && eventName.isNotEmpty && weightStr != null) {
+          // 「セット目」「回目」「種目」などの除外ワードが含まれる場合は無視する
+          if (eventName.contains('セット') || 
+              eventName.contains('回') || 
+              eventName.contains('種目') || 
+              eventName.length > 20) {
+            continue;
+          }
+
           final weight = double.tryParse(weightStr);
           if (weight != null) {
             if (!bestRecords.containsKey(eventName) || bestRecords[eventName]!.weight < weight) {

@@ -110,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             if (latestSwimPbs.isEmpty) const Text('自己ベストがまだ登録されていません。', style: TextStyle(color: Colors.grey)),
             ...latestSwimPbs.values.toList().reversed.map((pb) => 
-               _buildBestTimeCard(context, pb.event, pb.value.toStringAsFixed(2), '${pb.date.year}/${pb.date.month}/${pb.date.day}', swimPbHistory[pb.event]!)
+               _buildBestTimeCard(context, pb, swimPbHistory[pb.event]!)
             ),
             const SizedBox(height: 24),
 
@@ -125,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             if (latestDrylandPbs.isEmpty) const Text('自己ベストがまだ登録されていません。', style: TextStyle(color: Colors.grey)),
             ...latestDrylandPbs.values.toList().reversed.map((pb) => 
-               _buildWeightBestCard(context, pb.event, '${pb.value.toStringAsFixed(1)} kg', '${pb.date.year}/${pb.date.month}/${pb.date.day}', drylandPbHistory[pb.event]!)
+               _buildWeightBestCard(context, pb, drylandPbHistory[pb.event]!)
             ),
             const SizedBox(height: 24),
 
@@ -441,28 +441,53 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBestTimeCard(BuildContext context, String event, String time, String date, List<PersonalBest> history) {
+  void _confirmDeletePb(BuildContext context, PersonalBest pb) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('自己ベストの削除'),
+        content: Text('「${pb.event}」の自己ベスト記録を削除しますか？\n(誤認識された場合などに利用します)'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          TextButton(
+            onPressed: () async {
+              await FirestoreService().deletePersonalBest(pb.id);
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('自己ベストを削除しました')));
+              }
+            },
+            child: const Text('削除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      )
+    );
+  }
+
+  Widget _buildBestTimeCard(BuildContext context, PersonalBest pb, List<PersonalBest> history) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8.0),
       child: ListTile(
         leading: const CircleAvatar(backgroundColor: Colors.teal, child: Icon(Icons.timer, color: Colors.white)),
-        title: Text(event, style: const TextStyle(fontWeight: FontWeight.bold)),
-        trailing: Text(time, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal.shade300)),
-        subtitle: Text(date),
-        onTap: () => _showPbHistoryDialog(context, event, history, isTime: true),
+        title: Text(pb.event, style: const TextStyle(fontWeight: FontWeight.bold)),
+        trailing: Text(pb.value.toStringAsFixed(2), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal.shade300)),
+        subtitle: Text('${pb.date.year}/${pb.date.month}/${pb.date.day}'),
+        onTap: () => _showPbHistoryDialog(context, pb.event, history, isTime: true),
+        onLongPress: () => _confirmDeletePb(context, pb),
       ),
     );
   }
 
-  Widget _buildWeightBestCard(BuildContext context, String event, String weight, String date, List<PersonalBest> history) {
+  Widget _buildWeightBestCard(BuildContext context, PersonalBest pb, List<PersonalBest> history) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8.0),
       child: ListTile(
         leading: const CircleAvatar(backgroundColor: Colors.orange, child: Icon(Icons.fitness_center, color: Colors.white)),
-        title: Text(event, style: const TextStyle(fontWeight: FontWeight.bold)),
-        trailing: Text(weight, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange.shade300)),
-        subtitle: Text('達成日: $date'),
-        onTap: () => _showPbHistoryDialog(context, event, history, isTime: false),
+        title: Text(pb.event, style: const TextStyle(fontWeight: FontWeight.bold)),
+        trailing: Text('${pb.value.toStringAsFixed(1)} kg', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange.shade300)),
+        subtitle: Text('達成日: ${pb.date.year}/${pb.date.month}/${pb.date.day}'),
+        onTap: () => _showPbHistoryDialog(context, pb.event, history, isTime: false),
+        onLongPress: () => _confirmDeletePb(context, pb),
       ),
     );
   }
