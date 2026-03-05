@@ -39,6 +39,10 @@ class GeminiService {
       return response.text;
     } catch (e) {
       debugPrint('Gemini API Error: $e');
+      final errorStr = e.toString();
+      if (errorStr.contains('Quota exceeded') || errorStr.contains('429')) {
+        return 'AIの利用制限（無料枠の上限）に達しました。約1分ほど待ってから再度お試しください。';
+      }
       return 'AIの処理中にエラーが発生しました: $e';
     }
   }
@@ -65,6 +69,10 @@ class GeminiService {
       return response.text;
     } catch (e) {
       debugPrint('Gemini Vision API Error: $e');
+      final errorStr = e.toString();
+      if (errorStr.contains('Quota exceeded') || errorStr.contains('429')) {
+        return 'AIの利用制限（無料枠の一時的な上限）に達しました。約1分待ってから再度お試しください。';
+      }
       return 'AIの処理中にエラーが発生しました: $e';
     }
   }
