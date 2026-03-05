@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/models/app_user.dart';
@@ -58,7 +59,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('設定の保存に失敗しました: $e')),
+          const SnackBar(content: Text('情報の保存中にエラーが発生しました。しばらく待ってから再度お試しください。')),
         );
       }
     }

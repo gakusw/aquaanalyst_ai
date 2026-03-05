@@ -145,7 +145,7 @@ $vision
         setState(() {
           _globalIsTyping = false;
           _globalMessages.add(CoachMessage(
-            text: 'AIの初期化に失敗しました。APIキー等の設定を確認してください。\nエラー: $e',
+            text: _getFriendlyErrorMessage(e),
             isAi: true,
             type: MessageType.warning,
           ));
@@ -208,19 +208,10 @@ $vision
         ));
       });
     } catch (e) {
-      if (!mounted) {
-        _globalIsTyping = false;
-        _globalMessages.add(CoachMessage(
-          text: 'エラーが発生しました: $e',
-          isAi: true,
-          type: MessageType.warning,
-        ));
-        return;
-      }
       setState(() {
         _globalIsTyping = false;
         _globalMessages.add(CoachMessage(
-          text: 'エラーが発生しました: $e',
+          text: _getFriendlyErrorMessage(e),
           isAi: true,
           type: MessageType.warning,
         ));
@@ -228,6 +219,28 @@ $vision
     }
     
     _scrollToBottom();
+  }
+
+  String _getFriendlyErrorMessage(dynamic e) {
+    final errorStr = e.toString();
+    
+    if (errorStr.contains('Quota exceeded') || errorStr.contains('429')) {
+      return '【AIコーチより】\nただいまリクエストが集中しており、少し休憩が必要です。1分ほど待ってからもう一度話しかけてみてください。';
+    }
+    
+    if (errorStr.contains('Service Unavailable') || errorStr.contains('503')) {
+      return '【AIコーチより】\nAIサーバーが一時的にメンテナンス中か、不安定なようです。少し時間を置いてからお試しください。';
+    }
+    
+    if (errorStr.contains('API key not valid')) {
+      return '【システムエラー】\nAPIキーが正しく設定されていないようです。管理者設定を確認してください。';
+    }
+    
+    if (errorStr.contains('Connection failed') || errorStr.contains('Network')) {
+      return '【通信エラー】\nインターネット接続を確認してください。オフラインの可能性があります。';
+    }
+
+    return '【AIコーチより】\n申し訳ありません、一時的な通信エラーが発生したようです。通信環境を確認し、少し時間を置いてから再度お試しください。';
   }
 
   void _scrollToBottom() {
