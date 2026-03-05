@@ -16,6 +16,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   late final Stream<AppUser?> _userProfileStream;
   double _expertiseLevel = 5.0;
+  bool _isDraggingExpertise = false; // ドラッグ中の上書き防止フラグ
 
   @override
   void initState() {
@@ -86,18 +87,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ageController = TextEditingController(text: currentUser.baseProfile['age']?.toString() ?? '');
     final heightController = TextEditingController(text: currentUser.baseProfile['height']?.toString() ?? '');
     final weightController = TextEditingController(text: currentUser.baseProfile['weight']?.toString() ?? '');
+    final notesController = TextEditingController(text: currentUser.baseProfile['personal_notes']?.toString() ?? '');
 
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('パーソナルデータの編集'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: ageController, decoration: const InputDecoration(labelText: '年齢 (歳)'), keyboardType: TextInputType.number),
-            TextField(controller: heightController, decoration: const InputDecoration(labelText: '身長 (cm)'), keyboardType: TextInputType.number),
-            TextField(controller: weightController, decoration: const InputDecoration(labelText: '体重 (kg)'), keyboardType: TextInputType.number),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: ageController, decoration: const InputDecoration(labelText: '年齢 (歳)'), keyboardType: TextInputType.number),
+              TextField(controller: heightController, decoration: const InputDecoration(labelText: '身長 (cm)'), keyboardType: TextInputType.number),
+              TextField(controller: weightController, decoration: const InputDecoration(labelText: '体重 (kg)'), keyboardType: TextInputType.number),
+              TextField(controller: notesController, decoration: const InputDecoration(labelText: '備考 (怪我の既往、アレルギー等)'), maxLines: 3),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('キャンセル')),
@@ -111,6 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       updatedProfile['age'] = ageController.text;
       updatedProfile['height'] = heightController.text;
       updatedProfile['weight'] = weightController.text;
+      updatedProfile['personal_notes'] = notesController.text;
 
       final updatedUser = AppUser(
         uid: currentUser.uid,
@@ -131,18 +137,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final lengthController = TextEditingController(text: currentUser.baseProfile['env_pool_length']?.toString() ?? '');
     final depthController = TextEditingController(text: currentUser.baseProfile['env_depth']?.toString() ?? '');
     final crowdController = TextEditingController(text: currentUser.baseProfile['env_crowd']?.toString() ?? '');
+    final notesController = TextEditingController(text: currentUser.baseProfile['env_notes']?.toString() ?? '');
 
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('主な練習環境の編集'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: lengthController, decoration: const InputDecoration(labelText: '水路 (例: 短水路, 長水路)'), keyboardType: TextInputType.text),
-            TextField(controller: depthController, decoration: const InputDecoration(labelText: '水深 (m)'), keyboardType: TextInputType.number),
-            TextField(controller: crowdController, decoration: const InputDecoration(labelText: '1コースあたりの人数'), keyboardType: TextInputType.number),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: lengthController, decoration: const InputDecoration(labelText: '水路 (例: 短水路, 長水路)'), keyboardType: TextInputType.text),
+              TextField(controller: depthController, decoration: const InputDecoration(labelText: '水深 (m)'), keyboardType: TextInputType.number),
+              TextField(controller: crowdController, decoration: const InputDecoration(labelText: '1コースあたりの人数'), keyboardType: TextInputType.number),
+              TextField(controller: notesController, decoration: const InputDecoration(labelText: '備考 (水温、施設の混雑状況等)'), maxLines: 3),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('キャンセル')),
@@ -156,6 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
        updatedProfile['env_pool_length'] = lengthController.text;
        updatedProfile['env_depth'] = depthController.text;
        updatedProfile['env_crowd'] = crowdController.text;
+       updatedProfile['env_notes'] = notesController.text;
        
        final updatedUser = AppUser(
          uid: currentUser.uid,
@@ -243,11 +254,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final user = snapshot.data;
           
           // Firestoreの値でローカル状態を同期
-          if (user != null) {
+          if (user != null && !_isDraggingExpertise) {
             final savedLevel = (user.baseProfile['expertiseLevel'] as num?)?.toDouble();
             if (savedLevel != null && savedLevel != _expertiseLevel) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) setState(() => _expertiseLevel = savedLevel);
+                if (mounted && !_isDraggingExpertise) setState(() => _expertiseLevel = savedLevel);
               });
             }
           }
@@ -411,9 +422,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: _expertiseLevel,
             min: 1, max: 10, divisions: 9,
             onChanged: (val) {
-              setState(() => _expertiseLevel = val);
+              setState(() {
+                _expertiseLevel = val;
+                _isDraggingExpertise = true;
+              });
             },
             onChangeEnd: (val) async {
+              setState(() => _isDraggingExpertise = false);
               if (user != null) {
                 Map<String, dynamic> updatedProfile = Map.from(user.baseProfile);
                 updatedProfile['expertiseLevel'] = val;

@@ -41,9 +41,18 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
 
   Future<void> _initChat() async {
     _globalIsInit = true;
-    setState(() {
-      _globalIsTyping = true;
-    });
+    
+    // UIを即座に更新して起動中であることを示す
+    if (mounted) {
+      setState(() {
+        _globalMessages.add(CoachMessage(
+          text: 'AIコーチを起動しています... しばらくお待ちください。',
+          isAi: true,
+          type: MessageType.normal,
+        ));
+        _globalIsTyping = true;
+      });
+    }
 
     try {
       final user = await _firestoreService.getUserProfileStream().first;
@@ -82,17 +91,13 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
 
 # Mission
 ユーザーから提供される個別のデータを客観的に分析し、以下の2つのアウトプットを統合して提供してください。
-1. **科学的トレーニング案:** 生理学的背景（ATP-CP系、解糖系、有酸素系の貢献割合等）に基づいたメニュー構成と技術的アドバイス。
+1. **科学的トレーニング案:** 生理学的背景に基づいたメニュー構成と技術的アドバイス。
 2. **タイム予測・レース分析:** CSSやRiegelの公式、ストローク効率（DPS/SR）等を用いた分析。
 
 # Analysis Framework
 - エネルギー系分析 (ターゲット距離に応じた代謝特性の最適化)
 - ストローク効率 (DPSとSRの相関)
 - 予測アルゴリズム (複数距離の相関による推定)
-- 耐乳酸能力の評価
-
-# Interaction Protocol (First Step)
-以下の情報を確認してください。既に【ユーザーコンテキスト】にある情報は、それを踏まえた上で、不足している具体的な詳細（翼幅、柔軟性の特徴、特定の練習セットのタイム等）について質問してください。
 
 【ユーザーコンテキスト】
 - プロフィール: ${user?.baseProfile.toString() ?? '未設定'}
@@ -102,17 +107,19 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
 
 # Guidelines
 - 客観的かつ論理的なトーンを維持する。
-- 提案には必ず科学的根拠（なぜその練習が必要か等）を添える。
-- 初回は「AIコーチシステムが起動しました」と述べ、不足情報の確認から入る。
+- 初回起動時は「AIコーチシステムが起動しました」と述べ、不足情報の確認から入る。
+- 最初の挨拶は簡潔にし、速やかにユーザーへの問いかけを行う。
 ''';
 
       _globalChatSession = GeminiService().startChat(systemInstruction: sysInst);
 
       if (mounted) {
-        // AIに初回挨拶と不足情報の質問を生成させる
-        final response = await _globalChatSession!.sendMessage(Content.text("システムを起動してください。まず挨拶を行い、私の現在のデータを確認した上で、分析精度を高めるために不足している情報（翼幅や特定のセットタイムなど）を具体的に1つからいくつか私に求めてください。"));
+        // AIに初回挨拶と不足情報の質問を生成させる（非同期で開始）
+        final response = await _globalChatSession!.sendMessage(Content.text("システムを起動してください。まず挨拶を行い、私の現在のデータを確認した上で、分析精度を高めるために不足している情報（翼幅や特定のセットタイムなど）について1つから2つ具体的に私に求めてください。"));
         
         setState(() {
+          // 「起動中...」のメッセージを削除または更新する。ここでは最新の応答を追加
+          _globalMessages.removeWhere((m) => m.text.contains('起動しています'));
           _globalMessages.add(CoachMessage(
             text: response.text ?? 'AIコーチシステムが起動しました。コンディションや詳細データを教えてください。',
             isAi: true,
@@ -124,19 +131,38 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
+          _globalIsTyping = false;
           _globalMessages.add(CoachMessage(
-            text: 'AIの初期化に失敗しました。APIキー等の設定を確認してください。\\nエラー: \$e',
+            text: 'AIの初期化に失敗しました。APIキー等の設定を確認してください。\nエラー: $e',
             isAi: true,
             type: MessageType.warning,
           ));
-          _globalIsTyping = false;
         });
       }
     }
   }
 
   void _handleSubmitted(String text) async {
-    if (text.trim().isEmpty || _globalChatSession == null) return;
+    if (text.trim().isEmpty) return;
+    
+    // 初期化前にメッセージが送られた場合
+    if (_globalChatSession == null) {
+      setState(() {
+        _globalMessages.add(CoachMessage(
+          text: text,
+          isAi: false,
+          type: MessageType.normal,
+        ));
+        _globalMessages.add(CoachMessage(
+          text: 'AIコーチの起動を待っています。しばらくお待ちください...',
+          isAi: true,
+          type: MessageType.warning,
+        ));
+      });
+      _textController.clear();
+      _scrollToBottom();
+      return;
+    }
 
     _textController.clear();
     setState(() {
@@ -153,16 +179,11 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
     try {
       final response = await _globalChatSession!.sendMessage(Content.text(text));
       if (!mounted) {
-        // UIが破棄されていてもグローバル状態は更新する
         _globalIsTyping = false;
         _globalMessages.add(CoachMessage(
           text: response.text ?? '応答がありませんでした。',
           isAi: true,
-          type: (response.text?.contains('警告') ?? false) 
-              ? MessageType.warning 
-              : (response.text?.contains('希望的観測') ?? false) 
-                  ? MessageType.bcaSequence 
-                  : MessageType.normal,
+          type: MessageType.normal,
         ));
         return;
       }
@@ -171,18 +192,14 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
         _globalMessages.add(CoachMessage(
           text: response.text ?? '応答がありませんでした。',
           isAi: true,
-          type: (response.text?.contains('警告') ?? false) 
-              ? MessageType.warning 
-              : (response.text?.contains('希望的観測') ?? false) 
-                  ? MessageType.bcaSequence 
-                  : MessageType.normal,
+          type: MessageType.normal,
         ));
       });
     } catch (e) {
       if (!mounted) {
         _globalIsTyping = false;
         _globalMessages.add(CoachMessage(
-          text: 'エラーが発生しました: \$e',
+          text: 'エラーが発生しました: $e',
           isAi: true,
           type: MessageType.warning,
         ));
@@ -191,7 +208,7 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
       setState(() {
         _globalIsTyping = false;
         _globalMessages.add(CoachMessage(
-          text: 'エラーが発生しました: \$e',
+          text: 'エラーが発生しました: $e',
           isAi: true,
           type: MessageType.warning,
         ));

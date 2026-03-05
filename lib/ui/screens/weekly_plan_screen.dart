@@ -532,6 +532,7 @@ $targetSleep
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: ExpansionTile(
+        key: PageStorageKey('day_${plan.dateStr}'),
         initiallyExpanded: isToday,
         title: Row(children: [
           Expanded(child: Text(plan.dateStr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
