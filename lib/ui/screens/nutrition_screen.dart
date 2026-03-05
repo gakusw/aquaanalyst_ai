@@ -36,7 +36,14 @@ class _NutritionScreenState extends State<NutritionScreen> {
     try {
       final bytes = await pickedFile.readAsBytes();
       final mimeType = pickedFile.mimeType ?? 'image/jpeg';
-      final prompt = "画像内の食事内容を解析し、何を食べたか（料理名や食材）のみを箇条書きで抽出してください。栄養バランスに対する評価やアドバイス、挨拶などの不要な記述は一切含めず、客観的な事実のみを出力してください。";
+      final prompt = """
+画像内の食事内容や料理の写真を解析し、何を食べたか（料理名や食材）のみを箇条書きで抽出してください。
+実際の料理の写真だけでなく、レシートや記録アプリのスクリーンショットなど、どのような形式の画像からでも対応してください。
+
+出力ルール：
+1. 1行に1品目ずつ記載する。
+2. 栄養バランスに対する評価やアドバイス、AIの挨拶などの不要な記述は一切含めず、抽出結果のみを出力する。
+""";
 
       final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType);
       
@@ -71,7 +78,14 @@ class _NutritionScreenState extends State<NutritionScreen> {
     try {
       final bytes = await pickedFile.readAsBytes();
       final mimeType = pickedFile.mimeType ?? 'image/jpeg';
-      final prompt = "画像内の体組成計の測定結果を読み取り、体重、骨格筋量、体脂肪率などの数値を抽出して箇条書きで出力してください。挨拶や不要な装飾は省いてください。";
+      final prompt = """
+画像内の体組成計の測定結果を読み取り、体重、骨格筋量、体脂肪率などの数値を抽出して箇条書きで出力してください。
+紙のレシート出力結果や、体組成計アプリのスクリーンショットなど、どのような形式の画像からでも対応してください。
+
+出力ルール：
+1. 「項目名: 数値 単位」の形式で1行ずつ箇条書きにする。
+2. AIの挨拶や不要な装飾、解説などは一切省いてください。
+""";
 
       final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType);
       

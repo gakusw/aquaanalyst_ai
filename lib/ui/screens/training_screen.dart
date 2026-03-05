@@ -34,11 +34,13 @@ class _TrainingScreenState extends State<TrainingScreen> {
       final mimeType = pickedFile.mimeType ?? 'image/jpeg';
       final prompt = """
 画像内の水泳の練習メニュー表を読み取って抽出してください。
-ただし、以下のルールを厳守して人間が読みやすい形式に整形してください：
+印刷されたメニュー表、手書きのホワイトボード、アプリのスクリーンショットなど、どのような形式の画像からでも対応してください。
+
+以下のルールを厳守して人間が読みやすい形式に整形してください：
 1. 「Category|Distance...」のような表のヘッダー行や、「|||」のようなエクセルの枠線・空セルの記号はすべて除外してください。
 2. ページ下部の「Strength Table」などの補足情報は読み取らないでください。
 3. 種目（W-Up, Drill, Kick, Swim, Down等）、距離、本数、サイクルタイム、指定強度や補足説明だけを抜き出し、シンプルなテキスト（例: W-Up 300 x 1 6:00 A1）として出力してください。
-4. 挨拶や不要な装飾は省いてください。
+4. プロンプトに対するAIの返答（挨拶や解説）や不要な装飾は一切省き、抽出したメニュー内容のみを出力してください。
 """;
 
       final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType);
@@ -76,7 +78,24 @@ class _TrainingScreenState extends State<TrainingScreen> {
     try {
       final bytes = await pickedFile.readAsBytes();
       final mimeType = pickedFile.mimeType ?? 'image/jpeg';
-      final prompt = "画像内の陸上トレーニング（筋トレなど）のメニューを読み取り、テキストとして出力してください。不要な装飾や挨拶は省き、メニュー内容のみをそのまま抽出してください。";
+      final prompt = """
+画像内の陸上トレーニング（筋トレなど）の記録をテキストとして抽出してください。
+ホワイトボードの手書きメニューや、トレーニング記録アプリのスクリーンショットなど、どのような形式の画像でも対応してください。
+
+システムで自己ベストなどを自動認識するため、以下の点に注意して整形してください。
+1. 各トレーニングの「種目名」を1行目に書く
+2. その下に各セットの「重量（必ず kg をつける）」と「回数」を書く
+3. 「RM」や「lbs」などの不要な補助単位が見える場合でも無視するか、見やすく整理する
+4. AIの挨拶や解説文などは一切含めないこと
+
+出力例：
+シングルアーム・ダンベルスナッチ
+1セット目 30.0kg 2回
+2セット目 30.0kg 2回
+レッグプレス（45°）
+1セット目 320.0kg 5回
+2セット目 320.0kg 3回
+""";
 
       final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType);
       
