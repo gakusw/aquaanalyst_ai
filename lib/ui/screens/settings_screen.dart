@@ -42,10 +42,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('$title の編集'),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(hintText: '新しい $title を入力'),
-          autofocus: true,
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: '新しい $title を入力',
+              border: const OutlineInputBorder(),
+            ),
+            maxLines: fieldKey == 'vision' ? 5 : 1,
+            minLines: fieldKey == 'vision' ? 3 : 1,
+            keyboardType: fieldKey == 'vision' ? TextInputType.multiline : TextInputType.text,
+            autofocus: true,
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('キャンセル')),
@@ -97,10 +106,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: ageController, decoration: const InputDecoration(labelText: '年齢 (歳)'), keyboardType: TextInputType.number),
-              TextField(controller: heightController, decoration: const InputDecoration(labelText: '身長 (cm)'), keyboardType: TextInputType.number),
-              TextField(controller: weightController, decoration: const InputDecoration(labelText: '体重 (kg)'), keyboardType: TextInputType.number),
-              TextField(controller: notesController, decoration: const InputDecoration(labelText: '備考 (怪我の既往、アレルギー等)'), maxLines: 3),
+              TextField(controller: ageController, decoration: const InputDecoration(labelText: '年齢 (歳)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+              const SizedBox(height: 16),
+              TextField(controller: heightController, decoration: const InputDecoration(labelText: '身長 (cm)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+              const SizedBox(height: 16),
+              TextField(controller: weightController, decoration: const InputDecoration(labelText: '体重 (kg)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+              const SizedBox(height: 16),
+              TextField(
+                controller: notesController,
+                decoration: const InputDecoration(
+                  labelText: '備考 (怪我の既往、アレルギー等)',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 5,
+                minLines: 3,
+                keyboardType: TextInputType.multiline,
+              ),
             ],
           ),
         ),
@@ -147,10 +169,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: lengthController, decoration: const InputDecoration(labelText: '水路 (例: 短水路, 長水路)'), keyboardType: TextInputType.text),
-              TextField(controller: depthController, decoration: const InputDecoration(labelText: '水深 (m)'), keyboardType: TextInputType.number),
-              TextField(controller: crowdController, decoration: const InputDecoration(labelText: '1コースあたりの人数'), keyboardType: TextInputType.number),
-              TextField(controller: notesController, decoration: const InputDecoration(labelText: '備考 (水温、施設の混雑状況等)'), maxLines: 3),
+              TextField(controller: lengthController, decoration: const InputDecoration(labelText: '水路 (例: 短水路, 長水路)', border: OutlineInputBorder()), keyboardType: TextInputType.text),
+              const SizedBox(height: 16),
+              TextField(controller: depthController, decoration: const InputDecoration(labelText: '水深 (m)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+              const SizedBox(height: 16),
+              TextField(controller: crowdController, decoration: const InputDecoration(labelText: '1コースあたりの人数', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+              const SizedBox(height: 16),
+              TextField(
+                controller: notesController,
+                decoration: const InputDecoration(
+                  labelText: '備考 (水温、施設の混雑状況等)',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 5,
+                minLines: 3,
+                keyboardType: TextInputType.multiline,
+              ),
             ],
           ),
         ),

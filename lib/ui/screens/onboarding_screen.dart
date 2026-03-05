@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/services/firestore_service.dart';
+import '../../data/models/app_user.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -12,6 +13,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _visionController = TextEditingController();
   final _coachController = TextEditingController();
   double _expertiseLevel = 5;
+  final _firestoreService = FirestoreService();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -20,9 +23,45 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  void _completeOnboarding() {
-    // 実際のアプリではここで設定内容をローカル保存/プロバイダーにセットする
-    context.go('/home');
+  Future<void> _completeOnboarding() async {
+    final uid = _firestoreService.currentUserId;
+    if (uid == null) {
+      context.go('/auth');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final currentProfile = await _firestoreService.getUserProfileStream().first;
+      
+      Map<String, dynamic> baseProfile = currentProfile != null 
+          ? Map<String, dynamic>.from(currentProfile.baseProfile) 
+          : {};
+      
+      baseProfile['expertiseLevel'] = _expertiseLevel;
+      baseProfile['idealCoachPersona'] = _coachController.text;
+      
+      final updatedUser = AppUser(
+        uid: uid,
+        displayName: currentProfile?.displayName ?? 'ゲストユーザー',
+        vision: _visionController.text,
+        baseProfile: baseProfile,
+        createdAt: currentProfile?.createdAt,
+      );
+
+      await _firestoreService.saveUserProfile(updatedUser);
+      
+      if (mounted) {
+        context.go('/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('設定の保存に失敗しました: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -93,12 +132,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 48),
 
                 FilledButton(
-                  onPressed: _completeOnboarding,
+                  onPressed: _isLoading ? null : _completeOnboarding,
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  child: const Text('設定を完了して分析を始める'),
+                  child: _isLoading 
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('設定を完了して分析を始める'),
                 ),
               ],
             ),

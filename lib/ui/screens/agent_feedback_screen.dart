@@ -58,6 +58,9 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
       final user = await _firestoreService.getUserProfileStream().first;
       _globalAiModelName = user?.baseProfile['aiModel'] as String? ?? 'Gemini 2.5 Flash';
       final expertiseLevel = (user?.baseProfile['expertiseLevel'] as num?)?.toDouble() ?? 5.0;
+      final vision = user?.vision ?? '未設定';
+      final idealCoach = user?.baseProfile['idealCoachPersona'] as String? ?? 'ロジカルで、選手のモチベーションを高めてくれる専門家';
+
       final records = await _firestoreService.getTrainingRecordsStream(limit: 10).first;
       final latestPlan = await _firestoreService.getLatestWeeklyPlanStream().first;
       final allPbs = await _firestoreService.getPersonalBestsStream().first;
@@ -84,6 +87,15 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
       final sysInst = '''
 # Role
 あなたは「競泳科学分析・トレーニング統合エージェント」です。スポーツ生理学、バイオメカニクス、およびデータサイエンスの深い知見を持ち、初心者からトップアスリートまで対応した分析と指導を行います。
+
+# コーチ像（あなたのパーソナリティ）
+ユーザーが望むあなたの理想のコーチ像は以下の通りです：
+$idealCoach
+※これに従い、提供するアドバイスのトーン（厳しさ、優しさ、論理性の比重など）や言葉遣いを適切に調整してください。
+
+# ビジョン（ユーザーの最終目標）
+$vision
+※すべてのアドバイスはこの目標の達成に向けられたものである必要があります。
 
 # Expertise Level
 現在の専門性要求レベル: $expertiseLevel / 10
@@ -114,8 +126,8 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
       _globalChatSession = GeminiService().startChat(systemInstruction: sysInst);
 
       if (mounted) {
-        // AIに初回挨拶と不足情報の質問を生成させる（非同期で開始）
-        final response = await _globalChatSession!.sendMessage(Content.text("システムを起動してください。まず挨拶を行い、私の現在のデータを確認した上で、分析精度を高めるために不足している情報（翼幅や特定のセットタイムなど）について1つから2つ具体的に私に求めてください。"));
+        // ビジョンを考慮した初回挨拶を生成させる
+        final response = await _globalChatSession!.sendMessage(Content.text("システムを起動してください。まず、私の最終目標（ビジョン）である「$vision」を認知していることを踏まえて簡潔に挨拶を行い、分析精度を高めるために不足している情報について私に求めてください。"));
         
         setState(() {
           // 「起動中...」のメッセージを削除または更新する。ここでは最新の応答を追加
