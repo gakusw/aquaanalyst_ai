@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
 import '../../data/models/personal_best.dart';
-import '../widgets/add_record_fab.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -87,7 +85,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 _TodaySummaryCard(
                   poolRecord: poolRecord,
                   drylandRecord: drylandRecord,
-                  nutritionRecords: todayRecords.where((r) => r.type == 'nutrition').toList(),
+                  nutritionRecords: todayRecords.where((r) => 
+                    r.type == 'nutrition' && 
+                    r.subjectiveMetrics['is_body_composition'] != true
+                  ).toList(),
                 ),
                 const SizedBox(height: 24),
 
@@ -132,34 +133,81 @@ class _HomeScreenState extends State<HomeScreen> {
             // 現在の体組成（自己ベスト下）
             const Text('現在の体組成', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _SectionLabel(icon: Icons.monitor_weight, label: '直近の計測値 (2026/03/01)', color: Colors.purpleAccent),
-                    const SizedBox(height: 12),
-                    const _DetailRow(label: '体重', value: '69.3 kg'),
-                    const _DetailRow(label: '骨格筋量', value: '35.5 kg'),
-                    const _DetailRow(label: '体脂肪率', value: '11.2 %'),
-                    const SizedBox(height: 8),
-                    const Divider(),
-                    const SizedBox(height: 4),
-                    Text('変化（先月比）', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
-                    const SizedBox(height: 4),
-                    Row(children: const [
-                      Icon(Icons.arrow_downward, color: Colors.greenAccent, size: 14),
-                      SizedBox(width: 4),
-                      Text('体重 -0.9 kg', style: TextStyle(fontSize: 13, color: Colors.greenAccent)),
-                      SizedBox(width: 16),
-                      Icon(Icons.arrow_upward, color: Colors.blueAccent, size: 14),
-                      SizedBox(width: 4),
-                      Text('骨格筋量 +1.3 kg', style: TextStyle(fontSize: 13, color: Colors.blueAccent)),
-                    ]),
-                  ],
-                ),
-              ),
+            Builder(
+              builder: (context) {
+                // 体組成データを抽出 (is_body_compositionフラグ優先、なければテキストパース)
+                final bodyCompRecords = allRecords.where((r) => 
+                  r.type == 'nutrition' && (r.subjectiveMetrics['is_body_composition'] == true ||
+                  (r.details as List).any((d) => (d['content']?.toString() ?? '').contains('体重')))
+                ).toList();
+
+                if (bodyCompRecords.isEmpty) {
+                  return const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('体組成の記録がまだありません。「+」ボタンから記録できます。', style: TextStyle(color: Colors.grey)),
+                    ),
+                  );
+                }
+
+                // 最新の記録
+                final latest = bodyCompRecords.first;
+                final weight = latest.subjectiveMetrics['weight']?.toDouble() ?? 0.0;
+                final muscle = latest.subjectiveMetrics['muscle_mass']?.toDouble() ?? 0.0;
+                final fat = latest.subjectiveMetrics['body_fat']?.toDouble() ?? 0.0;
+                final dateStr = "${latest.date.year}/${latest.date.month.toString().padLeft(2, '0')}/${latest.date.day.toString().padLeft(2, '0')}";
+
+                // 比較用（1つ前の記録があれば）
+                double weightDiff = 0;
+                double muscleDiff = 0;
+                if (bodyCompRecords.length > 1) {
+                  final prev = bodyCompRecords[1];
+                  final prevWeight = prev.subjectiveMetrics['weight']?.toDouble() ?? 0.0;
+                  final prevMuscle = prev.subjectiveMetrics['muscle_mass']?.toDouble() ?? 0.0;
+                  if (prevWeight > 0) weightDiff = weight - prevWeight;
+                  if (prevMuscle > 0) muscleDiff = muscle - prevMuscle;
+                }
+
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SectionLabel(icon: Icons.monitor_weight, label: '直近の計測値 ($dateStr)', color: Colors.purpleAccent),
+                        const SizedBox(height: 12),
+                        _DetailRow(label: '体重', value: weight > 0 ? '$weight kg' : '未入力'),
+                        _DetailRow(label: '骨格筋量', value: muscle > 0 ? '$muscle kg' : '未入力'),
+                        _DetailRow(label: '体脂肪率', value: fat > 0 ? '$fat %' : '未入力'),
+                        if (weightDiff != 0 || muscleDiff != 0) ...[
+                          const SizedBox(height: 8),
+                          const Divider(),
+                          const SizedBox(height: 4),
+                          Text('前回比', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
+                          const SizedBox(height: 4),
+                          Row(children: [
+                            if (weightDiff != 0) ...[
+                              Icon(weightDiff < 0 ? Icons.arrow_downward : Icons.arrow_upward, 
+                                   color: weightDiff < 0 ? Colors.greenAccent : Colors.orangeAccent, size: 14),
+                              const SizedBox(width: 4),
+                              Text('体重 ${weightDiff > 0 ? '+' : ''}${weightDiff.toStringAsFixed(1)} kg', 
+                                   style: TextStyle(fontSize: 13, color: weightDiff < 0 ? Colors.greenAccent : Colors.orangeAccent)),
+                              const SizedBox(width: 16),
+                            ],
+                            if (muscleDiff != 0) ...[
+                              Icon(muscleDiff > 0 ? Icons.arrow_upward : Icons.arrow_downward, 
+                                   color: muscleDiff > 0 ? Colors.blueAccent : Colors.redAccent, size: 14),
+                              const SizedBox(width: 4),
+                              Text('骨格筋量 ${muscleDiff > 0 ? '+' : ''}${muscleDiff.toStringAsFixed(1)} kg', 
+                                   style: TextStyle(fontSize: 13, color: muscleDiff > 0 ? Colors.blueAccent : Colors.redAccent)),
+                            ],
+                          ]),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }
             ),
             const SizedBox(height: 32),            // レーダーチャート領域（栄養バランス）
             const Text(
@@ -596,120 +644,19 @@ class _TodaySummaryCard extends StatefulWidget {
 }
 
 class _TodaySummaryCardState extends State<_TodaySummaryCard> {
-  final FirestoreService _firestoreService = FirestoreService();
-  bool _isEditing = false;
-  bool _isSaving = false;
-
-  final TextEditingController _poolTimeController = TextEditingController();
-  final TextEditingController _poolMenuController = TextEditingController();
-  double _poolFeeling = 5.0;
-  final TextEditingController _drylandMenuController = TextEditingController();
-  double _drylandFeeling = 5.0;
-
-  List<TextEditingController> _nutritionControllers = [];
-  List<double> _nutritionProtein = [];
-  List<double> _nutritionCarbs = [];
-  List<String> _nutritionLabels = [];
-
   String? _aiEvaluation;
   bool _isAiLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _initControllers();
   }
 
   @override
   void didUpdateWidget(_TodaySummaryCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_isEditing) {
-      _initControllers();
-    }
   }
 
-  void _initControllers() {
-    _poolTimeController.text = (widget.poolRecord?.durationMinutes ?? 0).toString();
-    _poolMenuController.text = (widget.poolRecord?.details.isNotEmpty == true) ? widget.poolRecord!.details.first['content'] : '';
-    _poolFeeling = widget.poolRecord?.subjectiveMetrics['feeling']?.toDouble() ?? 5.0;
-    
-    _drylandMenuController.text = (widget.drylandRecord?.details.isNotEmpty == true) ? widget.drylandRecord!.details.first['content'] : '';
-    _drylandFeeling = widget.drylandRecord?.subjectiveMetrics['feeling']?.toDouble() ?? 5.0;
-
-    for (var c in _nutritionControllers) { c.dispose(); }
-    _nutritionControllers = [];
-    _nutritionProtein = [];
-    _nutritionCarbs = [];
-    _nutritionLabels = [];
-    for (var r in widget.nutritionRecords) {
-      _nutritionControllers.add(TextEditingController(text: r.details.isNotEmpty ? r.details.first['content'] : ''));
-      _nutritionProtein.add(r.subjectiveMetrics['protein']?.toDouble() ?? 3.0);
-      _nutritionCarbs.add(r.subjectiveMetrics['carbs']?.toDouble() ?? 3.0);
-      _nutritionLabels.add(r.subjectiveMetrics['meal_label'] as String? ?? '未分類');
-    }
-  }
-
-  Future<void> _save() async {
-    setState(() => _isSaving = true);
-    try {
-      if (widget.poolRecord != null) {
-        final currentDetails = List<Map<String, dynamic>>.from(widget.poolRecord!.details);
-        if (currentDetails.isNotEmpty) {
-           currentDetails[0]['content'] = _poolMenuController.text;
-        } else if (_poolMenuController.text.isNotEmpty) {
-           currentDetails.add({'type': 'menu_text', 'content': _poolMenuController.text});
-        }
-        final subjective = Map<String, dynamic>.from(widget.poolRecord!.subjectiveMetrics);
-        subjective['feeling'] = _poolFeeling;
-
-        await _firestoreService.updateTrainingRecord(widget.poolRecord!.id, {
-          'durationMinutes': int.tryParse(_poolTimeController.text) ?? widget.poolRecord!.durationMinutes,
-          'details': currentDetails,
-          'subjectiveMetrics': subjective,
-        });
-      }
-      if (widget.drylandRecord != null) {
-        final currentDetails = List<Map<String, dynamic>>.from(widget.drylandRecord!.details);
-        if (currentDetails.isNotEmpty) {
-           currentDetails[0]['content'] = _drylandMenuController.text;
-        } else if (_drylandMenuController.text.isNotEmpty) {
-           currentDetails.add({'type': 'menu_text', 'content': _drylandMenuController.text});
-        }
-        final subjective = Map<String, dynamic>.from(widget.drylandRecord!.subjectiveMetrics);
-        subjective['feeling'] = _drylandFeeling;
-
-        await _firestoreService.updateTrainingRecord(widget.drylandRecord!.id, {
-          'details': currentDetails,
-          'subjectiveMetrics': subjective,
-        });
-      }
-      
-      for (int i = 0; i < widget.nutritionRecords.length; i++) {
-        final r = widget.nutritionRecords[i];
-        final currentDetails = List<Map<String, dynamic>>.from(r.details);
-        if (currentDetails.isNotEmpty) {
-           currentDetails[0]['content'] = _nutritionControllers[i].text;
-        } else if (_nutritionControllers[i].text.isNotEmpty) {
-           currentDetails.add({'type': 'memo', 'content': _nutritionControllers[i].text});
-        }
-        final subjective = Map<String, dynamic>.from(r.subjectiveMetrics);
-        subjective['protein'] = _nutritionProtein[i];
-        subjective['carbs'] = _nutritionCarbs[i];
-        subjective['meal_label'] = _nutritionLabels[i];
-
-        await _firestoreService.updateTrainingRecord(r.id, {
-          'details': currentDetails,
-          'subjectiveMetrics': subjective,
-        });
-      }
-
-      setState(() => _isEditing = false);
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('保存失敗: $e')));
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
 
   Future<void> _generateAiEvaluation(String nutritionMenu, double p, double f, double c) async {
     setState(() => _isAiLoading = true);
@@ -745,8 +692,20 @@ P: $p, F: $f, C: $c
       ? widget.poolRecord!.details.first['content'] ?? '記録あり' : '未入力';
     final poolSubjective = widget.poolRecord?.subjectiveMetrics['feeling']?.round()?.toString() ?? '-';
 
-    final drylandMenuLabel = widget.drylandRecord != null && widget.drylandRecord!.details.isNotEmpty
-      ? widget.drylandRecord!.details.first['content'] ?? '記録あり' : '未入力';
+    final drylandMenuLabel = () {
+      if (widget.drylandRecord == null || widget.drylandRecord!.details.isEmpty) return '未入力';
+      // menu_text タイプからコンテンツを取得
+      final menuTextItem = widget.drylandRecord!.details.where((d) => d['type'] == 'menu_text').firstOrNull;
+      if (menuTextItem != null && menuTextItem['content'] != null) return menuTextItem['content'] as String;
+      // menu_text がない場合は dryland_set からサマリーを生成
+      final sets = widget.drylandRecord!.details.where((d) => d['type'] == 'dryland_set');
+      if (sets.isNotEmpty) {
+        final exercises = <String>{};
+        for (var s in sets) { exercises.add('${s['exercise']} ${s['weight']}kg'); }
+        return exercises.join(', ');
+      }
+      return '記録あり';
+    }();
     final drylandSubjective = widget.drylandRecord?.subjectiveMetrics['feeling']?.round()?.toString() ?? '-';
 
     double proteinValue = 0.0;
@@ -777,131 +736,29 @@ P: $p, F: $f, C: $c
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('今日のサマリー', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
-              if (!_isEditing)
-                IconButton(icon: const Icon(Icons.edit, size: 20), onPressed: () => setState(() => _isEditing = true))
-              else
-                _isSaving 
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                  : TextButton(onPressed: _save, child: const Text('完了')),
             ],
           ),
           Divider(color: Theme.of(context).colorScheme.primaryContainer, height: 24),
           const _SectionLabel(icon: Icons.pool, label: '水中トレーニング', color: Colors.blueAccent),
           const SizedBox(height: 8),
-          if (_isEditing) ...[
-             Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: TextField(controller: _poolTimeController, decoration: const InputDecoration(labelText: '時間 (分)', isDense: true, border: OutlineInputBorder()), keyboardType: TextInputType.number),
-            ),
-             Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: TextField(controller: _poolMenuController, decoration: const InputDecoration(labelText: '内容', isDense: true, border: OutlineInputBorder()), maxLines: null),
-            ),
-             Padding(
-              padding: const EdgeInsets.only(bottom: 8.0, top: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('主観感覚 (1-10): ${_poolFeeling.toStringAsFixed(1)}', style: const TextStyle(fontSize: 12)),
-                  Slider(
-                    value: _poolFeeling,
-                    min: 1,
-                    max: 10,
-                    divisions: 18,
-                    onChanged: (val) => setState(() => _poolFeeling = val),
-                  ),
-                ],
-              ),
-            ),
-          ] else ...[
-            _DetailRow(label: '時間/詳細', value: poolDistanceLabel),
-            _DetailRow(label: '内容', child: _ExpandableText(poolMenuLabel)),
-            _DetailRow(label: '主観感覚', value: '$poolSubjective / 10'),
-          ],
+          _DetailRow(label: '時間/詳細', value: poolDistanceLabel),
+          _DetailRow(label: '内容', child: _ExpandableText(poolMenuLabel)),
+          _DetailRow(label: '主観感覚', value: '$poolSubjective / 10'),
           const SizedBox(height: 16),
           const _SectionLabel(icon: Icons.fitness_center, label: '陸上トレーニング', color: Colors.green),
           const SizedBox(height: 8),
-          if (_isEditing) ...[
-             Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: TextField(controller: _drylandMenuController, decoration: const InputDecoration(labelText: '内容', isDense: true, border: OutlineInputBorder()), maxLines: null),
-            ),
-             Padding(
-              padding: const EdgeInsets.only(bottom: 8.0, top: 8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('疲労度 (1-10): ${_drylandFeeling.toStringAsFixed(1)}', style: const TextStyle(fontSize: 12)),
-                  Slider(
-                    value: _drylandFeeling,
-                    min: 1,
-                    max: 10,
-                    divisions: 18,
-                    onChanged: (val) => setState(() => _drylandFeeling = val),
-                  ),
-                ],
-              ),
-            ),
-          ] else ...[
-            _DetailRow(label: '内容', child: _ExpandableText(drylandMenuLabel)),
-            _DetailRow(label: '疲労度', value: '$drylandSubjective / 10'),
-          ],
+          _DetailRow(label: '内容', child: _ExpandableText(drylandMenuLabel)),
+          _DetailRow(label: '疲労度', value: '$drylandSubjective / 10'),
           const SizedBox(height: 16),
           const _SectionLabel(icon: Icons.restaurant, label: '栄養状態 (合算)', color: Colors.orangeAccent),
           const SizedBox(height: 8),
-          
-          if (_isEditing) ...[
-            for (int i = 0; i < widget.nutritionRecords.length; i++) ...[
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0, top: 8.0),
-                child: DropdownButtonFormField<String>(
-                  value: ['朝食', '昼食', '夕食', '間食', '未分類'].contains(_nutritionLabels[i]) ? _nutritionLabels[i] : '未分類',
-                  decoration: const InputDecoration(labelText: '食事ラベル', isDense: true, border: OutlineInputBorder()),
-                  items: ['朝食', '昼食', '夕食', '間食', '未分類'].map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
-                  onChanged: (val) => setState(() => _nutritionLabels[i] = val!),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: TextField(controller: _nutritionControllers[i], decoration: const InputDecoration(labelText: '内容', isDense: true, border: OutlineInputBorder()), maxLines: null),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('タンパク質: ${_nutritionProtein[i].toStringAsFixed(0)}', style: const TextStyle(fontSize: 12)),
-                          Slider(value: _nutritionProtein[i], min: 1, max: 5, divisions: 4, onChanged: (val) => setState(() => _nutritionProtein[i] = val)),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('炭水化物: ${_nutritionCarbs[i].toStringAsFixed(0)}', style: const TextStyle(fontSize: 12)),
-                          Slider(value: _nutritionCarbs[i], min: 1, max: 5, divisions: 4, onChanged: (val) => setState(() => _nutritionCarbs[i] = val)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(),
-            ],
-            if (widget.nutritionRecords.isEmpty) const Text('今日の食事記録はありません。', style: TextStyle(fontSize: 13, color: Colors.grey)),
-          ] else ...[
-            if (widget.nutritionRecords.isEmpty) 
-               const _DetailRow(label: '食事内容', value: '未入力'),
-            for (var r in widget.nutritionRecords)
-               _DetailRow(
-                 label: r.subjectiveMetrics['meal_label'] as String? ?? '未分類', 
-                 child: _ExpandableText(r.details.isNotEmpty ? r.details.first['content'] : '記録あり')
-               ),
-          ],
+          if (widget.nutritionRecords.isEmpty) 
+             const _DetailRow(label: '食事内容', value: '未入力'),
+          for (var r in widget.nutritionRecords)
+             _DetailRow(
+               label: r.subjectiveMetrics['meal_label'] as String? ?? '未分類', 
+               child: _ExpandableText(r.details.isNotEmpty ? r.details.first['content'] : '記録あり')
+             ),
           
           const SizedBox(height: 8),
           _PfcStatusRow(label: 'タンパク質 (P)', value: proteinValue, maxValue: 15, color: Colors.redAccent, status: proteinValue >= 12 ? '達成' : (proteinValue >= 8 ? '適正' : '不足')),
@@ -1020,7 +877,12 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
                     final typeStr = r.type == 'pool' ? '🏊 水中トレーニング' : (r.type == 'dryland' ? '🏋 陸トレ' : '🍎 栄養');
                     
                     final detailsList = r.details as List<dynamic>? ?? [];
-                    final previewText = detailsList.map((d) => d['content']?.toString() ?? '').join(' ');
+                    final previewText = detailsList.map((d) {
+                      if (d['type'] == 'dryland_set') {
+                        return '${d['exercise']} ${d['weight']}kg ${d['reps']}回';
+                      }
+                      return d['content']?.toString() ?? '';
+                    }).join(' ');
 
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -1046,7 +908,20 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
   void _showEditRecordDialog(BuildContext context, TrainingRecord record) {
     // detailsはList<Map>なので、テキストコンテントを抽出してStringにする
     final detailsList = record.details as List<dynamic>? ?? [];
-    final initialText = detailsList.map((d) => d['content']?.toString() ?? '').join('\n');
+    String initialText = '';
+    
+    final menuTextItem = detailsList.where((d) => d['type'] == 'menu_text').cast<Map<String, dynamic>?>().firstOrNull;
+    if (menuTextItem != null) {
+      initialText = menuTextItem['content']?.toString() ?? '';
+    } else {
+      // menu_text がない場合は構造化データから復元を試みる
+      initialText = detailsList.map((d) {
+        if (d['type'] == 'dryland_set') {
+          return '${d['exercise']}\n${d['set_num']}セット目 ${d['weight']}kg ${d['reps']}回';
+        }
+        return d['content']?.toString() ?? '';
+      }).join('\n');
+    }
     
     final detailsController = TextEditingController(text: initialText);
     final durationController = TextEditingController(text: record.durationMinutes?.toString() ?? '');
@@ -1108,9 +983,49 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
               final newDuration = int.tryParse(durationController.text);
               
               // 保存時は元の形式である List<Map<String, dynamic>> に戻す
-              final newDetailsList = newDetailsText.isNotEmpty 
-                  ? [{'type': 'menu_text', 'content': newDetailsText}] 
-                  : <Map<String, dynamic>>[];
+              List<Map<String, dynamic>> newDetailsList = [];
+              
+              if (record.type == 'dryland') {
+                // 陸上トレーニングの場合は再パースを行う
+                final lines = newDetailsText.split('\n');
+                String currentExercise = '';
+                final weightRegex = RegExp(r'(\d+\.?\d*)\s*kg', caseSensitive: false);
+                final repsRegex = RegExp(r'(\d+)\s*(?:回|reps)', caseSensitive: false);
+                final setNumRegex = RegExp(r'(\d+)\s*(?:セット目|set)', caseSensitive: false);
+
+                for (var line in lines) {
+                  final trimmed = line.trim();
+                  if (trimmed.isEmpty) continue;
+
+                  final wMatch = weightRegex.firstMatch(trimmed);
+                  final rMatch = repsRegex.firstMatch(trimmed);
+
+                  if (wMatch != null) {
+                    final weight = double.tryParse(wMatch.group(1) ?? '0') ?? 0.0;
+                    final reps = int.tryParse(rMatch?.group(1) ?? '0') ?? 0;
+                    final setNum = int.tryParse(setNumRegex.firstMatch(trimmed)?.group(1) ?? '1') ?? 1;
+
+                    if (currentExercise.isNotEmpty) {
+                      newDetailsList.add({
+                        'type': 'dryland_set',
+                        'exercise': currentExercise,
+                        'weight': weight,
+                        'reps': reps,
+                        'set_num': setNum,
+                      });
+                    }
+                  } else {
+                    if (!trimmed.contains('続きを読む') && !trimmed.contains('閉じる')) {
+                      currentExercise = trimmed;
+                    }
+                  }
+                }
+                newDetailsList.add({'type': 'menu_text', 'content': newDetailsText});
+              } else {
+                if (newDetailsText.isNotEmpty) {
+                  newDetailsList.add({'type': 'menu_text', 'content': newDetailsText});
+                }
+              }
               
               await FirestoreService().updateTrainingRecord(record.id, {
                 'details': newDetailsList,

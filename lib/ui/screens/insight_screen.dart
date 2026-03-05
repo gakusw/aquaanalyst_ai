@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/models/training_insight.dart';
-import '../widgets/add_record_fab.dart';
+import '../../data/models/training_record.dart';
+import '../../data/models/personal_best.dart';
+import '../../data/models/app_user.dart';
 class _EventPrediction {
   final String name;
   final String predictedTime;
@@ -61,6 +63,10 @@ class InsightScreen extends StatefulWidget {
 class _InsightScreenState extends State<InsightScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   late final Stream<TrainingInsight?> _insightStream;
+  late final Stream<List<TrainingRecord>> _recordsStream;
+  late final Stream<List<PersonalBest>> _pbStream;
+  late final Stream<AppUser?> _userStream;
+
   int _selectedEventIndex = 0;
   int _selectedViewIndex = 0; // 0:相関, 1:体組成, 2:タイム予測, 3:ビジョン
   bool _showPredictedTime = false; // 予測タイムレンジ表示フラグ
@@ -69,45 +75,66 @@ class _InsightScreenState extends State<InsightScreen> {
   void initState() {
     super.initState();
     _insightStream = _firestoreService.getLatestInsightStream();
+    _recordsStream = _firestoreService.getTrainingRecordsStream(limit: 50);
+    _pbStream = _firestoreService.getPersonalBestsStream();
+    _userStream = _firestoreService.getUserProfileStream();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 画面幅に応じてPCダッシュボードレイアウトかスマホトグルかを判定
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
     return StreamBuilder<TrainingInsight?>(
       stream: _insightStream,
-      builder: (context, snapshot) {
-        final insightData = snapshot.data;
-        
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('インサイト（分析・洞察）'),
-            actions: [
-              if (isDesktop)
-                TextButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('パーソナル・アナリシス・レポート(PDF)を出力しました')));
-                  },
-                  icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
-                  label: const Text('レポート出力', style: TextStyle(color: Colors.white)),
-                ),
-            ],
-          ),
-          body: Column(
-            children: [
-              // 1. エージェントの「思考の断片」表示領域
-              _buildAgentThinkingLog(context, insightData),
+      builder: (context, insightSnapshot) {
+        return StreamBuilder<List<TrainingRecord>>(
+          stream: _recordsStream,
+          builder: (context, recordsSnapshot) {
+            return StreamBuilder<List<PersonalBest>>(
+              stream: _pbStream,
+              builder: (context, pbsSnapshot) {
+                return StreamBuilder<AppUser?>(
+                  stream: _userStream,
+                  builder: (context, userSnapshot) {
+                    final insightData = insightSnapshot.data;
+                    final recordsData = recordsSnapshot.data ?? [];
+                    final pbsData = pbsSnapshot.data ?? [];
+                    final userData = userSnapshot.data;
 
-              // 2. メインコンテンツ領域
-              Expanded(
-                child: isDesktop 
-                    ? _buildDesktopDashboard(context, insightData) 
-                    : _buildMobileToggleView(context, insightData),
-              ),
-            ],
-          ),
+                    if (insightSnapshot.connectionState == ConnectionState.waiting && insightData == null) {
+                      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+                    }
+
+                    return Scaffold(
+                      appBar: AppBar(
+                        title: const Text('インサイト（分析・洞察）'),
+                        actions: [
+                          if (isDesktop)
+                            TextButton.icon(
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('レポートを出力しました')));
+                              },
+                              icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
+                              label: const Text('レポート出力', style: TextStyle(color: Colors.white)),
+                            ),
+                        ],
+                      ),
+                      body: Column(
+                        children: [
+                          _buildAgentThinkingLog(context, insightData),
+                          Expanded(
+                            child: isDesktop 
+                                ? _buildDesktopDashboard(context, insightData, recordsData, pbsData, userData) 
+                                : _buildMobileToggleView(context, insightData, recordsData, pbsData, userData),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                );
+              }
+            );
+          }
         );
       }
     );
@@ -147,13 +174,12 @@ class _InsightScreenState extends State<InsightScreen> {
   }
 
   // --- スマホ向けトグルビュー ---
-  Widget _buildMobileToggleView(BuildContext context, TrainingInsight? insight) {
+  Widget _buildMobileToggleView(BuildContext context, TrainingInsight? insight, List<TrainingRecord> records, List<PersonalBest> pbs, AppUser? user) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ビュー切り替えトグル
           SegmentedButton<int>(
             segments: const [
               ButtonSegment(value: 0, icon: Icon(Icons.scatter_plot, size: 18), label: Text('相関')),
@@ -172,11 +198,10 @@ class _InsightScreenState extends State<InsightScreen> {
           ),
           const SizedBox(height: 24),
 
-          // 選択されたビューの表示
-          if (_selectedViewIndex == 0) _buildCorrelationView(context, insight),
-          if (_selectedViewIndex == 1) _buildBodyNutritionView(context, insight),
-          if (_selectedViewIndex == 2) _buildPredictionView(context, insight),
-          if (_selectedViewIndex == 3) _buildVisionAlignmentView(context, insight),
+          if (_selectedViewIndex == 0) _buildCorrelationView(context, insight, records),
+          if (_selectedViewIndex == 1) _buildBodyNutritionView(context, insight, records),
+          if (_selectedViewIndex == 2) _buildPredictionView(context, insight, pbs),
+          if (_selectedViewIndex == 3) _buildVisionAlignmentView(context, insight, user),
           
           const SizedBox(height: 40),
         ],
@@ -185,7 +210,7 @@ class _InsightScreenState extends State<InsightScreen> {
   }
 
   // --- PC向けダッシュボード ---
-  Widget _buildDesktopDashboard(BuildContext context, TrainingInsight? insight) {
+  Widget _buildDesktopDashboard(BuildContext context, TrainingInsight? insight, List<TrainingRecord> records, List<PersonalBest> pbs, AppUser? user) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -193,18 +218,18 @@ class _InsightScreenState extends State<InsightScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _buildCorrelationView(context, insight)),
+              Expanded(child: _buildCorrelationView(context, insight, records)),
               const SizedBox(width: 24),
-              Expanded(child: _buildBodyNutritionView(context, insight)),
+              Expanded(child: _buildBodyNutritionView(context, insight, records)),
             ],
           ),
           const SizedBox(height: 24),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _buildPredictionView(context, insight)),
+              Expanded(child: _buildPredictionView(context, insight, pbs)),
               const SizedBox(width: 24),
-              Expanded(child: _buildVisionAlignmentView(context, insight)),
+              Expanded(child: _buildVisionAlignmentView(context, insight, user)),
             ],
           ),
         ],
@@ -213,7 +238,14 @@ class _InsightScreenState extends State<InsightScreen> {
   }
 
   // ============== A. 相関分析ビュー ==============
-  Widget _buildCorrelationView(BuildContext context, TrainingInsight? insight) {
+  Widget _buildCorrelationView(BuildContext context, TrainingInsight? insight, List<TrainingRecord> records) {
+    // 実際に過去の主観評価と練習時間（分）の相関をプロット
+    final scatterSpots = records.where((r) => r.subjectiveMetrics.containsKey('feeling')).map((r) {
+      final feeling = (r.subjectiveMetrics['feeling'] as num?)?.toDouble() ?? 5.0;
+      final duration = r.durationMinutes.toDouble();
+      return ScatterSpot(feeling, duration, dotPainter: FlDotCirclePainter(color: Colors.blueAccent, radius: 4));
+    }).toList();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -222,54 +254,48 @@ class _InsightScreenState extends State<InsightScreen> {
           children: [
             const Text('主観・客観 相関分析', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text('感覚の良さと実際のストローク効率(DPS)のズレ', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+            Text('感覚の良さと実際の練習ボリューム(分)の相関', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
             const SizedBox(height: 24),
             SizedBox(
               height: 200,
-              child: ScatterChart(
-                ScatterChartData(
-                  scatterSpots: [
-                    ScatterSpot(3, 1.8, dotPainter: FlDotCirclePainter(color: Colors.blueAccent, radius: 4)),
-                    ScatterSpot(4, 2.0, dotPainter: FlDotCirclePainter(color: Colors.blueAccent, radius: 4)),
-                    ScatterSpot(5, 1.9, dotPainter: FlDotCirclePainter(color: Colors.blueAccent, radius: 4)),
-                    ScatterSpot(6, 2.3, dotPainter: FlDotCirclePainter(color: Colors.blueAccent, radius: 4)),
-                    ScatterSpot(7, 2.1, dotPainter: FlDotCirclePainter(color: Colors.blueAccent, radius: 4)),
-                    ScatterSpot(8, 2.5, dotPainter: FlDotCirclePainter(color: Colors.orangeAccent, radius: 6)), // 注目点
-                    ScatterSpot(9, 2.2, dotPainter: FlDotCirclePainter(color: Colors.blueAccent, radius: 4)),
-                  ],
-                  minX: 1, maxX: 10, minY: 1.5, maxY: 3.0,
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: true, reservedSize: 22, getTitlesWidget: (v, m) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 10))),
-                      axisNameWidget: const Text('主観的感覚 (1-10)', style: TextStyle(fontSize: 12)),
+              child: scatterSpots.isEmpty 
+                ? const Center(child: Text('データが不足しています', style: TextStyle(color: Colors.grey)))
+                : ScatterChart(
+                    ScatterChartData(
+                      scatterSpots: scatterSpots,
+                      minX: 1, maxX: 10, minY: 0, maxY: 180,
+                      titlesData: FlTitlesData(
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: true, reservedSize: 22, getTitlesWidget: (v, m) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 10))),
+                          axisNameWidget: const Text('主観的感覚 (1-10)', style: TextStyle(fontSize: 12)),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (v, m) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 10))),
+                          axisNameWidget: const Text('時間 (分)', style: TextStyle(fontSize: 12)),
+                        ),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      ),
+                      gridData: const FlGridData(show: true),
                     ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (v, m) => Text(v.toStringAsFixed(1), style: const TextStyle(fontSize: 10))),
-                      axisNameWidget: const Text('DPS (m/str)', style: TextStyle(fontSize: 12)),
-                    ),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
-                  gridData: FlGridData(show: true, drawVerticalLine: true, drawHorizontalLine: true),
-                ),
-              ),
             ),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.insights, color: Colors.orange, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text('【洞察】あなたが「感覚が8(とても良い)」と記録した時、DPSは急上昇(2.5)していますが、同時にタイムが低下する「空回り」現象が起きています。テンポが落ちすぎている可能性があります。',
-                      style: TextStyle(fontSize: 12, height: 1.4)),
-                  ),
-                ],
+            if (insight?.overallInsight != null && insight!.overallInsight.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.insights, color: Colors.orange, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(insight.overallInsight, style: const TextStyle(fontSize: 12, height: 1.4)),
+                    ),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -277,7 +303,31 @@ class _InsightScreenState extends State<InsightScreen> {
   }
 
   // ============== B. 身体組成・栄養インパクトビュー ==============
-  Widget _buildBodyNutritionView(BuildContext context, TrainingInsight? insight) {
+  Widget _buildBodyNutritionView(BuildContext context, TrainingInsight? insight, List<TrainingRecord> records) {
+    // 栄養記録のメモから体重と骨格筋量を抽出してグラフ化
+    final List<FlSpot> weightSpots = [];
+    final List<FlSpot> muscleSpots = [];
+    final weightRegex = RegExp(r'体重:\s*([0-9.]+)\s*kg');
+    final muscleRegex = RegExp(r'骨格筋量:\s*([0-9.]+)\s*kg');
+
+    final nutritionRecords = records.where((r) => r.type == 'nutrition').toList().reversed.toList();
+    for (int i = 0; i < nutritionRecords.length; i++) {
+      final record = nutritionRecords[i];
+      for (final detail in record.details) {
+        if (detail['type'] == 'memo') {
+          final content = detail['content'] as String;
+          final wMatch = weightRegex.firstMatch(content);
+          final mMatch = muscleRegex.firstMatch(content);
+          if (wMatch != null) {
+            weightSpots.add(FlSpot(i.toDouble(), double.parse(wMatch.group(1)!)));
+          }
+          if (mMatch != null) {
+            muscleSpots.add(FlSpot(i.toDouble(), double.parse(mMatch.group(1)!)));
+          }
+        }
+      }
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -286,28 +336,51 @@ class _InsightScreenState extends State<InsightScreen> {
           children: [
             const Text('身体・栄養 インパクト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text('体組成の変化がパフォーマンス後半に与える影響', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+            Text('体組成の変化と栄養主観評価の推移', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
             const SizedBox(height: 16),
-            // 簡単なモック複合グラフ表現
-            Container(
+            SizedBox(
               height: 150,
-              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300)),
-              child: const Center(child: Text('[複合チャート: 筋量推移 vs 後半50mラップタイム]', style: TextStyle(color: Colors.grey))),
+              child: weightSpots.isEmpty && muscleSpots.isEmpty
+                ? const Center(child: Text('体組成計のデータがありません', style: TextStyle(color: Colors.grey)))
+                : LineChart(
+                    LineChartData(
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: weightSpots,
+                          isCurved: true, color: Colors.blue, barWidth: 3, dotData: const FlDotData(show: true),
+                        ),
+                        LineChartBarData(
+                          spots: muscleSpots,
+                          isCurved: true, color: Colors.green, barWidth: 3, dotData: const FlDotData(show: true),
+                        ),
+                      ],
+                      titlesData: const FlTitlesData(
+                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      ),
+                      gridData: const FlGridData(show: false),
+                      borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey.shade300)),
+                    ),
+                  ),
+            ),
+            const SizedBox(height: 8),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.circle, color: Colors.blue, size: 10), SizedBox(width: 4), Text('体重(kg)', style: TextStyle(fontSize: 10)),
+                SizedBox(width: 12),
+                Icon(Icons.circle, color: Colors.green, size: 10), SizedBox(width: 4), Text('骨格筋量(kg)', style: TextStyle(fontSize: 10)),
+              ],
             ),
             const SizedBox(height: 16),
             const Text('重要な相関パターンの発見:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             const SizedBox(height: 8),
             const ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.arrow_upward, color: Colors.blue),
-              title: Text('骨格筋量 +0.5kg の影響', style: TextStyle(fontSize: 14)),
-              subtitle: Text('過去2ヶ月で筋量が増加した結果、100mの後半50mのラップ落ちが以前より 4.2% 改善されています。', style: TextStyle(fontSize: 12)),
-            ),
-            const ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.warning, color: Colors.orange),
-              title: Text('炭水化物不足とスタミナ', style: TextStyle(fontSize: 14)),
-              subtitle: Text('「炭水化物摂取(主観)が2以下」の翌日の高強度練習では、目標タイムからの乖離が平均+1.5秒大きくなります。', style: TextStyle(fontSize: 12)),
+              leading: Icon(Icons.fitness_center, color: Colors.blue),
+              title: Text('データ分析中...', style: TextStyle(fontSize: 14)),
+              subtitle: Text('十分なデータが集まると、筋量とパフォーマンスの相関がここに表示されます。', style: TextStyle(fontSize: 12)),
             ),
           ],
         ),
@@ -316,19 +389,52 @@ class _InsightScreenState extends State<InsightScreen> {
   }
 
   // ============== C. 統計的タイム予測ビュー ==============
-  Widget _buildPredictionView(BuildContext context, TrainingInsight? insight) {
-    // AIデータがあればそれを使用、なければモックを使用
-    final List<dynamic> predictionList = insight?.predictions ?? _mockPredictions;
-    if (_selectedEventIndex >= predictionList.length) {
+  Widget _buildPredictionView(BuildContext context, TrainingInsight? insight, List<PersonalBest> pbs) {
+    // 1. PBから競泳種目のみを抽出
+    final Set<String> eventNames = pbs
+        .where((pb) => pb.category == 'swim')
+        .map((pb) => pb.event)
+        .toSet();
+    
+    if (insight?.predictions != null) {
+      // 予測データがある場合も、その種目が競泳カテゴリに属するか、あるいは既存のPBに含まれるか確認が必要だが、
+      // ここではユーザーの要望通り「競泳種目のみ」にするため、PBにある種目名を優先し、
+      // 予測データはそれらに紐づくもののみ表示する。
+      final swimPredictionEvents = insight!.predictions
+          .map((p) => p.eventName)
+          .where((name) => eventNames.contains(name));
+      eventNames.addAll(swimPredictionEvents);
+    }
+    final sortedEvents = eventNames.toList()..sort();
+
+    if (_selectedEventIndex >= sortedEvents.length) {
       _selectedEventIndex = 0;
     }
-    final prediction = predictionList[_selectedEventIndex];
-    final String pName = prediction is EventPrediction ? prediction.eventName : (prediction as _EventPrediction).name;
-    final double pSuccessRate = prediction is EventPrediction ? prediction.successRate : (prediction as _EventPrediction).successRate;
-    final String pPredictedTime = prediction is EventPrediction ? prediction.predictedTime : (prediction as _EventPrediction).predictedTime;
-    final String pConfidenceInterval = prediction is EventPrediction ? prediction.confidenceInterval : (prediction as _EventPrediction).confidenceInterval;
-    final String pSpecificInsight = prediction is EventPrediction ? prediction.specificInsight : (prediction as _EventPrediction).insight;
-    final List<dynamic> pLaps = prediction is EventPrediction ? prediction.laps : (prediction as _EventPrediction).laps;
+
+    final String selectedEvent = sortedEvents.isNotEmpty ? sortedEvents[_selectedEventIndex] : '種目未登録';
+    
+    // 2. 選択された種目のPB履歴を抽出（グラフ用）
+    final historySpots = pbs
+        .where((pb) => pb.event == selectedEvent && pb.category == 'swim')
+        .toList()
+        .reversed
+        .map((pb) => FlSpot(pb.date.millisecondsSinceEpoch.toDouble(), pb.value))
+        .toList();
+
+    // 3. AI予測データのマッチング
+    final prediction = insight?.predictions.firstWhere(
+      (p) => p.eventName == selectedEvent,
+      orElse: () => EventPrediction(
+        eventName: selectedEvent,
+        predictedTime: '---',
+        confidenceInterval: '---',
+        successRate: 0.0,
+        laps: [],
+        specificInsight: historySpots.length < 2 
+            ? '現在1件のベストタイムから成長曲線をシミュレーションしています。練習データが蓄積されるほど精度が向上します。'
+            : 'この種目のAI分析データはまだ生成されていません。',
+      ),
+    );
 
     return Card(
       child: Padding(
@@ -336,30 +442,50 @@ class _InsightScreenState extends State<InsightScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('統計的タイム予測', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('統計的タイム推移と予測', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text('客観的データに基づく次戦での現実的な予測値', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const Text('自己ベストの推移とAIによる次戦予測', style: TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 16),
             
             // 種目選択
             const Text('対象種目', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: List.generate(predictionList.length, (index) {
-                final item = predictionList[index];
-                final String name = item is EventPrediction ? item.eventName : item.name;
-                return ChoiceChip(
-                  label: Text(name),
-                  selected: _selectedEventIndex == index,
-                  onSelected: (_) => setState(() => _selectedEventIndex = index),
-                  selectedColor: Colors.teal,
-                );
-              }),
-            ),
+            sortedEvents.isEmpty 
+              ? const Text('自己ベストがまだ登録されていません', style: TextStyle(fontSize: 12, color: Colors.grey))
+              : Wrap(
+                  spacing: 8,
+                  children: List.generate(sortedEvents.length, (index) {
+                    return ChoiceChip(
+                      label: Text(sortedEvents[index]),
+                      selected: _selectedEventIndex == index,
+                      onSelected: (_) => setState(() => _selectedEventIndex = index),
+                      selectedColor: Colors.teal,
+                    );
+                  }),
+                ),
             const SizedBox(height: 24),
 
-            // 目標達成確率とサマリー
+            // 推移グラフ
+            if (historySpots.isNotEmpty)
+              SizedBox(
+                height: 120,
+                child: LineChart(
+                  LineChartData(
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: historySpots,
+                        isCurved: false, color: Colors.teal, barWidth: 2, dotData: const FlDotData(show: true),
+                      ),
+                    ],
+                    titlesData: const FlTitlesData(show: false),
+                    gridData: const FlGridData(show: false),
+                    borderData: FlBorderData(show: false),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 24),
+
+            // 予測セクション
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -367,33 +493,37 @@ class _InsightScreenState extends State<InsightScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('目標達成確率', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    Text('${(pSuccessRate * 100).toInt()}%',
+                    Text('${((prediction?.successRate ?? 0) * 100).toInt()}%',
                         style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold,
-                            color: pSuccessRate >= 0.6 ? Colors.green : Colors.orange)),
+                            color: (prediction?.successRate ?? 0) >= 0.6 ? Colors.green : Colors.orange)),
                   ],
                 ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const Text('予測タイム', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      const Text('AI予測タイム', style: TextStyle(fontSize: 12, color: Colors.grey)),
                       if (_showPredictedTime)
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('$pPredictedTime s', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
-                            Text('95% CI: $pConfidenceInterval', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            Text(
+                              (prediction?.predictedTime == null || prediction!.predictedTime.isEmpty || prediction.predictedTime == '---')
+                                  ? '分析中...' 
+                                  : '${prediction.predictedTime} s', 
+                              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)
+                            ),
+                            Text(
+                              '95% CI: ${prediction?.confidenceInterval ?? "算出中"}', 
+                              style: const TextStyle(fontSize: 11, color: Colors.grey)
+                            ),
                           ],
                         )
                       else
                         OutlinedButton.icon(
                           onPressed: () => setState(() => _showPredictedTime = true),
                           icon: const Icon(Icons.visibility),
-                          label: const Text('予測タイムを表示'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            minimumSize: Size.zero,
-                          ),
+                          label: const Text('表示する'),
                         ),
                     ],
                   ),
@@ -402,63 +532,35 @@ class _InsightScreenState extends State<InsightScreen> {
             ),
             const SizedBox(height: 16),
             LinearProgressIndicator(
-              value: pSuccessRate, 
+              value: prediction?.successRate ?? 0.0, 
               backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
-              color: pSuccessRate >= 0.6 ? Colors.green : Colors.orange,
+              color: (prediction?.successRate ?? 0) >= 0.6 ? Colors.green : Colors.orange,
               minHeight: 8, borderRadius: BorderRadius.circular(4),
             ),
             const SizedBox(height: 16),
-            
-            // 希望的観測の排除メッセージ
-            if (pSuccessRate < 0.5)
-              Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), border: Border.all(color: Colors.red.withOpacity(0.5)), borderRadius: BorderRadius.circular(8)),
-                child: const Text('【警告】現在の準備状況・データ推移では、自己ベストまたは設定目標の達成確率は50%を下回っています。抜本的なアプローチの修正（休息または泳ぎの修正）が必要です。',
-                  style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold, height: 1.4)),
-              ),
 
-            // ラップ予測（デフォルトは閉じる＝現実直視用）
-            ExpansionTile(
-              title: const Text('詳細な予測ラップ・チャートを見る', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              initiallyExpanded: false,
-              collapsedBackgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-              children: [
-                const SizedBox(height: 16),
-                if (_showPredictedTime)
-                  Text('最も確率の高い予測タイム: $pPredictedTime s', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 16),
-                DataTable(
-                  headingRowColor: MaterialStateProperty.all(Colors.teal.withOpacity(0.1)),
-                  columns: const [
-                    DataColumn(label: Text('区間')),
-                    DataColumn(label: Text('予想タイム')),
-                    DataColumn(label: Text('Str数')),
-                  ],
-                  rows: pLaps.map((lap) {
-                    final section = lap is LapPrediction ? lap.section : (lap as _LapPrediction).section;
-                    final time = lap is LapPrediction ? lap.time : (lap as _LapPrediction).time;
-                    final str = lap is LapPrediction ? lap.strokeCount : (lap as _LapPrediction).strokeCount;
-                    return DataRow(cells: [
-                      DataCell(Text(section)),
-                      DataCell(Text(time, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold))),
-                      DataCell(Text(str.toString())),
-                    ]);
-                  }).toList(),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Icon(Icons.auto_graph, color: Theme.of(context).colorScheme.primary, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(pSpecificInsight, style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 13, height: 1.5)),
-                    ),
-                  ]),
-                ),
-              ],
-            ),
+            if (prediction != null && prediction.laps.isNotEmpty)
+              ExpansionTile(
+                title: const Text('詳細な予測ラップを見る', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                children: [
+                  DataTable(
+                    columns: const [
+                      DataColumn(label: Text('区間')),
+                      DataColumn(label: Text('予想タイム')),
+                      DataColumn(label: Text('Str数')),
+                    ],
+                    rows: prediction.laps.map((lap) => DataRow(cells: [
+                      DataCell(Text(lap.section)),
+                      DataCell(Text(lap.time, style: const TextStyle(fontWeight: FontWeight.bold))),
+                      DataCell(Text(lap.strokeCount.toString())),
+                    ])).toList(),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(prediction.specificInsight, style: const TextStyle(fontSize: 13, height: 1.5)),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -466,7 +568,7 @@ class _InsightScreenState extends State<InsightScreen> {
   }
 
   // ============== D. ビジョン・アライメントビュー ==============
-  Widget _buildVisionAlignmentView(BuildContext context, TrainingInsight? insight) {
+  Widget _buildVisionAlignmentView(BuildContext context, TrainingInsight? insight, AppUser? user) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -481,12 +583,13 @@ class _InsightScreenState extends State<InsightScreen> {
               padding: const EdgeInsets.all(12),
               width: double.infinity,
               decoration: BoxDecoration(color: Colors.blueGrey.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text('設定ビジョン', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                   SizedBox(height: 4),
-                   Text('「後半に強い、粘り勝つスプリンター」', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                   const Text('設定ビジョン', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                   const SizedBox(height: 4),
+                   Text(user?.vision != null && user!.vision.isNotEmpty ? '「${user.vision}」' : 'ビジョン未設定', 
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ]
               )
             ),
@@ -532,7 +635,7 @@ class _InsightScreenState extends State<InsightScreen> {
             const Divider(height: 32),
             const Text('今すぐ改善すべき1つのアクション:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.red)),
             const SizedBox(height: 8),
-            const Text('「ラスト15mのキック」のスコアが著しく不足しています。今日の練習から、メインセットのラスト12.5mは壁まで必ずノーブレスト＆ハードキックを入れるルールを追加してください。',
+            const Text('分析データに基づき、あなたのビジョン達成に必要な最短ルートのアクションをエージェントがここに提案します。',
               style: TextStyle(fontSize: 14, height: 1.5)),
           ],
         ),

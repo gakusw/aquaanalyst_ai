@@ -253,42 +253,64 @@ class FirestoreService {
 
     if (snapshot.docs.isEmpty) return;
 
-    // 2. 正規表現で「種目名 重量(kg)」を抽出する
-    // 例: "ベンチプレス 60kg", "スクワット 80.5kg" など
-    // 数値や記号、'回目' 'セット目' 'kg' など種目名になり得ない文字を弾く
-    final RegExp weightRegex = RegExp(r'([^\d\s\n:：,、.。\+\-\*\/×÷]+)[\s　]*(\d+\.?\d*)[\s　]*kg', caseSensitive: false);
-    
     // 種目ごとの最大重量とその達成日を保持するマップ
     final Map<String, _BestRecord> bestRecords = {};
 
+    // 正規表現の改善: 種目名の後に重量が来るパターン。
+    // 括弧内の補助情報は後で正規化する。
+    final RegExp legacyWeightRegex = RegExp(r'([^\d\s\n:：,、.。\+\-\*\/×÷]+)[\s　]*(?:\d+セット目|set\s*\d+)?[\s　]*(\d+\.?\d*)[\s　]*kg', caseSensitive: false);
+
     for (var doc in snapshot.docs) {
       final record = TrainingRecord.fromMap(doc.data(), doc.id);
-      
-      // detailsはList<Map>なので、テキストコンテントを抽出する
       final detailsList = record.details as List<dynamic>? ?? [];
-      final fullText = detailsList.map((d) => d['content']?.toString() ?? '').join('\n');
-
-      final matches = weightRegex.allMatches(fullText);
-      for (final match in matches) {
-        final eventName = match.group(1)?.trim();
-        final weightStr = match.group(2);
-        
-        if (eventName != null && eventName.isNotEmpty && weightStr != null) {
-          // 「セット目」「回目」「種目」などの除外ワードが含まれる場合は無視する
-          if (eventName.contains('セット') || 
-              eventName.contains('回') || 
-              eventName.contains('種目') || 
-              eventName.length > 20) {
-            continue;
-          }
-
-          final weight = double.tryParse(weightStr);
-          if (weight != null) {
+      
+      // 2.1 構造化データ (dryland_set) からの抽出を優先
+      final drylandSets = detailsList.where((d) => d['type'] == 'dryland_set').toList();
+      
+      if (drylandSets.isNotEmpty) {
+        for (var set in drylandSets) {
+          final eventName = set['exercise']?.toString().trim();
+          final weight = (set['weight'] as num?)?.toDouble() ?? 0.0;
+          
+          if (eventName != null && eventName.isNotEmpty && weight > 0) {
+            // トレーニング名はそのまま使用（括弧等も保持）
             if (!bestRecords.containsKey(eventName) || bestRecords[eventName]!.weight < weight) {
               bestRecords[eventName] = _BestRecord(weight: weight, date: record.date);
             } else if (bestRecords[eventName]!.weight == weight && record.date.isBefore(bestRecords[eventName]!.date)) {
-              // 同じ重量ならより古い日付（最初に達成した日）を優先
               bestRecords[eventName] = _BestRecord(weight: weight, date: record.date);
+            }
+          }
+        }
+      } else {
+        // 2.2 構造化データがない場合はテキストから抽出 (互換性維持)
+        final fullText = detailsList.map((d) => d['content']?.toString() ?? '').join('\n');
+        final matches = legacyWeightRegex.allMatches(fullText);
+        for (final match in matches) {
+          String eventName = match.group(1)?.trim() ?? '';
+          final weightStr = match.group(2);
+          
+          if (eventName.isNotEmpty && weightStr != null) {
+            // 不要な単語やメタ情報のクリーンアップ（括弧はトレーニング名の一部として保持）
+            eventName = eventName
+                .replaceAll(RegExp(r'\d+セット目|set\s*\d+|回目|第\d+'), '')
+                .trim();
+
+            if (eventName.contains('セット') || 
+                eventName.contains('回') || 
+                eventName.contains('種目') || 
+                eventName.length > 20 ||
+                eventName.length < 2 || // 1文字以下の誤検知（例: °) ）を排除
+                eventName.isEmpty) {
+              continue;
+            }
+
+            final weight = double.tryParse(weightStr);
+            if (weight != null) {
+              if (!bestRecords.containsKey(eventName) || bestRecords[eventName]!.weight < weight) {
+                bestRecords[eventName] = _BestRecord(weight: weight, date: record.date);
+              } else if (bestRecords[eventName]!.weight == weight && record.date.isBefore(bestRecords[eventName]!.date)) {
+                bestRecords[eventName] = _BestRecord(weight: weight, date: record.date);
+              }
             }
           }
         }

@@ -85,17 +85,16 @@ class _TrainingScreenState extends State<TrainingScreen> {
 
 システムで自己ベストなどを自動認識するため、以下の点に注意して整形してください。
 1. 各トレーニングの「種目名」を1行目に書く
-2. その下に各セットの「重量（必ず kg をつける）」と「回数」を書く
-3. 「RM」や「lbs」などの不要な補助単位が見える場合でも無視するか、見やすく整理する
+2. その下に各セットの情報を「1セット目 30.0kg 10回」のように書く
+3. 種目が変わる場合は、新しい種目名を1行書いてからセット情報を続ける
 4. AIの挨拶や解説文などは一切含めないこと
 
 出力例：
-シングルアーム・ダンベルスナッチ
-1セット目 30.0kg 2回
-2セット目 30.0kg 2回
-レッグプレス（45°）
-1セット目 320.0kg 5回
-2セット目 320.0kg 3回
+ベンチプレス
+1セット目 60.0kg 10回
+2セット目 60.0kg 8回
+スクワット
+1セット目 80.0kg 12回
 """;
 
       final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType);
@@ -299,6 +298,10 @@ class _TrainingScreenState extends State<TrainingScreen> {
             ),
             const SizedBox(height: 32),
 
+            // 陸上トレーニング構造化パース用ヘルパー
+            // Input: "ベンチプレス\n1セット目 60kg 10回\n2セット目..."
+            // Output: [{'type': 'dryland_set', 'exercise': 'ベンチプレス', 'weight': 60.0, 'reps': 10, 'set_num': 1}, ...]
+
             // 保存ボタン
             SizedBox(
               width: double.infinity,
@@ -325,8 +328,51 @@ class _TrainingScreenState extends State<TrainingScreen> {
                       await _firestoreService.addTrainingRecord(poolRecord);
                     }
 
-                    final drylandDetails = _drylLandController.text.isNotEmpty ? [{'type': 'menu_text', 'content': _drylLandController.text}] : <Map<String, dynamic>>[];
-                    if (drylandDetails.isNotEmpty) {
+                    final drylandText = _drylLandController.text.trim();
+                    final List<Map<String, dynamic>> drylandDetails = [];
+                    
+                    if (drylandText.isNotEmpty) {
+                      // 構造化パースの試行
+                      final lines = drylandText.split('\n');
+                      String currentExercise = '';
+                      final weightRegex = RegExp(r'(\d+\.?\d*)\s*kg', caseSensitive: false);
+                      final repsRegex = RegExp(r'(\d+)\s*(?:回|reps)', caseSensitive: false);
+                      final setNumRegex = RegExp(r'(\d+)\s*(?:セット目|set)', caseSensitive: false);
+
+                      for (var line in lines) {
+                        final trimmed = line.trim();
+                        if (trimmed.isEmpty) continue;
+
+                        final wMatch = weightRegex.firstMatch(trimmed);
+                        final rMatch = repsRegex.firstMatch(trimmed);
+
+                        if (wMatch != null) {
+                          // 数値が含まれる場合はセットとして処理
+                          final weight = double.tryParse(wMatch.group(1) ?? '0') ?? 0.0;
+                          final reps = int.tryParse(rMatch?.group(1) ?? '0') ?? 0;
+                          final setNum = int.tryParse(setNumRegex.firstMatch(trimmed)?.group(1) ?? '1') ?? 1;
+
+                          if (currentExercise.isNotEmpty) {
+                            drylandDetails.add({
+                              'type': 'dryland_set',
+                              'exercise': currentExercise,
+                              'weight': weight,
+                              'reps': reps,
+                              'set_num': setNum,
+                            });
+                          }
+                        } else {
+                          // 数値が含まれない場合は新しい種目名とみなす
+                          // ただし「閉じる」などの操作用テキストは除外
+                          if (!trimmed.contains('続きを読む') && !trimmed.contains('閉じる')) {
+                            currentExercise = trimmed;
+                          }
+                        }
+                      }
+                      
+                      // 元のテキストも検索用に保存
+                      drylandDetails.add({'type': 'menu_text', 'content': drylandText});
+
                       final drylandRecord = TrainingRecord(
                         id: '',
                         date: DateTime.now(),
@@ -341,9 +387,9 @@ class _TrainingScreenState extends State<TrainingScreen> {
 
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('トレーニング記録を保存しました．続いてAIコーチの分析を確認できます．')),
+                        const SnackBar(content: Text('トレーニング記録を保存しました')),
                       );
-                      // Navigator.pop等で戻る実装を追加する場合はここに記述
+                      Navigator.pop(context);
                     }
                   } catch (e) {
                     if (mounted) {

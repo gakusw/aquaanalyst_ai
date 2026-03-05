@@ -15,7 +15,6 @@ class _NutritionScreenState extends State<NutritionScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _memoController = TextEditingController();
   bool _isOcrLoading = false;
-  bool _isBcaOcrLoading = false;
   bool _isSaving = false;
   double _subjectiveProtein = 3;
   double _subjectiveCarbs = 3;
@@ -36,7 +35,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
     try {
       final bytes = await pickedFile.readAsBytes();
       final mimeType = pickedFile.mimeType ?? 'image/jpeg';
-      final prompt = """
+      const prompt = """
 画像内の食事内容や料理の写真を解析し、何を食べたか（料理名や食材）のみを箇条書きで抽出してください。
 実際の料理の写真だけでなく、レシートや記録アプリのスクリーンショットなど、どのような形式の画像からでも対応してください。
 
@@ -70,54 +69,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
     }
   }
 
-  Future<void> _runBcaOcr() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile == null) return;
-
-    setState(() => _isBcaOcrLoading = true);
-    try {
-      final bytes = await pickedFile.readAsBytes();
-      final mimeType = pickedFile.mimeType ?? 'image/jpeg';
-      final prompt = """
-画像内の体組成計の測定結果を読み取り、体重、骨格筋量、体脂肪率などの数値を抽出して箇条書きで出力してください。
-紙のレシート出力結果や、体組成計アプリのスクリーンショットなど、どのような形式の画像からでも対応してください。
-
-出力ルール：
-1. 「項目名: 数値 単位」の形式で1行ずつ箇条書きにする。
-2. AIの挨拶や不要な装飾、解説などは一切省いてください。
-""";
-
-      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType);
-      
-      if (!mounted) return;
-      if (result != null && result.isNotEmpty && !result.startsWith('AIの処理中')) {
-        setState(() {
-          final current = _memoController.text;
-          _memoController.text = current.isEmpty ? "【自動解析: 体組成】\n$result" : "$current\n\n【自動解析: 体組成】\n$result";
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('体組成計画像の解析が完了しました')),
-        );
-      } else {
-        throw Exception(result ?? '解析失敗');
-      }
-    } catch (e) {
-      if (!mounted) return;
-      final errMsg = e.toString().replaceAll('Exception: ', '');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errMsg)),
-      );
-    } finally {
-      if (mounted) setState(() => _isBcaOcrLoading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('今日の栄養・体組成記録'),
+        title: const Text('食事記録'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -190,40 +146,6 @@ class _NutritionScreenState extends State<NutritionScreen> {
         ),
         const SizedBox(height: 16),
 
-        // B-2. 体組成計写真から取り込み
-        Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('B-2. 体組成計から取り込み', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                      const SizedBox(height: 4),
-                      Text(
-                        '体組成計画面の写真から体重・骨格筋量・体脂肪率を自動入力',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _isBcaOcrLoading
-                    ? const CircularProgressIndicator()
-                        : ElevatedButton.icon(
-                            onPressed: _runBcaOcr,
-                            icon: const Icon(Icons.camera_alt),
-                            label: const Text('写真から取り込む'),
-                          ),
-              ],
-            ),
-          ),
-        ),
         const SizedBox(height: 16),
 
         // C. テキストメモ
@@ -290,6 +212,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('今日の栄養データを保存しました'))
                           );
+                          Navigator.pop(context);
                         }
                       } catch (e) {
                          if (mounted) {

@@ -28,17 +28,27 @@ class AddRecordFab extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.push('/home/training');
+                  context.push('/training');
                 },
               ),
               ListTile(
                 leading: const CircleAvatar(backgroundColor: Colors.orangeAccent, child: Icon(Icons.restaurant, color: Colors.white)),
-                title: const Text('栄養・体組成記録'),
-                subtitle: const Text('食事・PFC・体組成を入力'),
+                title: const Text('食事記録'),
+                subtitle: const Text('食事・PFCバランスを入力'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.push('/home/nutrition');
+                  context.push('/nutrition');
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(backgroundColor: Colors.purpleAccent, child: Icon(Icons.monitor_weight, color: Colors.white)),
+                title: const Text('体組成記録'),
+                subtitle: const Text('体重・筋肉量・体脂肪率を入力'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/body_composition');
                 },
               ),
               ListTile(
@@ -48,7 +58,7 @@ class AddRecordFab extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.push('/home/analysis');
+                  context.push('/analysis');
                 },
               ),
               const SizedBox(height: 8),

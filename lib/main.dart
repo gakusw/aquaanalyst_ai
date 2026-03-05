@@ -15,6 +15,7 @@ import 'ui/screens/settings_screen.dart';
 import 'ui/screens/weekly_plan_screen.dart';
 import 'ui/screens/training_screen.dart';
 import 'ui/screens/nutrition_screen.dart';
+import 'ui/screens/body_composition_screen.dart';
 import 'ui/screens/analysis_sheet_form.dart';
 import 'ui/screens/auth_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -79,12 +80,11 @@ final GoRouter _router = GoRouter(
           pageBuilder: (context, state) => NoTransitionPage(
             child: HomeScreen(),
           ),
-          routes: [
-            GoRoute(path: 'training', builder: (context, state) => const TrainingScreen()),
-            GoRoute(path: 'nutrition', builder: (context, state) => const NutritionScreen()),
-            GoRoute(path: 'analysis', builder: (context, state) => const AnalysisSheetForm()),
-          ],
         ),
+        GoRoute(path: '/training', builder: (context, state) => const TrainingScreen()),
+        GoRoute(path: '/nutrition', builder: (context, state) => const NutritionScreen()),
+        GoRoute(path: '/body_composition', builder: (context, state) => const BodyCompositionScreen()),
+        GoRoute(path: '/analysis', builder: (context, state) => const AnalysisSheetForm()),
         GoRoute(
           path: '/agent',
           pageBuilder: (context, state) => const NoTransitionPage(child: AgentFeedbackScreen()),
