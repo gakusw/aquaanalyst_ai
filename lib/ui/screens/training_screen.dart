@@ -58,8 +58,9 @@ class _TrainingScreenState extends State<TrainingScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      final errMsg = e.toString().replaceAll('Exception: ', '');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('画像の解析に失敗しました')),
+        SnackBar(content: Text(errMsg)),
       );
     } finally {
       if (mounted) {
@@ -112,8 +113,9 @@ class _TrainingScreenState extends State<TrainingScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      final errMsg = e.toString().replaceAll('Exception: ', '');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('画像の解析に失敗しました')),
+        SnackBar(content: Text(errMsg)),
       );
     } finally {
       if (mounted) {

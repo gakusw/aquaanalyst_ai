@@ -61,8 +61,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      final errMsg = e.toString().replaceAll('Exception: ', '');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('画像の解析に失敗しました')),
+        SnackBar(content: Text(errMsg)),
       );
     } finally {
       if (mounted) setState(() => _isOcrLoading = false);
@@ -103,8 +104,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
       }
     } catch (e) {
       if (!mounted) return;
+      final errMsg = e.toString().replaceAll('Exception: ', '');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('画像の解析に失敗しました')),
+        SnackBar(content: Text(errMsg)),
       );
     } finally {
       if (mounted) setState(() => _isBcaOcrLoading = false);
