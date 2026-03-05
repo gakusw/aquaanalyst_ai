@@ -38,6 +38,10 @@ class _AuthScreenState extends State<AuthScreen> {
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
+        // ログイン成功時に自己ベストの初期構築/更新バッチを実行
+        FirestoreService().generateInitialDrylandPbs().catchError((e) {
+          debugPrint('Dryland PB Auto-update failed: $e');
+        });
       } else {
         // 新規登録処理
         final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(

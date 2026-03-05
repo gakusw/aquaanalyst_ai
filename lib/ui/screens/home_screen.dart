@@ -997,6 +997,11 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
                       contentPadding: EdgeInsets.zero,
                       title: Text(typeStr),
                       subtitle: Text('${r.durationMinutes != null ? '${r.durationMinutes}分 ' : ''}${r.details}'),
+                      trailing: const Icon(Icons.edit, size: 20, color: Colors.grey),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _showEditRecordDialog(context, r);
+                      },
                     );
                   }),
                 ],
@@ -1005,6 +1010,86 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
           ),
         );
       }
+    );
+  }
+
+  void _showEditRecordDialog(BuildContext context, TrainingRecord record) {
+    final detailsController = TextEditingController(text: record.details);
+    final durationController = TextEditingController(text: record.durationMinutes?.toString() ?? '');
+    final bool isNutrition = record.type == 'nutrition';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('記録の編集 (${record.type == 'pool' ? '水中' : record.type == 'dryland' ? '陸トレ' : '栄養'})', style: const TextStyle(fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isNutrition)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: TextField(
+                  controller: durationController,
+                  decoration: const InputDecoration(labelText: '時間 (分)'),
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+            TextField(
+              controller: detailsController,
+              decoration: const InputDecoration(labelText: '内容・メニュー'),
+              maxLines: null,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: ctx,
+                builder: (c) => AlertDialog(
+                  title: const Text('削除の確認'),
+                  content: const Text('この記録を削除してもよろしいですか？'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('キャンセル')),
+                    TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('削除', style: TextStyle(color: Colors.red))),
+                  ],
+                )
+              );
+              
+              if (confirm == true) {
+                await FirestoreService().deleteTrainingRecord(record.id);
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('記録を削除しました。')));
+                }
+              }
+            },
+            child: const Text('削除', style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          ElevatedButton(
+            onPressed: () async {
+              final newDetails = detailsController.text;
+              final newDuration = int.tryParse(durationController.text);
+              await FirestoreService().updateTrainingRecord(record.id, {
+                'details': newDetails,
+                if (!isNutrition && newDuration != null) 'durationMinutes': newDuration,
+              });
+              
+              if (record.type == 'dryland') {
+                FirestoreService().generateInitialDrylandPbs();
+              }
+              
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('記録を更新しました。')));
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
     );
   }
 

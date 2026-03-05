@@ -4,6 +4,7 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import '../widgets/add_record_fab.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/services/firestore_service.dart';
+import '../../data/models/personal_best.dart';
 
 class AgentFeedbackScreen extends StatefulWidget {
   const AgentFeedbackScreen({super.key});

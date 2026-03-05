@@ -220,4 +220,107 @@ class FirestoreService {
 
     await docRef.set(pb.toMap(), SetOptions(merge: true));
   }
+
+  /// 陸上トレーニングのすべての履歴をスキャンし、各エクササイズの最大重量を計算して
+  /// 自己ベスト（PersonalBest）として一括登録・更新する。
+  /// （すでにPBが存在する場合は、履歴の最大重量が上回っている場合のみ更新）
+  Future<void> generateInitialDrylandPbs() async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    // 1. 過去のすべてのトレーニング記録（drylandのみ）を取得
+    final snapshot = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('training_records')
+        .where('type', isEqualTo: 'dryland')
+        .get();
+
+    if (snapshot.docs.isEmpty) return;
+
+    // 2. 正規表現で「種目名 重量(kg)」を抽出する
+    // 例: "ベンチプレス 60kg", "スクワット 80.5kg" など
+    final RegExp weightRegex = RegExp(r'([^\d\s\n]+)[\s　]*(\d+\.?\d*)[\s　]*kg', caseSensitive: false);
+    
+    // 種目ごとの最大重量とその達成日を保持するマップ
+    final Map<String, _BestRecord> bestRecords = {};
+
+    for (var doc in snapshot.docs) {
+      final record = TrainingRecord.fromMap(doc.data(), doc.id);
+      
+      // detailsはList<Map>なので、テキストコンテントを抽出する
+      final detailsList = record.details as List<dynamic>? ?? [];
+      final fullText = detailsList.map((d) => d['content']?.toString() ?? '').join('\n');
+
+      final matches = weightRegex.allMatches(fullText);
+      for (final match in matches) {
+        final eventName = match.group(1)?.trim();
+        final weightStr = match.group(2);
+        
+        if (eventName != null && eventName.isNotEmpty && weightStr != null) {
+          final weight = double.tryParse(weightStr);
+          if (weight != null) {
+            if (!bestRecords.containsKey(eventName) || bestRecords[eventName]!.weight < weight) {
+              bestRecords[eventName] = _BestRecord(weight: weight, date: record.date);
+            } else if (bestRecords[eventName]!.weight == weight && record.date.isBefore(bestRecords[eventName]!.date)) {
+              // 同じ重量ならより古い日付（最初に達成した日）を優先
+              bestRecords[eventName] = _BestRecord(weight: weight, date: record.date);
+            }
+          }
+        }
+      }
+    }
+
+    if (bestRecords.isEmpty) return;
+
+    // 3. 現在の自己ベスト（dryland）を取得
+    final pbSnapshot = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('personal_bests')
+        .where('category', isEqualTo: 'dryland')
+        .get();
+
+    final Map<String, PersonalBest> currentPbs = {};
+    for (var doc in pbSnapshot.docs) {
+      final pb = PersonalBest.fromMap(doc.data(), doc.id);
+      // 同じ種目の最新のPBを保持（日付順に整理）
+      if (!currentPbs.containsKey(pb.event) || pb.date.isAfter(currentPbs[pb.event]!.date)) {
+        currentPbs[pb.event] = pb;
+      }
+    }
+
+    // 4. 最大重量が現在のPBを上回っている（または未登録の）場合にのみ新規保存
+    final batch = _db.batch();
+    bool hasUpdates = false;
+
+    for (final entry in bestRecords.entries) {
+      final event = entry.key;
+      final best = entry.value;
+
+      final currentPb = currentPbs[event];
+      if (currentPb == null || best.weight > currentPb.value) {
+        final newPbRef = _db.collection('users').doc(uid).collection('personal_bests').doc();
+        final newPb = PersonalBest(
+          id: newPbRef.id,
+          category: 'dryland',
+          event: event,
+          value: best.weight,
+          date: best.date,
+        );
+        batch.set(newPbRef, newPb.toMap());
+        hasUpdates = true;
+      }
+    }
+
+    if (hasUpdates) {
+      await batch.commit();
+    }
+  }
+}
+
+class _BestRecord {
+  final double weight;
+  final DateTime date;
+  _BestRecord({required this.weight, required this.date});
 }
