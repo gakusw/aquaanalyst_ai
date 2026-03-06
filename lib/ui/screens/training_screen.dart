@@ -58,7 +58,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      final errMsg = e.toString().replaceAll('Exception: ', '');
+      final errMsg = e.toString().replaceFirst('Exception: ', '');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errMsg)),
       );
@@ -112,7 +112,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      final errMsg = e.toString().replaceAll('Exception: ', '');
+      final errMsg = e.toString().replaceFirst('Exception: ', '');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errMsg)),
       );

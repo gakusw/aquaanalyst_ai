@@ -64,7 +64,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      final errMsg = e.toString().replaceAll('Exception: ', '');
+      final errMsg = e.toString().replaceFirst('Exception: ', '');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(errMsg)),
       );
