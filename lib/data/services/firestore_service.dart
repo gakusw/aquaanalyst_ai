@@ -5,6 +5,7 @@ import '../models/training_record.dart';
 import '../models/weekly_plan.dart';
 import '../models/training_insight.dart';
 import '../models/personal_best.dart';
+import '../models/chat_session.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -234,6 +235,90 @@ class FirestoreService {
         : _db.collection('users').doc(uid).collection('personal_bests').doc(pb.id);
 
     await docRef.set(pb.toMap(), SetOptions(merge: true));
+  }
+
+  // --- チャットセッション関連 ---
+
+  /// チャットセッション一覧を取得するStream
+  Stream<List<ChatSessionModel>> getChatSessionsStream() {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
+
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('chat_sessions')
+        .orderBy('lastMessageAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ChatSessionModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// 特定のセッションのメッセージ一覧を取得するStream
+  Stream<List<ChatMessage>> getChatMessagesStream(String sessionId) {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
+
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('chat_sessions')
+        .doc(sessionId)
+        .collection('messages')
+        .orderBy('timestamp', descending: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ChatMessage.fromMap(doc.data()))
+            .toList());
+  }
+
+  /// 新しいチャットセッションを作成する
+  Future<String> createChatSession({required String title, String? systemInstruction}) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    final docRef = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('chat_sessions')
+        .add({
+      'title': title,
+      'lastMessageAt': FieldValue.serverTimestamp(),
+      'systemInstruction': systemInstruction,
+    });
+
+    return docRef.id;
+  }
+
+  /// メッセージを追加する
+  Future<void> addChatMessage(String sessionId, ChatMessage message) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    final batch = _db.batch();
+    
+    final messageRef = _db
+        .collection('users')
+        .doc(uid)
+        .collection('chat_sessions')
+        .doc(sessionId)
+        .collection('messages')
+        .doc();
+    
+    batch.set(messageRef, message.toMap());
+    
+    final sessionRef = _db
+        .collection('users')
+        .doc(uid)
+        .collection('chat_sessions')
+        .doc(sessionId);
+    
+    batch.update(sessionRef, {
+      'lastMessageAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
   }
 
   /// 種目名を正規化するヘルパー。

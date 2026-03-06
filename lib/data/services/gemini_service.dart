@@ -21,7 +21,7 @@ class GeminiService {
   GenerativeModel? _createModel({String? systemInstruction, String? responseMimeType}) {
     if (_apiKey == null || _apiKey!.isEmpty || _apiKey == 'YOUR_KEY_HERE') return null;
     return GenerativeModel(
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       apiKey: _apiKey!,
       systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
       generationConfig: responseMimeType != null ? GenerationConfig(responseMimeType: responseMimeType) : null,
@@ -78,11 +78,12 @@ class GeminiService {
   }
 
   /// チャットセッション（履歴保持）を開始する
-  ChatSession startChat({String? systemInstruction}) {
+  /// [history] を指定することで、過去のメッセージから再開可能
+  ChatSession startChat({String? systemInstruction, List<Content>? history}) {
     final model = _createModel(systemInstruction: systemInstruction);
     if (model == null) {
       throw Exception('AI model is not initialized or API key is missing.');
     }
-    return model.startChat();
+    return model.startChat(history: history);
   }
 }
