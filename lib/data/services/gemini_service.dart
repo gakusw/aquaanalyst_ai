@@ -21,7 +21,7 @@ class GeminiService {
   GenerativeModel? _createModel({String? systemInstruction, String? responseMimeType}) {
     if (_apiKey == null || _apiKey!.isEmpty || _apiKey == 'YOUR_KEY_HERE') return null;
     return GenerativeModel(
-      model: 'gemini-1.5-flash',
+      model: 'gemini-1.5-pro',
       apiKey: _apiKey!,
       systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
       generationConfig: responseMimeType != null ? GenerationConfig(responseMimeType: responseMimeType) : null,

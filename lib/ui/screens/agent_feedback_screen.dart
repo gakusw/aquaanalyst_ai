@@ -67,8 +67,8 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
       final currentSession = sessions.firstWhere((s) => s.id == sessionId);
 
       // Geminiの型に変換
-      final List<Content> geminiHistory = history.map((m) => 
-        m.isAi ? Content.model([TextPart(m.text)]) : Content.user([TextPart(m.text)])
+      final List<Content> geminiHistory = history.map<Content>((m) => 
+        m.isAi ? Content.model([TextPart(m.text)]) : Content.text(m.text)
       ).toList();
 
       _chatSession = GeminiService().startChat(
