@@ -9,7 +9,7 @@ class GeminiService {
   GeminiService._internal();
 
   String? _apiKey;
-  static const String modelPro = 'gemini-3.1-pro-preview';
+  static const String modelPro = 'gemini-3-pro-preview';
   static const String modelFlash = 'gemini-1.5-flash';
 
   /// 初期化処理
