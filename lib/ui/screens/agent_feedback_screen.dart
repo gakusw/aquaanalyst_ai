@@ -147,7 +147,7 @@ $pbText
     } catch (e) {
       setState(() {
         _isTyping = false;
-        final msg = e.toString().replaceFirst('Exception: ', '');
+        final msg = GeminiService().translateError(e);
         _messages.add(CoachMessage(text: msg, isAi: true, type: MessageType.warning));
       });
     }
@@ -189,8 +189,8 @@ $pbText
       if (!mounted) return;
       setState(() {
         _isTyping = false;
-        // Exceptionオブジェクトからメッセージを抽出 (GeminiServiceで翻訳済み)
-        final msg = e.toString().replaceFirst('Exception: ', '');
+        // Exceptionオブジェクトからメッセージを抽出 (GeminiServiceで翻訳)
+        final msg = GeminiService().translateError(e);
         _messages.add(CoachMessage(text: msg, isAi: true, type: MessageType.warning));
       });
     }

@@ -9,7 +9,7 @@ class GeminiService {
   GeminiService._internal();
 
   String? _apiKey;
-  static const String modelPro = 'gemini-3-pro-preview';
+  static const String modelPro = 'gemini-3.1-pro-preview';
   static const String modelFlash = 'gemini-1.5-flash';
 
   /// 初期化処理
@@ -44,7 +44,7 @@ class GeminiService {
       final response = await model.generateContent(content);
       return response.text;
     } catch (e) {
-      throw Exception(_translateError(e));
+      throw Exception(translateError(e));
     }
   }
 
@@ -70,7 +70,7 @@ class GeminiService {
       final response = await model.generateContent(content);
       return response.text;
     } catch (e) {
-      throw Exception(_translateError(e));
+      throw Exception(translateError(e));
     }
   }
 
@@ -83,12 +83,13 @@ class GeminiService {
     return model.startChat(history: history);
   }
 
-  String _translateError(dynamic e) {
+  /// エラーメッセージを日本語に翻訳する
+  String translateError(dynamic e) {
     final errorStr = e.toString();
     debugPrint('Gemini API Error details: $errorStr');
 
     if (errorStr.contains('Quota exceeded') || errorStr.contains('429')) {
-      return 'AIの利用制限（1日、または1分間あたりの回数上限）に達しました。少し時間を置いて（1分〜数分）から再度お試しください。';
+      return 'AIの利用制限（1日、または1分間あたりの回数上限）に達しました。1.5 Pro/3.1 Proなどの高性能モデルは無料枠が非常にタイトです。1〜2分待ってからお試しいただくか、しばらく時間を置いてください。';
     }
     if (errorStr.contains('not found') || errorStr.contains('404')) {
       return '指定されたAIモデルが見つかりません。最新のモデルIDを確認してください。';
