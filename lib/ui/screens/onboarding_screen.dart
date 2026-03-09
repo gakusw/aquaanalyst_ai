@@ -88,7 +88,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 32),
 
                 // 1. ビジョン
-                const StableTextField(
+                StableTextField(
                   controller: _visionController,
                   lines: 4,
                   hintText: '例: 1年後のインカレで50m自由形23秒台を出して決勝に残りたい',
@@ -122,7 +122,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                const StableTextField(
+                StableTextField(
                   controller: _coachController,
                   lines: 3,
                   hintText: '例: ロジカルに，かつモチベーションが上がる言い回しが良い',

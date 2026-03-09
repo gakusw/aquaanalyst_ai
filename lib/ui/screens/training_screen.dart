@@ -163,7 +163,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
             const SizedBox(height: 24),
 
             // メニューテキストエリア
-            const StableTextField(
+            StableTextField(
               controller: _menuController,
               lines: 5,
               hintText: '例: W-up 400\nKick 100x4 (2:00) 1E1H\nPull 100x4 (1:30) 1E1H\nSwim 50x8 (0:45) Hard\n...',
