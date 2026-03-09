@@ -97,31 +97,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 24),
 
                 // 2. 専門性と理想のコーチ像
-                const Text('2. 分析の専門性と理想のコーチ像', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Text('専門性レベル (1: 初心者向き 〜 10: トップスイマー向き):'),
-                    Expanded(
-                      child: Slider(
-                        value: _expertiseLevel,
-                        min: 1,
-                        max: 10,
-                        divisions: 9,
-                        label: _expertiseLevel.round().toString(),
-                        onChanged: (value) => setState(() => _expertiseLevel = value),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                // 2. 専門性と理想のコーチ像
                 StableTextField(
                   controller: _coachController,
-                  lines: 3,
+                  lines: 5,
                   hintText: '例: ロジカルに，かつモチベーションが上がる言い回しが良い',
-                  labelText: 'どんなコーチが良いか（自由記述）',
+                  labelText: '2. 理想のコーチ像 (専門性レベル: ${_expertiseLevel.round()} / 10)',
                 ),
-                const SizedBox(height: 24),
+                Slider(
+                  value: _expertiseLevel,
+                  min: 1,
+                  max: 10,
+                  divisions: 9,
+                  label: _expertiseLevel.round().toString(),
+                  onChanged: (value) => setState(() => _expertiseLevel = value),
+                ),
+                const SizedBox(height: 16),
 
                 const SizedBox(height: 48),
 

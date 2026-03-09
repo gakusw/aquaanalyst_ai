@@ -101,20 +101,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: ageController, decoration: const InputDecoration(labelText: '年齢 (歳)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
-              const SizedBox(height: 16),
-              TextField(controller: heightController, decoration: const InputDecoration(labelText: '身長 (cm)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
-              const SizedBox(height: 16),
-              TextField(controller: weightController, decoration: const InputDecoration(labelText: '体重 (kg)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
-              const SizedBox(height: 16),
-                StableTextField(
-                  controller: notesController,
-                  hintText: '怪我の既往、アレルギー等',
-                  labelText: '備考 (怪我の既往、アレルギー等)',
-                  lines: 5,
-                ),
-            ],
+              StableTextField(
+                controller: ageController,
+                hintText: '例: 22',
+                labelText: '年齢 (歳)',
+                lines: 1,
+                keyboardType: TextInputType.number,
+              ),
+              StableTextField(
+                controller: heightController,
+                hintText: '例: 175.5',
+                labelText: '身長 (cm)',
+                lines: 1,
+                keyboardType: TextInputType.number,
+              ),
+              StableTextField(
+                controller: weightController,
+                hintText: '例: 68.0',
+                labelText: '体重 (kg)',
+                lines: 1,
+                keyboardType: TextInputType.number,
+              ),
+              StableTextField(
+                controller: notesController,
+                hintText: '怪我の既往、アレルギー等',
+                labelText: '備考',
+                lines: 5,
+              ),
           ),
         ),
         actions: [

@@ -226,7 +226,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
 
             StableTextField(
               controller: _memoController,
-              lines: 6,
+              lines: 8,
               hintText: 'その他の詳細など',
               labelText: 'メモ',
             ),

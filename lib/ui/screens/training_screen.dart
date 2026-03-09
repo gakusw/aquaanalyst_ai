@@ -165,11 +165,11 @@ class _TrainingScreenState extends State<TrainingScreen> {
             // メニューテキストエリア
             StableTextField(
               controller: _menuController,
-              lines: 12,
+              lines: 15, // かなり長文まで対応
               hintText: '例: W-up 400\nKick 100x4 (2:00) 1E1H\nPull 100x4 (1:30) 1E1H\nSwim 50x8 (0:45) Hard\n...',
               labelText: '本日の練習メニュー',
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // 練習時間（分）
             const Text('練習時間 (分)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -256,13 +256,13 @@ class _TrainingScreenState extends State<TrainingScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
             StableTextField(
               controller: _drylLandController,
-              lines: 4,
+              lines: 8,
               hintText: '例: ベンチプレス 60kg x 10回 x 3セット\n懸垂 15回 x 3セット',
+              labelText: '陸上トレーニング内容',
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             const Text('陸上主観感覚 (疲労度・筋の張り 1-10)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Row(

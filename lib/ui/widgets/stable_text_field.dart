@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// コーチ画面（チャット欄）と同様の、安定したマルチライン入力フィールド
-/// 高さが固定され、内部でスクロールするため、IME変換がレイアウト変更で解除されるのを防ぎます。
-class StableTextField extends StatelessWidget {
+/// 極めてシンプルかつ IME が安定したマルチライン入力フィールド
+/// 自動伸長 (minLines 1 -> maxLines N) をサポートしつつ、
+/// デザイン上の無駄（過剰な背景や余白）を排除した最小限のスタイルを提供します。
+class StableTextField extends StatefulWidget {
   final TextEditingController controller;
   final String hintText;
   final String? labelText;
@@ -16,57 +17,82 @@ class StableTextField extends StatelessWidget {
     required this.controller,
     required this.hintText,
     this.labelText,
-    this.lines = 3,
+    this.lines = 5,
     this.keyboardType = TextInputType.multiline,
     this.textInputAction = TextInputAction.newline,
     this.onChanged,
   });
 
   @override
+  State<StableTextField> createState() => _StableTextFieldState();
+}
+
+class _StableTextFieldState extends State<StableTextField> {
+  // TextField の状態を安定させるための Key
+  final GlobalKey _key = GlobalKey();
+
+  @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      minLines: 1,
-      maxLines: lines, // 指定された行数まで動的に伸び、それ以上はスクロール
-      textAlignVertical: TextAlignVertical.top,
-      keyboardType: keyboardType,
-      textInputAction: textInputAction,
-      onChanged: onChanged,
-      style: const TextStyle(fontSize: 15),
-      decoration: InputDecoration(
-        labelText: labelText,
-        hintText: hintText,
-        alignLabelWithHint: true,
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+    return Theme(
+      // 背景色や境界線の無駄を削ぎ落とした最小限のテーマ設定
+      data: Theme.of(context).copyWith(
+        inputDecorationTheme: const InputDecorationTheme(
+          filled: false,
+          contentPadding: EdgeInsets.zero,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.labelText != null) ...[
+            Text(
+              widget.labelText!,
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
+          TextField(
+            key: _key,
+            controller: widget.controller,
+            minLines: 1, // 1行から開始（無駄な空白を作らない）
+            maxLines: widget.lines, // 内容に応じて増え、上限でスクロール
+            keyboardType: widget.keyboardType,
+            textInputAction: widget.textInputAction,
+            onChanged: widget.onChanged,
+            style: const TextStyle(fontSize: 16, height: 1.4),
+            textAlignVertical: TextAlignVertical.top,
+            decoration: InputDecoration(
+              hintText: widget.hintText,
+              hintStyle: TextStyle(
+                color: Theme.of(context).hintColor.withOpacity(0.4),
+                fontSize: 15,
+              ),
+              // 下線のみのシンプルなデザイン（無駄のない洗練されたスタイル）
+              border: UnderlineInputBorder(
+                borderSide: BorderSide(
+                  color: Theme.of(context).dividerColor,
+                ),
+              ),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(
+                  color: Theme.of(context).dividerColor.withOpacity(0.5),
+                ),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 1.5,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 8),
+            ),
           ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8.0),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-            width: 1.5,
-          ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-        hintStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
-          fontSize: 14,
-        ),
-        labelStyle: TextStyle(
-          fontSize: 14,
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
-        ),
+        ],
       ),
     );
   }

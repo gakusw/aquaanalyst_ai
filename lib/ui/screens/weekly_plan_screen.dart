@@ -243,7 +243,7 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
                 children: [
                   StableTextField(
                     controller: controller,
-                    lines: 6,
+                    lines: 10,
                     hintText: hint,
                     labelText: title,
                   ),
