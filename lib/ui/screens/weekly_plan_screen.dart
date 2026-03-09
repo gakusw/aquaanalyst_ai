@@ -434,7 +434,8 @@ $targetSleep
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('エラーが発生しました: $e')));
+        final msg = GeminiService().translateError(e, modelId: GeminiService.modelPro);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       }
     } finally {
       if (mounted) {

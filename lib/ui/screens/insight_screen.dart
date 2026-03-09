@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../data/services/firestore_service.dart';
+import '../../data/services/gemini_service.dart' as ai;
 import '../../data/models/training_insight.dart';
 import '../../data/models/training_record.dart';
 import '../../data/models/personal_best.dart';
+import '../../data/models/goal_time.dart';
 import '../../data/models/app_user.dart';
 class _EventPrediction {
   final String name;
@@ -69,7 +72,136 @@ class _InsightScreenState extends State<InsightScreen> {
 
   int _selectedEventIndex = 0;
   int _selectedViewIndex = 0; // 0:相関, 1:体組成, 2:タイム予測 (3:ビジョンは非表示)
-  bool _showPredictedTime = false; // 予測タイムレンジ表示フラグ
+  bool _isPredicting = false; // AI分析実行中フラグ
+
+  Future<void> _runAiPrediction(
+    BuildContext context, 
+    List<TrainingRecord> records, 
+    List<PersonalBest> pbs, 
+    AppUser? user
+  ) async {
+    setState(() => _isPredicting = true);
+    
+    try {
+      // 最近のデータを抽出 (直近20件または30日分程度)
+      final recentRecords = records.take(20).toList();
+      
+      // 体組成データの抽出
+      final bodyComp = recentRecords
+          .where((r) => r.type == 'nutrition')
+          .map((r) => {
+            'date': r.date.toIso8601String(),
+            'weight': r.subjectiveMetrics['weight'],
+            'muscle_mass': r.subjectiveMetrics['muscle_mass'],
+            'body_fat': r.subjectiveMetrics['body_fat'],
+          })
+          .toList();
+
+      // 競泳PBの抽出
+      final swimPbs = pbs
+          .where((pb) => pb.category == 'swim')
+          .map((pb) => {
+            'event': pb.event,
+            'value': pb.value,
+            'date': pb.date.toIso8601String(),
+          })
+          .toList();
+
+      // 目標タイムの取得
+      final goalTimesSnapshot = await _firestoreService.getGoalTimesStream().first;
+      final goalTimes = goalTimesSnapshot.map((gt) => {
+        'event': gt.event,
+        'value': gt.value,
+      }).toList();
+
+      // 練習内容の要约
+      final trainingSummary = recentRecords
+          .where((r) => r.type == 'pool' || r.type == 'dryland')
+          .map((r) => {
+            'type': r.type,
+            'date': r.date.toIso8601String(),
+            'duration': r.durationMinutes,
+            'feeling': r.subjectiveMetrics['feeling'],
+            'content': r.details.isNotEmpty ? r.details.first['content'] : '',
+          })
+          .toList();
+
+      final prompt = """
+あなたは超一流の競泳データアナリスト兼コーチです。以下のユーザーデータを基に、統計的かつ生理学的な見地から次戦のタイムを予測し、JSON形式で回答してください。
+
+【ユーザーデータ】
+- 選手としてのビジョン: ${user?.vision ?? '未設定'}
+- 最新の自己ベスト: $swimPbs
+- ユーザーが設定した目標タイム: $goalTimes
+- 直近の体組成推移: $bodyComp
+- 最近の練習内容と主観評価: $trainingSummary
+
+【回答形式 (JSON)】
+以下の構造を持つJSONオブジェクトのみを出力してください。Markdownのコードブロックなどは含めないでください。
+{
+  "overallInsight": "全体の分析（現在のコンディションや成長傾向）",
+  "agentThinkingSteps": ["分析ステップ1", "分析ステップ2", "分析ステップ3", "分析ステップ4"],
+  "predictions": [
+    {
+      "eventName": "種目名 (自己ベストにある種目名を正確に使用)",
+      "predictedTime": "予想タイム (秒)",
+      "confidenceInterval": "信頼区間 (例: 22.8s 〜 23.1s)",
+      "successRate": 0.0〜1.0 (ユーザーが設定した「目標タイム」を達成できる確率。目標タイムが未設定の種目の場合は、自己ベスト更新の確率。),
+      "specificInsight": "その種目に対する具体的なアドバイス（1-2文）",
+      "laps": [
+        { "section": "区間 (例: 0-25m)", "time": "区間タイム", "strokeCount": 推定ストローク数 }
+      ]
+    }
+  ]
+}
+
+※ 注意: 予測タイムは、筋量、練習内容（強度や距離）、主観的な疲労度、過去のPBからの期間などを考慮してリアリティのある数値を算出してください。
+""";
+
+      final response = await ai.GeminiService().generateContent(
+        prompt, 
+        modelId: ai.GeminiService.modelFlash,
+        responseMimeType: 'application/json',
+      );
+
+      if (response == null || response.isEmpty) throw Exception('AIからの応答が空でした。');
+
+      // JSONパース
+      final Map<String, dynamic> data = jsonDecode(response);
+      
+      final insight = TrainingInsight(
+        id: '', // Firestore保存時に自動生成
+        createdAt: DateTime.now(),
+        overallInsight: data['overallInsight'] ?? '',
+        agentThinkingSteps: List<String>.from(data['agentThinkingSteps'] ?? []),
+        predictions: (data['predictions'] as List<dynamic>?)?.map((p) => EventPrediction(
+          eventName: p['eventName'] ?? '',
+          predictedTime: p['predictedTime']?.toString() ?? '',
+          confidenceInterval: p['confidenceInterval'] ?? '',
+          successRate: (p['successRate'] as num?)?.toDouble() ?? 0.0,
+          specificInsight: p['specificInsight'] ?? '',
+          laps: (p['laps'] as List<dynamic>?)?.map((l) => LapPrediction(
+            section: l['section'] ?? '',
+            time: l['time']?.toString() ?? '',
+            strokeCount: (l['strokeCount'] as num?)?.toInt() ?? 0,
+          )).toList() ?? [],
+        )).toList() ?? [],
+      );
+
+      // 保存
+      await _firestoreService.saveTrainingInsight(insight);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AIタイム予測が完了しました。')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('分析に失敗しました: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isPredicting = false);
+    }
+  }
 
   @override
   void initState() {
@@ -142,31 +274,42 @@ class _InsightScreenState extends State<InsightScreen> {
 
   // --- エージェント思考ログ ---
   Widget _buildAgentThinkingLog(BuildContext context, TrainingInsight? insight) {
-    final steps = insight?.agentThinkingSteps ?? [
-      '> 過去3ヶ月の自由形データを走査中...',
-      '> 筋量増加と乳酸閾値の相関を確認．',
-      '> ユーザーの主観データ「キャッチが滑る」という記述が，高強度練習時に頻発していることを検出．',
-      '> 結論：現在の技術的課題は筋疲労時のフォーム保持能力にあると推論．',
-    ];
+    final steps = insight?.agentThinkingSteps ?? [];
+    if (steps.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      width: double.infinity,
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.psychology, size: 16, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(width: 8),
-              Text('Agent Thinking...', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
-            ],
+      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      child: ExpansionTile(
+        dense: true,
+        visualDensity: VisualDensity.compact,
+        leading: Icon(Icons.psychology, size: 18, color: Theme.of(context).colorScheme.primary),
+        title: Text(
+          'AI Thinking Log (${steps.length} steps)',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
           ),
-          const SizedBox(height: 4),
-          Text(
-            steps.join('\n'),
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.grey, height: 1.4),
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+                Text(
+                  steps.join('\n'),
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: Colors.grey,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -200,7 +343,7 @@ class _InsightScreenState extends State<InsightScreen> {
 
           if (_selectedViewIndex == 0) _buildCorrelationView(context, insight, records),
           if (_selectedViewIndex == 1) _buildBodyNutritionView(context, insight, records),
-          if (_selectedViewIndex == 2) _buildPredictionView(context, insight, pbs),
+          if (_selectedViewIndex == 2) _buildPredictionView(context, insight, records, pbs, user),
           // if (_selectedViewIndex == 3) _buildVisionAlignmentView(context, insight, user),
           
           const SizedBox(height: 40),
@@ -227,7 +370,7 @@ class _InsightScreenState extends State<InsightScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _buildPredictionView(context, insight, pbs)),
+              Expanded(child: _buildPredictionView(context, insight, records, pbs, user)),
               // const SizedBox(width: 24),
               // Expanded(child: _buildVisionAlignmentView(context, insight, user)),
             ],
@@ -389,7 +532,13 @@ class _InsightScreenState extends State<InsightScreen> {
   }
 
   // ============== C. 統計的タイム予測ビュー ==============
-  Widget _buildPredictionView(BuildContext context, TrainingInsight? insight, List<PersonalBest> pbs) {
+  Widget _buildPredictionView(
+    BuildContext context, 
+    TrainingInsight? insight, 
+    List<TrainingRecord> records, 
+    List<PersonalBest> pbs, 
+    AppUser? user
+  ) {
     // 1. PBから競泳種目のみを抽出
     final Set<String> eventNames = pbs
         .where((pb) => pb.category == 'swim')
@@ -503,32 +652,59 @@ class _InsightScreenState extends State<InsightScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       const Text('AI予測タイム', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      if (_showPredictedTime)
+                       if (_isPredicting)
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else if (prediction?.predictedTime != null && 
+                               prediction!.predictedTime.isNotEmpty && 
+                               prediction.predictedTime != '---')
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              (prediction?.predictedTime == null || prediction!.predictedTime.isEmpty || prediction.predictedTime == '---')
-                                  ? '分析中...' 
-                                  : '${prediction.predictedTime} s', 
+                              '${prediction.predictedTime} s', 
                               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)
                             ),
                             Text(
-                              '95% CI: ${prediction?.confidenceInterval ?? "算出中"}', 
+                              '95% CI: ${prediction.confidenceInterval}', 
                               style: const TextStyle(fontSize: 11, color: Colors.grey)
                             ),
                           ],
                         )
                       else
-                        OutlinedButton.icon(
-                          onPressed: () => setState(() => _showPredictedTime = true),
-                          icon: const Icon(Icons.visibility),
-                          label: const Text('表示する'),
-                        ),
+                        const Text('予測データなし', style: TextStyle(color: Colors.grey, fontSize: 13)),
                     ],
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 24),
+            
+            // 予測実行ボタン
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isPredicting ? null : () => _runAiPrediction(context, records, pbs, user),
+                icon: _isPredicting 
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.auto_awesome),
+                label: Text(_isPredicting ? '分析中...' : '最新データでAIタイム予測を実行'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Center(
+              child: Text(
+                '※ ボタンを押すとAIが最新の記録を分析します（数十秒かかります）',
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
             ),
             const SizedBox(height: 16),
             LinearProgressIndicator(

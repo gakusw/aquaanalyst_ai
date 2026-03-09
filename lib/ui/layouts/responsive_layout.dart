@@ -84,6 +84,16 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
+                  // 1. ホーム (左端)
+                  Expanded(
+                    child: _BottomAppBarItem(
+                      icon: selectedIndex == 0 ? Icons.home : Icons.home_outlined,
+                      label: 'ホーム',
+                      selected: selectedIndex == 0,
+                      onTap: () => _onItemTapped(0, context),
+                    ),
+                  ),
+                  // 2. 週間計画
                   Expanded(
                     child: _BottomAppBarItem(
                       icon: selectedIndex == 1 ? Icons.calendar_month : Icons.calendar_month_outlined,
@@ -92,6 +102,13 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
                       onTap: () => _onItemTapped(1, context),
                     ),
                   ),
+                  // 3. FAB (中央)
+                  const Expanded(
+                    child: Center(
+                      child: AddRecordFab(),
+                    ),
+                  ),
+                  // 4. コーチ
                   Expanded(
                     child: _BottomAppBarItem(
                       icon: selectedIndex == 2 ? Icons.psychology : Icons.psychology_outlined,
@@ -100,15 +117,7 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
                       onTap: () => _onItemTapped(2, context),
                     ),
                   ),
-                  Expanded(
-                    child: _BottomAppBarItem(
-                      icon: selectedIndex == 0 ? Icons.home : Icons.home_outlined,
-                      label: 'ホーム',
-                      selected: selectedIndex == 0,
-                      isProminent: true,
-                      onTap: () => _onItemTapped(0, context),
-                    ),
-                  ),
+                  // 5. インサイト
                   Expanded(
                     child: _BottomAppBarItem(
                       icon: selectedIndex == 3 ? Icons.insights : Icons.insights_outlined,
@@ -117,18 +126,13 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
                       onTap: () => _onItemTapped(3, context),
                     ),
                   ),
+                  // 6. 設定
                   Expanded(
                     child: _BottomAppBarItem(
                       icon: selectedIndex == 4 ? Icons.settings : Icons.settings_outlined,
                       label: '設定',
                       selected: selectedIndex == 4,
                       onTap: () => _onItemTapped(4, context),
-                    ),
-                  ),
-                  // FABを6つ目のアイテムとして組み込む
-                  const Expanded(
-                    child: Center(
-                      child: AddRecordFab(),
                     ),
                   ),
                 ],

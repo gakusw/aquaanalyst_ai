@@ -34,7 +34,7 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
   bool _isInit = false;
   bool _isTyping = false;
   String? _currentSessionId = _activeSessionId;
-  String _aiModelName = 'Gemini 1.5 Flash';
+  String? _activeModelId;
 
   @override
   void initState() {
@@ -46,7 +46,8 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
     if (_currentSessionId != null) {
       await _loadSession(_currentSessionId!);
     } else {
-      // セッションがない場合は初期化（必要に応じて自動作成も検討）
+      await _firestoreService.ensureHomeChatExists();
+      await _loadSession('home_chat');
     }
   }
 
@@ -71,9 +72,14 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
         m.isAi ? Content.model([TextPart(m.text)]) : Content.text(m.text)
       ).toList();
 
+      final user = await _firestoreService.getUserProfileStream().first;
+      final modelId = user?.baseProfile['aiModel'] as String? ?? GeminiService.modelPro;
+      _activeModelId = modelId;
+
       _chatSession = GeminiService().startChat(
         systemInstruction: currentSession.systemInstruction,
         history: geminiHistory,
+        modelId: modelId,
       );
 
       setState(() {
@@ -104,6 +110,7 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
       final expertiseLevel = (user?.baseProfile['expertiseLevel'] as num?)?.toDouble() ?? 5.0;
       final vision = user?.vision ?? '未設定';
       final idealCoach = user?.baseProfile['idealCoachPersona'] as String? ?? 'ロジカルで、選手のモチベーションを高めてくれる専門家';
+      final modelId = user?.baseProfile['aiModel'] as String? ?? GeminiService.modelPro;
 
       // 節約のため直近5件に制限
       final records = await _firestoreService.getTrainingRecordsStream(limit: 5).first;
@@ -131,11 +138,11 @@ $pbText
 
       _currentSessionId = sessionId;
       _activeSessionId = sessionId;
-      _chatSession = GeminiService().startChat(systemInstruction: sysInst);
+      _activeModelId = modelId;
+      _chatSession = GeminiService().startChat(systemInstruction: sysInst, modelId: modelId);
 
-      // 初回挨拶
-      final response = await _chatSession!.sendMessage(Content.text("システムを起動してください。挨拶と、分析に必要な情報があれば聞いてください。"));
-      final aiMsg = response.text ?? 'こんにちは。何かお手伝いしましょうか？';
+      // 初回挨拶（リクエスト回数節約のため、sendMessageではなく固定メッセージを追加）
+      const aiMsg = 'こんにちは！本日のコンディションや練習メニューについて、何でも相談してください。';
       
       await _firestoreService.addChatMessage(sessionId, ChatMessage(text: aiMsg, isAi: true, timestamp: DateTime.now()));
 
@@ -147,7 +154,7 @@ $pbText
     } catch (e) {
       setState(() {
         _isTyping = false;
-        final msg = GeminiService().translateError(e);
+        final msg = GeminiService().translateError(e, modelId: _activeModelId);
         _messages.add(CoachMessage(text: msg, isAi: true, type: MessageType.warning));
       });
     }
@@ -181,6 +188,10 @@ $pbText
       await _firestoreService.addChatMessage(sessionId, ChatMessage(text: aiMsg, isAi: true, timestamp: DateTime.now()));
 
       if (!mounted) return;
+      
+      // 送信成功時に利用回数をインクリメント
+      _firestoreService.incrementDailyUsage();
+
       setState(() {
         _isTyping = false;
         _messages.add(CoachMessage(text: aiMsg, isAi: true));
@@ -189,8 +200,7 @@ $pbText
       if (!mounted) return;
       setState(() {
         _isTyping = false;
-        // Exceptionオブジェクトからメッセージを抽出 (GeminiServiceで翻訳)
-        final msg = GeminiService().translateError(e);
+        final msg = GeminiService().translateError(e, modelId: _activeModelId);
         _messages.add(CoachMessage(text: msg, isAi: true, type: MessageType.warning));
       });
     }
@@ -202,14 +212,72 @@ $pbText
     return e.toString().replaceFirst('Exception: ', '');
   }
 
+  Future<void> _renameSession(String sessionId, String currentTitle) async {
+    final controller = TextEditingController(text: currentTitle);
+    final newTitle = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('履歴の名前変更'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: '新しいタイトルを入力'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('キャンセル')),
+          TextButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('保存')),
+        ],
+      ),
+    );
+
+    if (newTitle != null && newTitle.isNotEmpty && newTitle != currentTitle) {
+      await _firestoreService.updateChatSessionTitle(sessionId, newTitle);
+    }
+  }
+
+  Future<void> _deleteSession(String sessionId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('履歴の削除'),
+        content: const Text('このチャット履歴を削除してもよろしいですか？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('キャンセル')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _firestoreService.deleteChatSession(sessionId);
+      if (_currentSessionId == sessionId) {
+        _loadSession('home_chat');
+      }
+    }
+  }
+
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (_scrollController.hasClients) {
+        // 初回のスクロール
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
+        // ListViewのレンダリングが完全に終わるのを待つためにわずかに遅延させて再実行
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.easeOut,
+          );
+        }
       }
     });
   }
@@ -313,10 +381,25 @@ $pbText
                   itemCount: sessions.length,
                   itemBuilder: (context, index) {
                     final session = sessions[index];
+                    final isHomeChat = session.id == 'home_chat';
                     return ListTile(
                       selected: session.id == _currentSessionId,
+                      leading: Icon(isHomeChat ? Icons.home : Icons.chat_bubble_outline),
                       title: Text(session.title),
                       subtitle: Text('${session.lastMessageAt.month}/${session.lastMessageAt.day}'),
+                      trailing: isHomeChat ? null : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            onPressed: () => _renameSession(session.id, session.title),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, size: 20),
+                            onPressed: () => _deleteSession(session.id),
+                          ),
+                        ],
+                      ),
                       onTap: () {
                         Navigator.pop(context);
                         _loadSession(session.id);
@@ -460,8 +543,8 @@ $pbText
                   },
                   child: TextField(
                     controller: _textController,
-                    minLines: 3,
-                    maxLines: 3,
+                    minLines: 2,
+                    maxLines: 2,
                     textAlignVertical: TextAlignVertical.top,
                       keyboardType: TextInputType.multiline,
                       textInputAction: TextInputAction.newline, // モバイルでも改行を優先

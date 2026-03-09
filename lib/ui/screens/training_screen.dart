@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
+import '../../utils/event_utils.dart';
 
 class TrainingScreen extends StatefulWidget {
   const TrainingScreen({super.key});
@@ -166,7 +167,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
             TextField(
               controller: _menuController,
               minLines: 5,
-              maxLines: 5,
+              maxLines: 5, // 高さを完全に固定してスクロール型にする
               textAlignVertical: TextAlignVertical.top,
               keyboardType: TextInputType.multiline,
               textInputAction: TextInputAction.newline,
@@ -266,7 +267,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
             TextField(
               controller: _drylLandController,
               minLines: 4,
-              maxLines: 4,
+              maxLines: 4, // 高さを完全に固定
               textAlignVertical: TextAlignVertical.top,
               keyboardType: TextInputType.multiline,
               textInputAction: TextInputAction.newline,
@@ -310,9 +311,13 @@ class _TrainingScreenState extends State<TrainingScreen> {
                   setState(() => _isSaving = true);
                   try {
                     // 入力内容からTrainingRecordを作成
-                    final poolDetails = _menuController.text.isNotEmpty ? [{'type': 'menu_text', 'content': _menuController.text}] : <Map<String, dynamic>>[];
+                    final rawMenu = _menuController.text;
+                    final normalizedMenu = EventUtils.normalizeEventName(rawMenu);
+                    final poolDetails = normalizedMenu.isNotEmpty ? [{'type': 'menu_text', 'content': normalizedMenu}] : <Map<String, dynamic>>[];
+                    
                     if (_timeController.text.isNotEmpty) {
-                      poolDetails.add({'type': 'main_set_time', 'content': _timeController.text});
+                      final normalizedTime = EventUtils.normalizeEventName(_timeController.text);
+                      poolDetails.add({'type': 'main_set_time', 'content': normalizedTime});
                     }
                     final poolTime = int.tryParse(_durationController.text) ?? 0;
                     

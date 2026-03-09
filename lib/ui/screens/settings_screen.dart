@@ -44,17 +44,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text('$title の編集'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
-          child: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              hintText: '新しい $title を入力',
-              border: const OutlineInputBorder(),
+            child: TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: '新しい $title を入力',
+                border: const OutlineInputBorder(),
+              ),
+              maxLines: fieldKey == 'vision' ? 5 : 1,
+              minLines: fieldKey == 'vision' ? 5 : 1, // 高さを完全に固定してスクロール型に
+              keyboardType: fieldKey == 'vision' ? TextInputType.multiline : TextInputType.text,
+              autofocus: true,
             ),
-            maxLines: fieldKey == 'vision' ? 5 : 1,
-            minLines: fieldKey == 'vision' ? 3 : 1,
-            keyboardType: fieldKey == 'vision' ? TextInputType.multiline : TextInputType.text,
-            autofocus: true,
-          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('キャンセル')),
@@ -112,17 +112,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 16),
               TextField(controller: weightController, decoration: const InputDecoration(labelText: '体重 (kg)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
               const SizedBox(height: 16),
-              TextField(
-                controller: notesController,
-                decoration: const InputDecoration(
-                  labelText: '備考 (怪我の既往、アレルギー等)',
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(
+                    labelText: '備考 (怪我の既往、アレルギー等)',
+                    border: OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
+                  maxLines: 5,
+                  minLines: 5, // 高さを完全に固定してスクロール型に
+                  keyboardType: TextInputType.multiline,
                 ),
-                maxLines: 5,
-                minLines: 3,
-                keyboardType: TextInputType.multiline,
-              ),
             ],
           ),
         ),
@@ -175,17 +175,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 16),
               TextField(controller: crowdController, decoration: const InputDecoration(labelText: '1コースあたりの人数', border: OutlineInputBorder()), keyboardType: TextInputType.number),
               const SizedBox(height: 16),
-              TextField(
-                controller: notesController,
-                decoration: const InputDecoration(
-                  labelText: '備考 (水温、施設の混雑状況等)',
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(
+                    labelText: '備考 (水温、施設の混雑状況等)',
+                    border: OutlineInputBorder(),
+                    alignLabelWithHint: true,
+                  ),
+                  maxLines: 5,
+                  minLines: 5, // 高さを完全に固定してスクロール型に
+                  keyboardType: TextInputType.multiline,
                 ),
-                maxLines: 5,
-                minLines: 3,
-                keyboardType: TextInputType.multiline,
-              ),
             ],
           ),
         ),
@@ -231,20 +231,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                   RadioListTile<String>(
-                     title: const Text('Gemini 2.5 Flash'),
-                     subtitle: const Text('高速でバランスの取れた標準モデル'),
-                     value: 'Gemini 2.5 Flash',
-                     groupValue: selected,
-                     onChanged: (val) => setDialogState(() => selected = val!),
-                   ),
-                   RadioListTile<String>(
-                     title: const Text('Gemini 3.1 Pro'),
-                     subtitle: const Text('高度な推論と厳格なアプローチ'),
-                     value: 'Gemini 3.1 Pro',
-                     groupValue: selected,
-                     onChanged: (val) => setDialogState(() => selected = val!),
-                   ),
+                    RadioListTile<String>(
+                      title: const Text('Gemini 2.5 Flash'),
+                      subtitle: const Text('高速・低コストでバランスが良いモデルです。制限も比較的緩やかです。'),
+                      value: 'models/gemini-2.5-flash',
+                      groupValue: selected,
+                      onChanged: (val) => setDialogState(() => selected = val!),
+                    ),
+                    RadioListTile<String>(
+                      title: const Text('Gemini 2.5 Pro'),
+                      subtitle: const Text('高度な推論と詳細な分析。無料枠の回数制限が厳しいです。'),
+                      value: 'models/gemini-2.5-pro',
+                      groupValue: selected,
+                      onChanged: (val) => setDialogState(() => selected = val!),
+                    ),
                 ],
               ),
               actions: [
@@ -310,7 +310,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final envCrowd = user?.baseProfile['env_crowd'] ?? '-';
           final envDataText = '水路: $envLength / 水深: $envDepth m / 人数: $envCrowd 人';
 
-          final aiModelText = user?.baseProfile['aiModel'] ?? 'Gemini 2.5 Flash';
+          final aiModelKey = user?.baseProfile['aiModel'] ?? 'models/gemini-2.5-flash';
+          final aiModelText = (aiModelKey == 'models/gemini-2.5-flash' || aiModelKey == 'gemini-1.5-flash' || aiModelKey == 'gemini-2.5-flash') ? 'Gemini 2.5 Flash' : 'Gemini 2.5 Pro';
 
           return ListView(
             children: [
@@ -510,6 +511,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 backgroundColor: Colors.red.withOpacity(0.1),
                 elevation: 0,
               ),
+            ),
+          ),
+          const Divider(),
+          // デバッグ情報
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('デバッグ情報', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.outline)),
+                const SizedBox(height: 8),
+                StreamBuilder<int>(
+                  stream: _firestoreService.getDailyUsageStream(),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    return Text('本日のAI利用回数 (送信成功数): $count 回', style: const TextStyle(fontSize: 12, color: Colors.grey));
+                  },
+                ),
+                const SizedBox(height: 4),
+                const Text('※実際のクォータと完全に一致するものではありません。', style: TextStyle(fontSize: 10, color: Colors.grey)),
+              ],
             ),
           ),
           const SizedBox(height: 32),

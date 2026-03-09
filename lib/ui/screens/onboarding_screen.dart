@@ -91,7 +91,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _visionController,
-                  maxLines: 2,
+                  minLines: 3,
+                  maxLines: 3, // 高さを固定してスクロール型にする
+                  keyboardType: TextInputType.multiline,
                   decoration: const InputDecoration(
                     hintText: '例: 1年後のインカレで50m自由形23秒台を出して決勝に残りたい',
                     border: OutlineInputBorder(),
@@ -121,7 +123,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _coachController,
-                  maxLines: 2,
+                  minLines: 3,
+                  maxLines: 3, // 高さを固定
+                  keyboardType: TextInputType.multiline,
                   decoration: const InputDecoration(
                     hintText: '例: ロジカルに，かつモチベーションが上がる言い回しが良い',
                     border: OutlineInputBorder(),

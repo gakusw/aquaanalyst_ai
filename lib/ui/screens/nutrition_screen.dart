@@ -73,6 +73,45 @@ class _NutritionScreenState extends State<NutritionScreen> {
     }
   }
 
+  bool _isAiAnalyzing = false;
+  Future<void> _runAiAnalysis() async {
+    if (_memoController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('食事内容を入力してください')),
+      );
+      return;
+    }
+
+    setState(() => _isAiAnalyzing = true);
+    try {
+      final result = await GeminiService().analyzeNutrition(_memoController.text);
+      if (result != null) {
+        setState(() {
+          _subjectiveProtein = result.protein;
+          _subjectiveCarbs = result.carbs;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+              content: Text('AI解析完了: ${result.reason}'),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      } else {
+        throw Exception('解析結果を取得できませんでした');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('AI解析失敗: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isAiAnalyzing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -180,12 +219,24 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 TextField(
                   controller: _memoController,
                   minLines: 4,
-                  maxLines: 4,
+                  maxLines: 4, // 高さを完全に固定してスクロール型にする
+                  keyboardType: TextInputType.multiline,
                   textAlignVertical: TextAlignVertical.top,
                   textInputAction: TextInputAction.newline,
                   decoration: const InputDecoration(
                     hintText: '例: 練習直後にプロテイン30g，夕食は鶏むね肉と玄米...',
                     border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _isAiAnalyzing ? null : _runAiAnalysis,
+                    icon: _isAiAnalyzing 
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.auto_awesome, size: 18),
+                    label: Text(_isAiAnalyzing ? '解析中...' : '商品名・内容からPFCを自動推定'),
                   ),
                 ),
                 const SizedBox(height: 16),

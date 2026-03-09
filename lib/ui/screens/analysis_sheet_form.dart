@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/models/training_record.dart';
+import '../../utils/event_utils.dart';
 
 /// 自己分析シート入力フォーム（モーダル表示用）
 class AnalysisSheetForm extends StatefulWidget {
@@ -148,7 +149,12 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
                   type: 'analysis',
                   durationMinutes: 0,
                   details: [
-                    {'type': 'event_info', 'event': _event, 'course': _course, 'distance': _totalDistance},
+                    {
+                      'type': 'event_info', 
+                      'event': EventUtils.normalizeEventName(_event), 
+                      'course': _course, 
+                      'distance': _totalDistance
+                    },
                     {'type': 'laps', 'data': _laps.map((l) => {
                       'section': l.section,
                       'time': l.timeController.text,

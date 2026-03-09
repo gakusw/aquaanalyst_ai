@@ -6,6 +6,7 @@ import '../models/weekly_plan.dart';
 import '../models/training_insight.dart';
 import '../models/personal_best.dart';
 import '../models/chat_session.dart';
+import '../models/goal_time.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -54,24 +55,47 @@ class FirestoreService {
             .toList());
   }
 
-  /// サマリー用に当日の記録を取得（日付で絞り込み）
+  /// サマリー用に当日の記録を取得（朝4時リセットを考慮）
   Future<List<TrainingRecord>> getTodayRecords() async {
     final uid = currentUserId;
     if (uid == null) return [];
 
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final range = getEffectiveDayRange(DateTime.now());
+    final startOfRange = range['start']!;
+    final endOfRange = range['end']!;
 
     final snapshot = await _db
         .collection('users')
         .doc(uid)
         .collection('training_records')
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
+        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfRange))
+        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfRange))
         .get();
 
     return snapshot.docs.map((doc) => TrainingRecord.fromMap(doc.data(), doc.id)).toList();
+  }
+
+  /// 朝4時を基準とした「実効的な1日」の開始と終了を返す。
+  /// 例: 3/10 03:00 (JST) の場合、実効的な1日は 3/09 04:00 ～ 3/10 03:59:59。
+  static Map<String, DateTime> getEffectiveDayRange(DateTime time) {
+    DateTime start;
+    if (time.hour < 4) {
+      // 00:00 - 03:59 の間は前日の4:00が開始
+      start = DateTime(time.year, time.month, time.day - 1, 4, 0, 0);
+    } else {
+      // 04:00 以降はその日の4:00が開始
+      start = DateTime(time.year, time.month, time.day, 4, 0, 0);
+    }
+    final end = start.add(const Duration(hours: 23, minutes: 59, seconds: 59));
+    return {'start': start, 'end': end};
+  }
+
+  /// 指定した2つの日時が、朝4時リセット基準で同じ「実効的な日」に属するか判定する。
+  static bool isSameEffectiveDay(DateTime d1, DateTime d2) {
+    final range1 = getEffectiveDayRange(d1);
+    final start1 = range1['start']!;
+    final end1 = range1['end']!;
+    return d2.isAtSameMomentAs(start1) || (d2.isAfter(start1) && d2.isBefore(end1.add(const Duration(seconds: 1))));
   }
 
   /// 記録の追加
@@ -199,12 +223,11 @@ class FirestoreService {
     final uid = currentUserId;
     if (uid == null) throw Exception('ログインしていません');
 
-    await _db
-        .collection('users')
-        .doc(uid)
-        .collection('training_insights')
-        .doc(insight.id)
-        .set(insight.toMap());
+    final docRef = insight.id.isEmpty
+        ? _db.collection('users').doc(uid).collection('training_insights').doc()
+        : _db.collection('users').doc(uid).collection('training_insights').doc(insight.id);
+
+    await docRef.set(insight.toMap());
   }
 
   // --- 自己ベスト関連 ---
@@ -235,6 +258,49 @@ class FirestoreService {
         : _db.collection('users').doc(uid).collection('personal_bests').doc(pb.id);
 
     await docRef.set(pb.toMap(), SetOptions(merge: true));
+  }
+
+  // --- 目標タイム関連 ---
+
+  /// 目標タイムのリストを取得するStream
+  Stream<List<GoalTime>> getGoalTimesStream() {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
+
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('goal_times')
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => GoalTime.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// 目標タイムを保存・追加する
+  Future<void> saveGoalTime(GoalTime gt) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    final docRef = gt.id.isEmpty 
+        ? _db.collection('users').doc(uid).collection('goal_times').doc()
+        : _db.collection('users').doc(uid).collection('goal_times').doc(gt.id);
+
+    await docRef.set(gt.toMap(), SetOptions(merge: true));
+  }
+
+  /// 目標タイムの削除
+  Future<void> deleteGoalTime(String gtId) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('goal_times')
+        .doc(gtId)
+        .delete();
   }
 
   // --- チャットセッション関連 ---
@@ -289,6 +355,78 @@ class FirestoreService {
     });
 
     return docRef.id;
+  }
+
+  /// チャットセッションのタイトルを更新する
+  Future<void> updateChatSessionTitle(String sessionId, String newTitle) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('chat_sessions')
+        .doc(sessionId)
+        .update({'title': newTitle});
+  }
+
+  /// チャットセッションを削除する
+  Future<void> deleteChatSession(String sessionId) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    // サブコレクション（messages）の削除は本来バッチ処理が必要だが、
+    // ここでは簡易的にセッションドキュメントのみ削除（Firestoreは空のドキュメントを残さない運用が一般的）
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('chat_sessions')
+        .doc(sessionId)
+        .delete();
+  }
+
+  /// ホームチャット（ID: home_chat）の存在を確認し、なければ作成する
+  Future<void> ensureHomeChatExists() async {
+    final uid = currentUserId;
+    if (uid == null) return;
+
+    final docRef = _db
+        .collection('users')
+        .doc(uid)
+        .collection('chat_sessions')
+        .doc('home_chat');
+
+    final doc = await docRef.get();
+    if (!doc.exists) {
+      await docRef.set({
+        'title': 'ホームチャット',
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'systemInstruction': 'あなたは競泳コーチです。日々の練習についてのアドバイスを丁寧に行ってください。',
+      });
+    }
+  }
+
+  /// 本日の利用回数をインクリメントする (デバッグ用)
+  Future<void> incrementDailyUsage() async {
+    final uid = currentUserId;
+    if (uid == null) return;
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final ref = _db.collection('users').doc(uid).collection('usage').doc(today);
+    await ref.set({
+      'count': FieldValue.increment(1),
+      'lastUpdatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  /// 本日の利用回数を取得する
+  Stream<int> getDailyUsageStream() {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value(0);
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    return _db.collection('users').doc(uid).collection('usage').doc(today).snapshots().map((doc) {
+      if (!doc.exists) return 0;
+      return (doc.data()?['count'] as num?)?.toInt() ?? 0;
+    });
   }
 
   /// メッセージを追加する

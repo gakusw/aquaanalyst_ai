@@ -4,6 +4,8 @@ import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
 import '../../data/models/personal_best.dart';
+import '../../data/models/goal_time.dart';
+import '../../utils/event_utils.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,12 +18,14 @@ class _HomeScreenState extends State<HomeScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   late final Stream<List<TrainingRecord>> _recordsStream;
   late final Stream<List<PersonalBest>> _pbsStream;
+  late final Stream<List<GoalTime>> _goalTimesStream;
 
   @override
   void initState() {
     super.initState();
     _recordsStream = _firestoreService.getTrainingRecordsStream(limit: 50);
     _pbsStream = _firestoreService.getPersonalBestsStream();
+    _goalTimesStream = _firestoreService.getGoalTimesStream();
   }
 
   @override
@@ -43,11 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final allRecords = snapshot.data ?? [];
           final now = DateTime.now();
-          // 今日の記録のみを抽出
+          // 今日の記録のみを抽出（朝4時リセットを考慮）
           final todayRecords = allRecords.where((record) {
-            return record.date.year == now.year &&
-                   record.date.month == now.month &&
-                   record.date.day == now.day;
+            return FirestoreService.isSameEffectiveDay(now, record.date);
           }).toList();
 
           // 記録カテゴリ別のデータを集約
@@ -129,6 +131,30 @@ class _HomeScreenState extends State<HomeScreen> {
                _buildWeightBestCard(context, pb, drylandPbHistory[pb.event]!)
             ),
             const SizedBox(height: 24),
+
+            // 目標タイム
+            StreamBuilder<List<GoalTime>>(
+              stream: _goalTimesStream,
+              builder: (context, gtSnapshot) {
+                final allGts = gtSnapshot.data ?? [];
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('目標タイム', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        IconButton(icon: const Icon(Icons.flag, color: Colors.blueAccent), onPressed: () => _showAddGoalDialog(context)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (allGts.isEmpty) const Text('目標タイムがまだ設定されていません。', style: TextStyle(color: Colors.grey)),
+                    ...allGts.map((gt) => _buildGoalTimeCard(context, gt)),
+                    const SizedBox(height: 24),
+                  ],
+                );
+              }
+            ),
 
             // 現在の体組成（自己ベスト下）
             const Text('現在の体組成', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -406,7 +432,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 final pb = PersonalBest(
                   id: '',
                   category: category,
-                  event: eventController.text,
+                  event: category == 'swim' 
+                      ? EventUtils.normalizeEventName(eventController.text) 
+                      : eventController.text,
                   value: val,
                   date: DateTime.now(),
                 );
@@ -581,6 +609,123 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  void _showAddGoalDialog(BuildContext context) {
+    final eventController = TextEditingController();
+    final valueController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('目標タイムを追加'),
+        content: SizedBox(
+          width: 300, // 幅を固定
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: eventController, decoration: const InputDecoration(labelText: '種目 (例: 100m Fr)')),
+              TextField(controller: valueController, decoration: const InputDecoration(labelText: '目標タイム (秒)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          ElevatedButton(
+            onPressed: () async {
+              final val = double.tryParse(valueController.text);
+              if (eventController.text.isNotEmpty && val != null) {
+                final gt = GoalTime(
+                  id: '',
+                  category: 'swim',
+                  event: EventUtils.normalizeEventName(eventController.text),
+                  value: val,
+                  date: DateTime.now(),
+                );
+                await _firestoreService.saveGoalTime(gt);
+                if (ctx.mounted) Navigator.pop(ctx);
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showGoalOptionsDialog(BuildContext context, GoalTime gt) {
+    final eventController = TextEditingController(text: gt.event);
+    final valueController = TextEditingController(text: gt.value.toString());
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('「${gt.event}」の目標'),
+        content: SizedBox(
+          width: 300, // 幅を固定
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: eventController, decoration: const InputDecoration(labelText: '種目名')),
+              TextField(controller: valueController, decoration: const InputDecoration(labelText: '目標タイム (秒)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: ctx,
+                builder: (c) => AlertDialog(
+                  title: const Text('削除の確認'),
+                  content: const Text('この目標タイムを削除してもよろしいですか？'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('キャンセル')),
+                    TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('削除', style: TextStyle(color: Colors.red))),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await _firestoreService.deleteGoalTime(gt.id);
+                if (ctx.mounted) Navigator.pop(ctx);
+              }
+            },
+            child: const Text('削除', style: TextStyle(color: Colors.red)),
+          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          ElevatedButton(
+            onPressed: () async {
+              final newVal = double.tryParse(valueController.text);
+              if (eventController.text.isNotEmpty && newVal != null) {
+                final updatedGt = GoalTime(
+                  id: gt.id,
+                  category: gt.category,
+                  event: EventUtils.normalizeEventName(eventController.text),
+                  value: newVal,
+                  date: gt.date,
+                );
+                await _firestoreService.saveGoalTime(updatedGt);
+                if (ctx.mounted) Navigator.pop(ctx);
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoalTimeCard(BuildContext context, GoalTime gt) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8.0),
+      child: ListTile(
+        leading: const CircleAvatar(backgroundColor: Colors.blueAccent, child: Icon(Icons.flag, color: Colors.white)),
+        title: Text(gt.event, style: const TextStyle(fontWeight: FontWeight.bold)),
+        trailing: Text(gt.value.toStringAsFixed(2), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent.shade200)),
+        subtitle: const Text('目標タイム'),
+        onLongPress: () => _showGoalOptionsDialog(context, gt),
+      ),
+    );
+  }
 }
 
 class _SectionLabel extends StatelessWidget {
@@ -712,7 +857,7 @@ P: $p, F: $f, C: $c
 
 評価は具体的に不足している栄養素を補うアドバイスか、よく摂れている点に対する称賛を含めてください。
 """;
-      final result = await GeminiService().generateContent(prompt);
+      final result = await GeminiService().generateContent(prompt, modelId: GeminiService.modelFlash);
       if (mounted) {
         setState(() => _aiEvaluation = result);
       }

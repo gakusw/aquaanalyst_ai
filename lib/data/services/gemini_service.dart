@@ -1,7 +1,15 @@
+import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
+
+class NutritionResult {
+  final double protein;
+  final double carbs;
+  final String reason;
+  NutritionResult({required this.protein, required this.carbs, required this.reason});
+}
 
 class GeminiService {
   static final GeminiService _instance = GeminiService._internal();
@@ -9,8 +17,9 @@ class GeminiService {
   GeminiService._internal();
 
   String? _apiKey;
-  static const String modelPro = 'gemini-3.1-pro-preview';
-  static const String modelFlash = 'gemini-1.5-flash';
+  static const String modelPro = 'models/gemini-2.5-pro';
+  static const String modelFlash = 'models/gemini-2.5-flash';
+  static const String modelFlash20 = 'models/gemini-2.0-flash';
 
   /// 初期化処理
   void init() {
@@ -26,8 +35,14 @@ class GeminiService {
     String? responseMimeType,
   }) {
     if (_apiKey == null || _apiKey!.isEmpty || _apiKey == 'YOUR_KEY_HERE') return null;
+    String effectiveModelId = modelId ?? modelPro;
+    // 'models/' プレフィックスがない場合は付与する（古い保存データへの互換性）
+    if (!effectiveModelId.startsWith('models/')) {
+      effectiveModelId = 'models/$effectiveModelId';
+    }
+
     return GenerativeModel(
-      model: modelId ?? modelPro,
+      model: effectiveModelId,
       apiKey: _apiKey!,
       systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
       generationConfig: responseMimeType != null ? GenerationConfig(responseMimeType: responseMimeType) : null,
@@ -44,7 +59,7 @@ class GeminiService {
       final response = await model.generateContent(content);
       return response.text;
     } catch (e) {
-      throw Exception(translateError(e));
+      throw Exception(translateError(e, modelId: modelId));
     }
   }
 
@@ -55,7 +70,7 @@ class GeminiService {
     String mimeType, {
     String? systemInstruction,
     String? responseMimeType,
-    String? modelId = modelFlash,
+    String? modelId = 'models/gemini-2.5-flash',
   }) async {
     final model = _createModel(modelId: modelId, systemInstruction: systemInstruction, responseMimeType: responseMimeType);
     if (model == null) return 'AIモデルが初期化されていません。';
@@ -70,7 +85,46 @@ class GeminiService {
       final response = await model.generateContent(content);
       return response.text;
     } catch (e) {
-      throw Exception(translateError(e));
+      throw Exception(translateError(e, modelId: modelId));
+    }
+  }
+
+  /// 食事内容のテキストから栄養素(PFC)を抽出する
+  Future<NutritionResult?> analyzeNutrition(String text) async {
+    const prompt = """
+入力された食事内容（商品名、メニュー名、分量など）から、タンパク質と炭水化物の摂取量を5段階で推定し、JSON形式で回答してください。
+5段階評価の基準：
+1: 極めて少ない / なし
+2: 少ない
+3: 普通
+4: 多い
+5: 極めて多い（アスリートの1食分として十分以上）
+
+【回答形式 (JSON)】
+{
+  "protein": 1〜5の数値,
+  "carbs": 1〜5の数値,
+  "reason": "その数値にした理由（簡潔に）"
+}
+""";
+
+    try {
+      final response = await generateContent(
+        "内容: $text\n\n$prompt",
+        modelId: modelFlash,
+        responseMimeType: 'application/json',
+      );
+
+      if (response == null || response.isEmpty) return null;
+      final data = Map<String, dynamic>.from(jsonDecode(response));
+      return NutritionResult(
+        protein: (data['protein'] as num).toDouble(),
+        carbs: (data['carbs'] as num).toDouble(),
+        reason: data['reason'] ?? '',
+      );
+    } catch (e) {
+      debugPrint('Nutrition Analysis Error: $e');
+      return null;
     }
   }
 
@@ -84,23 +138,24 @@ class GeminiService {
   }
 
   /// エラーメッセージを日本語に翻訳する
-  String translateError(dynamic e) {
+  String translateError(dynamic e, {String? modelId}) {
     final errorStr = e.toString();
-    debugPrint('Gemini API Error details: $errorStr');
+    final modelName = modelId ?? modelPro;
+    debugPrint('Gemini API Error details ($modelName): $errorStr');
 
     if (errorStr.contains('Quota exceeded') || errorStr.contains('429')) {
-      return 'AIの利用制限（1日、または1分間あたりの回数上限）に達しました。1.5 Pro/3.1 Proなどの高性能モデルは無料枠が非常にタイトです。1〜2分待ってからお試しいただくか、しばらく時間を置いてください。';
+      return 'AIの利用制限（1日、または1分間あたりの回数上限）に達しました。モデル: $modelName\n1.5 Pro/3.1 Proなどの高性能モデルは無料枠が非常にタイトです。1〜2分待ってからお試しいただくか、設定画面で「Flash（軽量版）」に切り替えることをお勧めします。';
     }
     if (errorStr.contains('not found') || errorStr.contains('404')) {
-      return '指定されたAIモデルが見つかりません。最新のモデルIDを確認してください。';
+      return '指定されたAIモデル ($modelName) が見つかりません。最新のモデルIDを確認してください。';
     }
     if (errorStr.contains('User Location is not supported')) {
-      return 'お住いの地域ではこのAIモデルの利用が制限されています。';
+      return 'お住いの地域ではこのAIモデル ($modelName) の利用が制限されています。';
     }
     if (errorStr.contains('Safety') || errorStr.contains('HARM_CATEGORY')) {
       return 'AIが不適切な内容と判断したため、回答を生成できませんでした。';
     }
     
-    return '通信エラーが発生しました。時間を置いてから再度お試しください。';
+    return '通信エラーが発生しました ($modelName)。時間を置いてから再度お試しください。';
   }
 }

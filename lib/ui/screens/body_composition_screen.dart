@@ -227,7 +227,9 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _memoController,
-              maxLines: 4,
+              minLines: 4,
+              maxLines: 4, // 高さを固定してスクロール型にする
+              keyboardType: TextInputType.multiline,
               decoration: const InputDecoration(
                 hintText: 'その他の詳細など',
                 border: OutlineInputBorder(),
