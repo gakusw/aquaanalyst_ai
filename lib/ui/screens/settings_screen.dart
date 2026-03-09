@@ -174,23 +174,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('主な練習環境の編集'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: lengthController, decoration: const InputDecoration(labelText: '水路 (例: 短水路, 長水路)', border: OutlineInputBorder()), keyboardType: TextInputType.text),
-              const SizedBox(height: 16),
-              TextField(controller: depthController, decoration: const InputDecoration(labelText: '水深 (m)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
-              const SizedBox(height: 16),
-              TextField(controller: crowdController, decoration: const InputDecoration(labelText: '1コースあたりの人数', border: OutlineInputBorder()), keyboardType: TextInputType.number),
-              const SizedBox(height: 16),
+        content: SizedBox(
+          width: 400, // ダイアログの幅を固定
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                StableTextField(
+                  controller: lengthController,
+                  hintText: '例: 短水路, 長水路',
+                  labelText: '水路',
+                  lines: 1,
+                  keyboardType: TextInputType.text,
+                ),
+                StableTextField(
+                  controller: depthController,
+                  hintText: '例: 1.2',
+                  labelText: '水深 (m)',
+                  lines: 1,
+                  keyboardType: TextInputType.number,
+                ),
+                StableTextField(
+                  controller: crowdController,
+                  hintText: '例: 15',
+                  labelText: '1コースあたりの人数',
+                  lines: 1,
+                  keyboardType: TextInputType.number,
+                ),
                 StableTextField(
                   controller: notesController,
                   hintText: '水温、施設の混雑状況等',
-                  labelText: '備考 (水温、施設の混雑状況等)',
+                  labelText: '備考',
                   lines: 5,
                 ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
