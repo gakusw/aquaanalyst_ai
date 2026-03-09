@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
+import '../widgets/stable_text_field.dart';
 
 class NutritionScreen extends StatefulWidget {
   const NutritionScreen({super.key});
@@ -216,17 +217,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
-                TextField(
+                StableTextField(
                   controller: _memoController,
-                  minLines: 4,
-                  maxLines: 4, // 高さを完全に固定してスクロール型にする
-                  keyboardType: TextInputType.multiline,
-                  textAlignVertical: TextAlignVertical.top,
-                  textInputAction: TextInputAction.newline,
-                  decoration: const InputDecoration(
-                    hintText: '例: 練習直後にプロテイン30g，夕食は鶏むね肉と玄米...',
-                    border: OutlineInputBorder(),
-                  ),
+                  lines: 4,
+                  hintText: '例: 練習直後にプロテイン30g，夕食は鶏むね肉と玄米...',
+                  labelText: '食事内容',
                 ),
                 const SizedBox(height: 8),
                 Align(

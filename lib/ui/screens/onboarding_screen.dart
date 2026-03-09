@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/models/app_user.dart';
+import '../widgets/stable_text_field.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -87,17 +88,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 32),
 
                 // 1. ビジョン
-                const Text('1. ビジョン(最終目標)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                TextField(
+                const StableTextField(
                   controller: _visionController,
-                  minLines: 3,
-                  maxLines: 3, // 高さを固定してスクロール型にする
-                  keyboardType: TextInputType.multiline,
-                  decoration: const InputDecoration(
-                    hintText: '例: 1年後のインカレで50m自由形23秒台を出して決勝に残りたい',
-                    border: OutlineInputBorder(),
-                    helperText: 'これがすべてのコーチングのブレない指針となります．',
+                  lines: 4,
+                  hintText: '例: 1年後のインカレで50m自由形23秒台を出して決勝に残りたい',
+                  labelText: '1. ビジョン(最終目標)',
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(top: 4.0, left: 4.0),
+                  child: Text(
+                    'これがすべてのコーチングのブレない指針となります．',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -121,16 +122,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                TextField(
+                const StableTextField(
                   controller: _coachController,
-                  minLines: 3,
-                  maxLines: 3, // 高さを固定
-                  keyboardType: TextInputType.multiline,
-                  decoration: const InputDecoration(
-                    hintText: '例: ロジカルに，かつモチベーションが上がる言い回しが良い',
-                    border: OutlineInputBorder(),
-                    labelText: 'どんなコーチが良いか（自由記述）',
-                  ),
+                  lines: 3,
+                  hintText: '例: ロジカルに，かつモチベーションが上がる言い回しが良い',
+                  labelText: 'どんなコーチが良いか（自由記述）',
                 ),
                 const SizedBox(height: 24),
 

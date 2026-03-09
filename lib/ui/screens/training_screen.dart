@@ -4,6 +4,7 @@ import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
 import '../../utils/event_utils.dart';
+import '../widgets/stable_text_field.dart';
 
 class TrainingScreen extends StatefulWidget {
   const TrainingScreen({super.key});
@@ -162,19 +163,11 @@ class _TrainingScreenState extends State<TrainingScreen> {
             const SizedBox(height: 24),
 
             // メニューテキストエリア
-            const Text('本日の練習メニュー', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            TextField(
+            const StableTextField(
               controller: _menuController,
-              minLines: 5,
-              maxLines: 5, // 高さを完全に固定してスクロール型にする
-              textAlignVertical: TextAlignVertical.top,
-              keyboardType: TextInputType.multiline,
-              textInputAction: TextInputAction.newline,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: '例: W-up 400\nKick 100x4 (2:00) 1E1H\nPull 100x4 (1:30) 1E1H\nSwim 50x8 (0:45) Hard\n...',
-              ),
+              lines: 5,
+              hintText: '例: W-up 400\nKick 100x4 (2:00) 1E1H\nPull 100x4 (1:30) 1E1H\nSwim 50x8 (0:45) Hard\n...',
+              labelText: '本日の練習メニュー',
             ),
             const SizedBox(height: 24),
 
@@ -264,17 +257,10 @@ class _TrainingScreenState extends State<TrainingScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
+            StableTextField(
               controller: _drylLandController,
-              minLines: 4,
-              maxLines: 4, // 高さを完全に固定
-              textAlignVertical: TextAlignVertical.top,
-              keyboardType: TextInputType.multiline,
-              textInputAction: TextInputAction.newline,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: '例: ベンチプレス 60kg x 10回 x 3セット\n懸垂 15回 x 3セット',
-              ),
+              lines: 4,
+              hintText: '例: ベンチプレス 60kg x 10回 x 3セット\n懸垂 15回 x 3セット',
             ),
             const SizedBox(height: 24),
             const Text('陸上主観感覚 (疲労度・筋の張り 1-10)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),

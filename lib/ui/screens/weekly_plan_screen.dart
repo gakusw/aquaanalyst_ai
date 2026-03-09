@@ -5,6 +5,7 @@ import '../../data/services/gemini_service.dart';
 import '../../data/models/app_user.dart';
 import '../../data/models/weekly_plan.dart';
 import '../../data/models/personal_best.dart';
+import '../widgets/stable_text_field.dart';
 
 /// 週間トレーニング計画画面
 /// コーチとの対話で生成された計画を見やすく表示する
@@ -248,20 +249,11 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // 固定行数を確保することで、入力内容が増えてもTextAreaの内部サイズを変えさせない（IMEリセット回避）
-                  TextField(
+                  // コーチ画面と同じ安定した入力フィールドを使用
+                  StableTextField(
                     controller: controller,
-                    minLines: 3,
-                    maxLines: 3,
-                    textAlignVertical: TextAlignVertical.top,
-                    style: const TextStyle(fontSize: 14),
-                    textInputAction: TextInputAction.newline, // 改行を優先
-                    decoration: InputDecoration(
-                      hintText: hint,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      border: const OutlineInputBorder(),
-                      isDense: false, // 密度を固定してレイアウトを安定させる
-                    ),
+                    lines: 3,
+                    hintText: hint,
                   ),
                 ],
               ),

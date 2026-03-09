@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
+import '../widgets/stable_text_field.dart';
 
 class BodyCompositionScreen extends StatefulWidget {
   const BodyCompositionScreen({super.key});
@@ -225,15 +226,11 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
 
             const Text('メモ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            TextField(
+            StableTextField(
               controller: _memoController,
-              minLines: 4,
-              maxLines: 4, // 高さを固定してスクロール型にする
-              keyboardType: TextInputType.multiline,
-              decoration: const InputDecoration(
-                hintText: 'その他の詳細など',
-                border: OutlineInputBorder(),
-              ),
+              lines: 4,
+              hintText: 'その他の詳細など',
+              labelText: 'メモ',
             ),
             const SizedBox(height: 32),
 

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:aquaanalyst_ai/main.dart' show appThemeMode;
 import '../../data/services/firestore_service.dart';
 import '../../data/models/app_user.dart';
+import '../widgets/stable_text_field.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -44,17 +45,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text('$title の編集'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: '新しい $title を入力',
-                border: const OutlineInputBorder(),
-              ),
-              maxLines: fieldKey == 'vision' ? 5 : 1,
-              minLines: fieldKey == 'vision' ? 5 : 1, // 高さを完全に固定してスクロール型に
-              keyboardType: fieldKey == 'vision' ? TextInputType.multiline : TextInputType.text,
-              autofocus: true,
-            ),
+          child: StableTextField(
+            controller: controller,
+            hintText: '新しい $title を入力',
+            lines: fieldKey == 'vision' ? 5 : 1,
+            keyboardType: fieldKey == 'vision' ? TextInputType.multiline : TextInputType.text,
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('キャンセル')),
@@ -112,16 +108,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 16),
               TextField(controller: weightController, decoration: const InputDecoration(labelText: '体重 (kg)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
               const SizedBox(height: 16),
-                TextField(
+                StableTextField(
                   controller: notesController,
-                  decoration: const InputDecoration(
-                    labelText: '備考 (怪我の既往、アレルギー等)',
-                    border: OutlineInputBorder(),
-                    alignLabelWithHint: true,
-                  ),
-                  maxLines: 5,
-                  minLines: 5, // 高さを完全に固定してスクロール型に
-                  keyboardType: TextInputType.multiline,
+                  hintText: '怪我の既往、アレルギー等',
+                  labelText: '備考 (怪我の既往、アレルギー等)',
+                  lines: 5,
                 ),
             ],
           ),
@@ -175,16 +166,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 16),
               TextField(controller: crowdController, decoration: const InputDecoration(labelText: '1コースあたりの人数', border: OutlineInputBorder()), keyboardType: TextInputType.number),
               const SizedBox(height: 16),
-                TextField(
+                StableTextField(
                   controller: notesController,
-                  decoration: const InputDecoration(
-                    labelText: '備考 (水温、施設の混雑状況等)',
-                    border: OutlineInputBorder(),
-                    alignLabelWithHint: true,
-                  ),
-                  maxLines: 5,
-                  minLines: 5, // 高さを完全に固定してスクロール型に
-                  keyboardType: TextInputType.multiline,
+                  hintText: '水温、施設の混雑状況等',
+                  labelText: '備考 (水温、施設の混雑状況等)',
+                  lines: 5,
                 ),
             ],
           ),
