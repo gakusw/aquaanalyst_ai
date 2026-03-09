@@ -160,7 +160,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // メニューテキストエリア
             StableTextField(
