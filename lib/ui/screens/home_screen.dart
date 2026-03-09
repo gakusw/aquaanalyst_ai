@@ -161,10 +161,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             Builder(
               builder: (context) {
-                // 体組成データを抽出 (is_body_compositionフラグ優先、なければテキストパース)
+                // 体組成データを抽出 (新種別 body_composition または 旧 nutrition の is_body_composition フラグ)
                 final bodyCompRecords = allRecords.where((r) => 
-                  r.type == 'nutrition' && (r.subjectiveMetrics['is_body_composition'] == true ||
-                  (r.details as List).any((d) => (d['content']?.toString() ?? '').contains('体重')))
+                  r.type == 'body_composition' || 
+                  (r.type == 'nutrition' && r.subjectiveMetrics['is_body_composition'] == true)
                 ).toList();
 
                 if (bodyCompRecords.isEmpty) {
@@ -1060,7 +1060,7 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
                 children: [
                   Text('${date.year}年${date.month}月${date.day}日の記録', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
-                  ...dayRecords.map((r) {
+                  ...dayRecords.where((r) => r.type != 'body_composition' && r.subjectiveMetrics['is_body_composition'] != true).map((r) {
                     final typeStr = r.type == 'pool' ? '🏊 水中トレーニング' : (r.type == 'dryland' ? '🏋 陸トレ' : '🍎 栄養');
                     
                     final detailsList = r.details as List<dynamic>? ?? [];

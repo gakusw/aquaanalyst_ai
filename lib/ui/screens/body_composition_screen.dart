@@ -116,7 +116,7 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
       final record = TrainingRecord(
         id: '',
         date: DateTime.now(),
-        type: 'nutrition', // 体組成も分析のため 'nutrition' カテゴリとして扱う（既存との互換性）
+        type: 'body_composition', // 体組成は独立した 'body_composition' カテゴリとして扱う
         details: [{'type': 'menu_text', 'content': fullText}],
         subjectiveMetrics: {
           'is_body_composition': true, // 明示的なフラグ
