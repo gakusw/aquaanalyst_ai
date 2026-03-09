@@ -101,6 +101,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            children: [
               StableTextField(
                 controller: ageController,
                 hintText: '例: 22',
@@ -128,6 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 labelText: '備考',
                 lines: 5,
               ),
+            ],
           ),
         ),
         actions: [
