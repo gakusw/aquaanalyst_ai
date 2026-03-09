@@ -35,37 +35,31 @@ class _StableTextFieldState extends State<StableTextField> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (widget.labelText != null) ...[
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 4),
-            child: Text(
-              widget.labelText!,
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.primary.withOpacity(0.8),
-                fontWeight: FontWeight.bold,
+    return SizedBox(
+      width: double.infinity, // 横幅の変動を物理的に遮断
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch, // 子（TextField）を横一杯に広げる
+        children: [
+          if (widget.labelText != null) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 4),
+              child: Text(
+                widget.labelText!,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colorScheme.primary.withOpacity(0.8),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-        ],
-        // 幅を固定（親に追従）させるための制約
-        Container(
-          width: double.infinity, 
-          decoration: BoxDecoration(
-            // 非常に薄い背景をつけることで「無駄のない枠」を表現
-            color: colorScheme.surfaceVariant.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: TextField(
+          ],
+          TextField(
             key: _key,
             controller: widget.controller,
-            // 1行から開始し、指定された lines まで自動で伸びる
-            minLines: 1,
-            maxLines: widget.lines > 1 ? widget.lines : 1, 
+            // コーチ画面 (image3) の使い心地に合わせ、2行程度をベースにする
+            minLines: widget.lines > 1 ? 2 : 1, 
+            maxLines: widget.lines > 1 ? widget.lines : 1,
             keyboardType: widget.keyboardType,
             textInputAction: widget.textInputAction,
             onChanged: widget.onChanged,
@@ -77,25 +71,27 @@ class _StableTextFieldState extends State<StableTextField> {
                 color: theme.hintColor.withOpacity(0.35),
                 fontSize: 14,
               ),
-              // 視覚的な「右端」を提示するための非常に薄い枠線
+              filled: true,
+              fillColor: colorScheme.surfaceVariant.withOpacity(0.1),
+              // 境界線を明確にし、右端を認識させる
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.1)),
+                borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.2)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.05)),
+                borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.1)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: colorScheme.primary.withOpacity(0.3), width: 1),
+                borderSide: BorderSide(color: colorScheme.primary.withOpacity(0.5), width: 1.5),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               isDense: true,
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
