@@ -224,11 +224,9 @@ class _BodyCompositionScreenState extends State<BodyCompositionScreen> {
             ),
             const SizedBox(height: 24),
 
-            const Text('メモ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
             StableTextField(
               controller: _memoController,
-              lines: 4,
+              lines: 6,
               hintText: 'その他の詳細など',
               labelText: 'メモ',
             ),

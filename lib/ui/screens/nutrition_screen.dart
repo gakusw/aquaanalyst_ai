@@ -216,10 +216,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
                 StableTextField(
                   controller: _memoController,
-                  lines: 4,
+                  lines: 6,
                   hintText: '例: 練習直後にプロテイン30g，夕食は鶏むね肉と玄米...',
                   labelText: '食事内容',
                 ),

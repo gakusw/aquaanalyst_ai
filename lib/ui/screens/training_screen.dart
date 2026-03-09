@@ -165,7 +165,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
             // メニューテキストエリア
             StableTextField(
               controller: _menuController,
-              lines: 5,
+              lines: 12,
               hintText: '例: W-up 400\nKick 100x4 (2:00) 1E1H\nPull 100x4 (1:30) 1E1H\nSwim 50x8 (0:45) Hard\n...',
               labelText: '本日の練習メニュー',
             ),

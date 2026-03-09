@@ -90,16 +90,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 // 1. ビジョン
                 StableTextField(
                   controller: _visionController,
-                  lines: 4,
-                  hintText: '例: 1年後のインカレで50m自由形23秒台を出して決勝に残りたい',
+                  lines: 6,
+                  hintText: '例: 1年後のインカレで50m自由形23秒台を出して決勝に残りたい\n（※これがすべてのコーチングの指針となります）',
                   labelText: '1. ビジョン(最終目標)',
-                ),
-                const Padding(
-                  padding: EdgeInsets.only(top: 4.0, left: 4.0),
-                  child: Text(
-                    'これがすべてのコーチングのブレない指針となります．',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
                 ),
                 const SizedBox(height: 24),
 

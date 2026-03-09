@@ -24,50 +24,50 @@ class StableTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (labelText != null) ...[
-          Text(
-            labelText!,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(12.0),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-            ),
-          ),
-          child: TextField(
-            controller: controller,
-            minLines: lines,
-            maxLines: lines, // 高さを完全に固定
-            textAlignVertical: TextAlignVertical.top,
-            keyboardType: keyboardType,
-            textInputAction: textInputAction,
-            onChanged: onChanged,
-            style: const TextStyle(fontSize: 15),
-            decoration: InputDecoration(
-              hintText: hintText,
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12.0),
-              hintStyle: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.6),
-                fontSize: 14,
-              ),
-            ),
+    return TextField(
+      controller: controller,
+      minLines: 1,
+      maxLines: lines, // 指定された行数まで動的に伸び、それ以上はスクロール
+      textAlignVertical: TextAlignVertical.top,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      onChanged: onChanged,
+      style: const TextStyle(fontSize: 15),
+      decoration: InputDecoration(
+        labelText: labelText,
+        hintText: hintText,
+        alignLabelWithHint: true,
+        filled: true,
+        fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
           ),
         ),
-      ],
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8.0),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+            width: 1.5,
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+        hintStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+          fontSize: 14,
+        ),
+        labelStyle: TextStyle(
+          fontSize: 14,
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+        ),
+      ),
     );
   }
 }

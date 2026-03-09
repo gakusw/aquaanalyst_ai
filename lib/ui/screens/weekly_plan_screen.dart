@@ -241,19 +241,11 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  // コーチ画面と同じ安定した入力フィールドを使用
                   StableTextField(
                     controller: controller,
-                    lines: 3,
+                    lines: 6,
                     hintText: hint,
+                    labelText: title,
                   ),
                 ],
               ),
