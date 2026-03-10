@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:aquaanalyst_ai/main.dart' show appThemeMode;
 import '../../data/services/firestore_service.dart';
+import '../../data/services/gemini_service.dart';
 import '../../data/models/app_user.dart';
 import '../widgets/stable_text_field.dart';
 
