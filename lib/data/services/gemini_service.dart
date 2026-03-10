@@ -20,7 +20,12 @@ class GeminiService {
   String? _apiKey;
   static const String model15Pro = 'gemini-1.5-pro';
   static const String model15Flash = 'gemini-1.5-flash';
-  static const String model20Flash = 'gemini-2.0-flash'; // 2.0 stable or flash-exp depending on SDK version support, but gemini-2.0-flash is often aliased.
+  static const String model15Flash8b = 'gemini-1.5-flash-8b';
+  static const String model20Flash = 'gemini-2.0-flash';
+  static const String model25Flash = 'gemini-2.5-flash';
+  static const String model30Flash = 'gemini-3.0-flash';
+  static const String model31Flash = 'gemini-3.1-flash';
+  static const String model31FlashLite = 'gemini-3.1-flash-lite';
 
   // 下位互換用エイリアス
   static const String modelPro = model15Pro;
@@ -41,7 +46,8 @@ class GeminiService {
   }) {
     if (_apiKey == null || _apiKey!.isEmpty || _apiKey == 'YOUR_KEY_HERE') return null;
     String effectiveModelId = modelId ?? model15Flash;
-    // 'models/' プレフィックスがない場合は付与する（古い保存データへの互換性）
+    // 'models/' プレフィックスを優先的に試すが、ユーザー指定のIDが既に特定の形式を持っている場合はそのまま使う
+    // Web環境や一部のSDKバージョンでは 'models/' が必須だが、エイリアスの場合は不要なこともある
     if (!effectiveModelId.startsWith('models/')) {
       effectiveModelId = 'models/$effectiveModelId';
     }
