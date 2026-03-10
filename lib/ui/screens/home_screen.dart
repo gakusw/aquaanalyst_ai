@@ -1216,9 +1216,9 @@ P: $p, F: $f, C: $c
                   child: _ExpandableText(r.details.isNotEmpty ? r.details.first['content'] : '記録あり')
                 ),
               const SizedBox(height: 12),
-              _PfcStatusRow(label: 'タンパク質 (P)', value: proteinValue, maxValue: targetP.toDouble(), color: Colors.redAccent, status: proteinValue >= targetP ? '達成' : '摂取中'),
-              _PfcStatusRow(label: '脂質 (F)', value: fatValue, maxValue: targetF.toDouble(), color: Colors.deepOrangeAccent, status: fatValue >= targetF ? '達成' : '摂取中'),
-              _PfcStatusRow(label: '炭水化物 (C)', value: carbsValue, maxValue: targetC.toDouble(), color: Colors.greenAccent, status: carbsValue >= targetC ? '達成' : '摂取中'),
+              _PfcStatusRow(label: 'タンパク質 (P)', value: proteinValue, maxValue: targetP.toDouble(), color: Colors.redAccent, status: proteinValue >= targetP ? '達成' : '不足'),
+              _PfcStatusRow(label: '脂質 (F)', value: fatValue, maxValue: targetF.toDouble(), color: Colors.deepOrangeAccent, status: fatValue >= targetF ? '達成' : '不足'),
+              _PfcStatusRow(label: '炭水化物 (C)', value: carbsValue, maxValue: targetC.toDouble(), color: Colors.greenAccent, status: carbsValue >= targetC ? '達成' : '不足'),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 4.0),
                 child: Divider(height: 1),

@@ -18,9 +18,9 @@ class GeminiService {
   GeminiService._internal();
 
   String? _apiKey;
-  static const String model15Pro = 'models/gemini-1.5-pro';
-  static const String model15Flash = 'models/gemini-1.5-flash';
-  static const String model20Flash = 'models/gemini-2.0-flash-exp'; // または stable 版が出るまで exp
+  static const String model15Pro = 'gemini-1.5-pro';
+  static const String model15Flash = 'gemini-1.5-flash';
+  static const String model20Flash = 'gemini-2.0-flash'; // 2.0 stable or flash-exp depending on SDK version support, but gemini-2.0-flash is often aliased.
 
   // 下位互換用エイリアス
   static const String modelPro = model15Pro;

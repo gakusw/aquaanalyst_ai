@@ -158,9 +158,10 @@ class _InsightScreenState extends State<InsightScreen> {
 ※ 注意: 予測タイムは、筋量、練習内容（強度や距離）、主観的な疲労度、過去のPBからの期間などを考慮してリアリティのある数値を算出してください。
 """;
 
+      final modelId = user?.baseProfile['aiModel'] as String? ?? ai.GeminiService.modelFlash;
       final response = await ai.GeminiService().generateContent(
         prompt, 
-        modelId: ai.GeminiService.modelFlash,
+        modelId: modelId,
         responseMimeType: 'application/json',
       );
 

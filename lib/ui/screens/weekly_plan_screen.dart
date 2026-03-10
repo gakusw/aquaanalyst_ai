@@ -405,10 +405,15 @@ $pbText
 ※intensityは必ず "低", "中低", "中", "高", "OFF", "REST" のいずれかにしてください。
 ''';
 
-      final result = await gemini.generateContent(prompt, responseMimeType: 'application/json');
-      if (result != null) {
+      final modelId = _currentUser?.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
+      final response = await gemini.generateContent(
+        prompt, 
+        modelId: modelId,
+        responseMimeType: 'application/json',
+      );
+      if (response != null) {
         // 先頭や末尾にマークダウンの```があった場合は取り除く
-        final cleanJson = result.replaceAll(RegExp(r'^```(json)?\n'), '').replaceAll(RegExp(r'\n```$'), '').trim();
+        final cleanJson = response.replaceAll(RegExp(r'^```(json)?\n'), '').replaceAll(RegExp(r'\n```$'), '').trim();
         final jsonMap = jsonDecode(cleanJson);
         final now = DateTime.now();
         final diff = DateTime.monday - now.weekday;
@@ -432,7 +437,8 @@ $pbText
       }
     } catch (e) {
       if (mounted) {
-        final msg = GeminiService().translateError(e, modelId: GeminiService.modelPro);
+        final modelId = _currentUser?.baseProfile['aiModel'] as String? ?? GeminiService.modelPro;
+        final msg = GeminiService().translateError(e, modelId: modelId);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       }
     } finally {

@@ -256,21 +256,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     RadioListTile<String>(
                       title: const Text('Gemini 1.5 Pro'),
                       subtitle: const Text('【最高性能】複雑な推論や長い文脈に対応。'),
-                      value: 'models/gemini-1.5-pro',
+                      value: 'gemini-1.5-pro',
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
-                      title: const Text('Gemini 2.0 Flash (Experimental)'),
+                      title: const Text('Gemini 2.0 Flash'),
                       subtitle: const Text('【次世代・超高速】最新のアーキテクチャによる高い応答性。'),
-                      value: 'models/gemini-2.0-flash-exp',
+                      value: 'gemini-2.0-flash',
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 1.5 Flash'),
                       subtitle: const Text('【標準・高速】レスポンス速度とコストのバランスが良い推奨モデル。'),
-                      value: 'models/gemini-1.5-flash',
+                      value: 'gemini-1.5-flash',
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
@@ -339,7 +339,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final envCrowd = user?.baseProfile['env_crowd'] ?? '-';
           final envDataText = '水路: $envLength / 水深: $envDepth m / 人数: $envCrowd 人';
 
-          final aiModelKey = user?.baseProfile['aiModel'] ?? 'models/gemini-1.5-flash';
+          final aiModelKey = user?.baseProfile['aiModel'] ?? 'gemini-1.5-flash';
           String aiModelText = 'Gemini 1.5 Flash';
           if (aiModelKey.contains('1.5-pro')) {
             aiModelText = 'Gemini 1.5 Pro';

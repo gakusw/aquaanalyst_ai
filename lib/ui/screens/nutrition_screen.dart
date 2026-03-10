@@ -52,7 +52,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
 """;
 
       final user = await _firestoreService.getUserProfileStream().first;
-      final modelId = user?.baseProfile['aiModel'] as String? ?? 'models/gemini-1.5-flash';
+      final modelId = user?.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
 
       final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType, modelId: modelId);
       
