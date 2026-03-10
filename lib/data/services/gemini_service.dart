@@ -25,8 +25,8 @@ class GeminiService {
   static const String model25Flash = 'gemini-2.5-flash';
   static const String model25Pro = 'gemini-2.5-pro';
   static const String model30Flash = 'gemini-3.0-flash';
-  static const String model31Flash = 'gemini-3.1-flash';
-  static const String model31FlashLite = 'gemini-3.1-flash-lite';
+  static const String model31Flash = 'gemini-3.1-flash-preview';
+  static const String model31FlashLite = 'gemini-3.1-flash-lite-preview';
 
   // 下位互換用エイリアス
   static const String modelPro = model25Pro;

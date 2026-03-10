@@ -65,6 +65,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('$typeの画像解析が完了しました')),
         );
+        // 自動的にPFC推定も実行する
+        _runAiAnalysis();
       } else {
         throw Exception(result ?? '解析失敗');
       }
@@ -150,8 +152,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   ],
                 ),
                 Slider(
-                  value: _subjectiveProtein,
-                  min: 0, max: 250, divisions: 50,
+                  value: _subjectiveProtein.clamp(0.0, 500.0),
+                  min: 0, max: 500, divisions: 100,
                   onChanged: (val) => setState(() => _subjectiveProtein = val),
                   activeColor: Colors.blueAccent,
                 ),
@@ -163,8 +165,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   ],
                 ),
                 Slider(
-                  value: _subjectiveFat,
-                  min: 0, max: 150, divisions: 30,
+                  value: _subjectiveFat.clamp(0.0, 1000.0),
+                  min: 0, max: 1000, divisions: 100,
                   onChanged: (val) => setState(() => _subjectiveFat = val),
                   activeColor: Colors.redAccent,
                 ),
@@ -176,8 +178,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   ],
                 ),
                 Slider(
-                  value: _subjectiveCarbs,
-                  min: 0, max: 400, divisions: 80,
+                  value: _subjectiveCarbs.clamp(0.0, 1000.0),
+                  min: 0, max: 1000, divisions: 100,
                   onChanged: (val) => setState(() => _subjectiveCarbs = val),
                   activeColor: Colors.orangeAccent,
                 ),
