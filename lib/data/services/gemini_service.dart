@@ -2,13 +2,14 @@ import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:typed_data';
+import '../models/app_user.dart';
 
 class NutritionResult {
   final double protein;
   final double carbs;
+  final double fat;
   final String reason;
-  NutritionResult({required this.protein, required this.carbs, required this.reason});
+  NutritionResult({required this.protein, required this.carbs, required this.fat, required this.reason});
 }
 
 class GeminiService {
@@ -17,9 +18,13 @@ class GeminiService {
   GeminiService._internal();
 
   String? _apiKey;
-  static const String modelPro = 'models/gemini-2.5-pro';
-  static const String modelFlash = 'models/gemini-2.5-flash';
-  static const String modelFlash20 = 'models/gemini-2.0-flash';
+  static const String model15Pro = 'models/gemini-1.5-pro';
+  static const String model15Flash = 'models/gemini-1.5-flash';
+  static const String model20Flash = 'models/gemini-2.0-flash-exp'; // または stable 版が出るまで exp
+
+  // 下位互換用エイリアス
+  static const String modelPro = model15Pro;
+  static const String modelFlash = model15Flash;
 
   /// 初期化処理
   void init() {
@@ -35,7 +40,7 @@ class GeminiService {
     String? responseMimeType,
   }) {
     if (_apiKey == null || _apiKey!.isEmpty || _apiKey == 'YOUR_KEY_HERE') return null;
-    String effectiveModelId = modelId ?? modelPro;
+    String effectiveModelId = modelId ?? model15Flash;
     // 'models/' プレフィックスがない場合は付与する（古い保存データへの互換性）
     if (!effectiveModelId.startsWith('models/')) {
       effectiveModelId = 'models/$effectiveModelId';
@@ -70,7 +75,7 @@ class GeminiService {
     String mimeType, {
     String? systemInstruction,
     String? responseMimeType,
-    String? modelId = 'models/gemini-2.5-flash',
+    String? modelId = 'models/gemini-1.5-flash',
   }) async {
     final model = _createModel(modelId: modelId, systemInstruction: systemInstruction, responseMimeType: responseMimeType);
     if (model == null) return 'AIモデルが初期化されていません。';
@@ -90,28 +95,34 @@ class GeminiService {
   }
 
   /// 食事内容のテキストから栄養素(PFC)を抽出する
-  Future<NutritionResult?> analyzeNutrition(String text) async {
-    const prompt = """
-入力された食事内容（商品名、メニュー名、分量など）から、タンパク質と炭水化物の摂取量を5段階で推定し、JSON形式で回答してください。
-5段階評価の基準：
-1: 極めて少ない / なし
-2: 少ない
-3: 普通
-4: 多い
-5: 極めて多い（アスリートの1食分として十分以上）
+  Future<NutritionResult?> analyzeNutrition(String text, {String? modelId}) async {
+    // 栄養士ペルソナのシステム指示（汎用的な推論ベース）
+    const nutritionistSystemInstruction = """
+You are a certified sports dietitian.
+Calculate macronutrients (P, F, C in grams) with high precision and conservative estimation.
 
-【回答形式 (JSON)】
-{
-  "protein": 1〜5の数値,
-  "carbs": 1〜5の数値,
-  "reason": "その数値にした理由（簡潔に）"
-}
+[Strategy]
+1. Logic: If the food is unknown, break it down into common ingredients (e.g., "Cup Yakisoba" -> Fried noodles 100g, Sauce, Dried cabbage) and estimate.
+2. Servings: Use standard Japanese serving sizes if unspecified (e.g., Rice=150g, Main dish=100-150g).
+3. Overestimation Risk: Never overestimate protein or carbs. It's better to be slightly conservative.
+
+[Reference data (Baselines for inference)]
+- Standard meal (Starch+Protein+Veg): P:20-25g, F:15-20g, C:70-90g
+- Light snack/drink: P:0-5g, F:0-5g, C:10-30g
+- Black Coffee: Near zero.
+- Sweetened Yogurt/Milk: P:3-6g per 200ml/g.
+
+[Response]
+- JSON only: {"protein": num, "fat": num, "carbs": num, "reason": "item-by-item breakdown"}
 """;
+
+    const userPrompt = "Analyze this meal for an athlete (conservative estimate): \n";
 
     try {
       final response = await generateContent(
-        "内容: $text\n\n$prompt",
-        modelId: modelFlash,
+        "$userPrompt$text",
+        systemInstruction: nutritionistSystemInstruction,
+        modelId: modelId ?? modelFlash,  // ユーザー設定があればそれを使用
         responseMimeType: 'application/json',
       );
 
@@ -120,6 +131,7 @@ class GeminiService {
       return NutritionResult(
         protein: (data['protein'] as num).toDouble(),
         carbs: (data['carbs'] as num).toDouble(),
+        fat: (data['fat'] as num).toDouble(),
         reason: data['reason'] ?? '',
       );
     } catch (e) {
@@ -144,7 +156,7 @@ class GeminiService {
     debugPrint('Gemini API Error details ($modelName): $errorStr');
 
     if (errorStr.contains('Quota exceeded') || errorStr.contains('429')) {
-      return 'AIの利用制限（1日、または1分間あたりの回数上限）に達しました。モデル: $modelName\n1.5 Pro/3.1 Proなどの高性能モデルは無料枠が非常にタイトです。1〜2分待ってからお試しいただくか、設定画面で「Flash（軽量版）」に切り替えることをお勧めします。';
+      return 'AIの利用制限（1日、または1分間あたりの回数上限）に達しました。モデル: $modelName\n1.5 Flash などの軽量モデルに切り替えることをお勧めします。1〜2分待ってから再度お試しください。';
     }
     if (errorStr.contains('not found') || errorStr.contains('404')) {
       return '指定されたAIモデル ($modelName) が見つかりません。最新のモデルIDを確認してください。';
@@ -157,5 +169,29 @@ class GeminiService {
     }
     
     return '通信エラーが発生しました ($modelName)。時間を置いてから再度お試しください。';
+  }
+
+  /// アプリ共通のコーチ人格（システム指示）を生成する
+  String getCoachSystemInstruction(AppUser user, {String supplementaryContext = ''}) {
+    final expertiseLevel = (user.baseProfile['expertiseLevel'] as num?)?.toDouble() ?? 5.0;
+    final vision = user.vision;
+    final idealCoach = user.baseProfile['idealCoachPersona'] as String? ?? '専門的かつモチベーションを高めてくれるコーチ';
+
+    return """
+あなたは、ユーザーの目標達成を支える専属の競泳コーチングAIです。
+
+[あなたの性格・口調（最優先）]
+$idealCoach
+
+[ターゲット（ユーザー設定）]
+- ビジョン(最終目標): $vision
+- 専門知識の要求レベル: $expertiseLevel/10 (1:初心者向け平易, 10:科学的・専門的)
+
+[行動指針]
+1. 上記の「口調」を常に維持し、一貫した人格で接してください。
+2. ユーザーの「ビジョン」を常に念頭に置き、すべての回答をその達成へ結びつけてください。
+3. 専門レベルに応じた深さで解説を行ってください。
+$supplementaryContext
+""";
   }
 }

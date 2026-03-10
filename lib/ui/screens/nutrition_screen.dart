@@ -17,8 +17,10 @@ class _NutritionScreenState extends State<NutritionScreen> {
   final TextEditingController _memoController = TextEditingController();
   bool _isOcrLoading = false;
   bool _isSaving = false;
-  double _subjectiveProtein = 3;
-  double _subjectiveCarbs = 3;
+  bool _hasAnalyzed = false; // AI推定が実行されたかのフラグ
+  double _subjectiveProtein = 0; // g
+  double _subjectiveFat = 0;     // g
+  double _subjectiveCarbs = 0;   // g
   String _selectedMealLabel = '朝食';
 
   @override
@@ -49,7 +51,10 @@ class _NutritionScreenState extends State<NutritionScreen> {
 2. 栄養バランスに対する評価やアドバイス、AIの挨拶などの不要な記述は一切含めず、抽出結果のみを出力する。
 """;
 
-      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType);
+      final user = await _firestoreService.getUserProfileStream().first;
+      final modelId = user?.baseProfile['aiModel'] as String? ?? 'models/gemini-1.5-flash';
+
+      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType, modelId: modelId);
       
       if (!mounted) return;
       if (result != null && result.isNotEmpty && !result.startsWith('AIの処理中')) {
@@ -85,11 +90,16 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
     setState(() => _isAiAnalyzing = true);
     try {
-      final result = await GeminiService().analyzeNutrition(_memoController.text);
+      final user = await _firestoreService.getUserProfileStream().first;
+      final modelId = user?.baseProfile['aiModel'] as String?;
+      
+      final result = await GeminiService().analyzeNutrition(_memoController.text, modelId: modelId);
       if (result != null) {
         setState(() {
           _subjectiveProtein = result.protein;
+          _subjectiveFat = result.fat;
           _subjectiveCarbs = result.carbs;
+          _hasAnalyzed = true; // 推定完了フラグを立てる
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -130,21 +140,44 @@ class _NutritionScreenState extends State<NutritionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('A. クイック主観評価 (1: 不足 〜 5: 十分)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const Text('A. 食事の栄養量 (g) 推定', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 const SizedBox(height: 16),
-                const Text('タンパク質の摂取感'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('タンパク質 (P)'),
+                    Text('${_subjectiveProtein.round()} g', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                  ],
+                ),
                 Slider(
                   value: _subjectiveProtein,
-                  min: 1, max: 5, divisions: 4,
-                  label: _subjectiveProtein.round().toString(),
+                  min: 0, max: 250, divisions: 50,
                   onChanged: (val) => setState(() => _subjectiveProtein = val),
                   activeColor: Colors.blueAccent,
                 ),
-                const Text('炭水化物の摂取感'),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('脂質 (F)'),
+                    Text('${_subjectiveFat.round()} g', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.redAccent)),
+                  ],
+                ),
+                Slider(
+                  value: _subjectiveFat,
+                  min: 0, max: 150, divisions: 30,
+                  onChanged: (val) => setState(() => _subjectiveFat = val),
+                  activeColor: Colors.redAccent,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('炭水化物 (C)'),
+                    Text('${_subjectiveCarbs.round()} g', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orangeAccent)),
+                  ],
+                ),
                 Slider(
                   value: _subjectiveCarbs,
-                  min: 1, max: 5, divisions: 4,
-                  label: _subjectiveCarbs.round().toString(),
+                  min: 0, max: 400, divisions: 80,
                   onChanged: (val) => setState(() => _subjectiveCarbs = val),
                   activeColor: Colors.orangeAccent,
                 ),
@@ -219,18 +252,25 @@ class _NutritionScreenState extends State<NutritionScreen> {
                 StableTextField(
                   controller: _memoController,
                   lines: 10,
-                  hintText: '例: 練習直後にプロテイン30g，夕食は鶏むね肉と玄米...',
-                  labelText: '食事内容・メモ',
+                  hintText: '例: カップヌードル 1個、サラダチキン 110g...',
+                  labelText: '食事内容・商品名・メモ',
                 ),
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: TextButton.icon(
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _hasAnalyzed 
+                          ? Colors.green.shade700 
+                          : Theme.of(context).colorScheme.primary,
+                    ),
                     onPressed: _isAiAnalyzing ? null : _runAiAnalysis,
                     icon: _isAiAnalyzing 
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.auto_awesome, size: 18),
-                    label: Text(_isAiAnalyzing ? '解析中...' : '商品名・内容からPFCを自動推定'),
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Icon(_hasAnalyzed ? Icons.check_circle : Icons.auto_awesome, size: 18),
+                    label: Text(_isAiAnalyzing 
+                        ? '解析中...' 
+                        : (_hasAnalyzed ? 'PFC推定完了 (再推定)' : '商品名・内容からPFCを自動推定')),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -238,6 +278,33 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: _isSaving ? null : () async {
+                      // 食事内容があるのにAI推定未実行の場合は警告ダイアログ
+                      if (_memoController.text.isNotEmpty && !_hasAnalyzed) {
+                        if (!mounted) return;
+                        final shouldProceed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 36),
+                            title: const Text('PFC自動推定が未実行です'),
+                            content: const Text(
+                              '食事内容が入力されていますが、AIによる栄養素の自動推定がまだ実行されていません。\n\n「商品名・内容からPFCを自動推定」ボタンを押してから保存することをお勧めします。\n\nこのまま保存すると、スライダーの値Ｈ0g）が栄養データとして登録されます。',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('戻る(推定する)'),
+                              ),
+                              TextButton(
+                                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('0gのまま保存する'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (shouldProceed != true) return;
+                      }
+
                       setState(() => _isSaving = true);
                       try {
                         final record = TrainingRecord(
@@ -250,18 +317,23 @@ class _NutritionScreenState extends State<NutritionScreen> {
                           ],
                           subjectiveMetrics: {
                             'protein': _subjectiveProtein,
+                            'fat': _subjectiveFat,
                             'carbs': _subjectiveCarbs,
                             'meal_label': _selectedMealLabel,
                           },
                         );
                         
+                        if (!mounted) return;
+                        final messenger = ScaffoldMessenger.of(context);
+                        final navigator = Navigator.of(context);
+                        
                         await _firestoreService.addTrainingRecord(record);
                         
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             const SnackBar(content: Text('今日の栄養データを保存しました'))
                           );
-                          Navigator.pop(context);
+                          navigator.pop();
                         }
                       } catch (e) {
                          if (mounted) {

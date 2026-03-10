@@ -361,32 +361,46 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
         ).join('\n');
       }
 
-      final prompt = '''
-あなたは競泳のプロコーチです。以下のユーザー情報と自己ベスト、目標に基づいて、次週月曜日始まりの1週間（7日間）のトレーニング計画を作成してください。
-【ユーザー情報】
-$profile
-【最終目標(ビジョン)】
-$vision
-【現在の自己ベスト】
-$pbText
-【陸上トレーニング目標】
-$targetDryland
-【睡眠・リカバリー目標】
-$targetSleep
+      // 共通メソッドを使用してシステム指示（人格）を生成
+      final sysInst = gemini.getCoachSystemInstruction(
+        _currentUser!,
+        supplementaryContext: """
+[任務]
+あなたは今から、ユーザーの次週月曜日始まりの1週間（7日間）のトレーニング計画を作成します。
+出力は必ず指定のJSON形式のみで行ってください。
+""",
+      );
 
+      final prompt = '''
+$sysInst
+
+【現在の状況】
+- 最新のプロフィール: $profile
+- 最終目標(ビジョン): $vision
+- 現在の自己ベスト:
+$pbText
+- 今週の陸上トレーニング目標: $targetDryland
+- 今週の睡眠・リカバリー目標: $targetSleep
+
+【出力フォーマット】
 期待される出力は以下のJSONスキーマに従う純粋なJSON文字列のみです。追加のテキストやマークダウンバックティックは含めないでください。
 {
-  "aiMessage": "今週の取り組みに対する全体的なアドバイス（例: 今週は○○を意識して頑張りましょう）",
+  "aiMessage": "コーチとしての今週のアドバイス（あなたの設定された口調で記述してください）",
   "dailyPlans": [
     {
       "dateStr": "月曜日",
       "waterMenu": "W-up 800m...",
       "dryland": "胸・三頭筋...",
       "intensity": "中", 
-      "targetCalories": 3200
+      "targetCalories": 3200,
+      "targetProtein": 150,
+      "targetFat": 70,
+      "targetCarbs": 450
     }
   ]
 }
+※targetProtein, targetFat, targetCarbs はその日の合計摂取目標量（g）です。
+※トレーニング強度(intensity)が高い日は炭水化物(targetCarbs)を多めに設定するなど、専門的な調整を行ってください。
 ※dailyPlansは必ず月曜日から日曜日までの7日分を配列で作成してください。
 ※intensityは必ず "低", "中低", "中", "高", "OFF", "REST" のいずれかにしてください。
 ''';
@@ -565,9 +579,14 @@ $targetSleep
                 ]),
                 const SizedBox(height: 8),
                 Row(children: [
-                  const Icon(Icons.restaurant, color: Colors.orangeAccent, size: 16),
-                  const SizedBox(width: 6),
-                  Text('推奨摂取カロリー: ${plan.targetCalories} kcal', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                   const Icon(Icons.restaurant, color: Colors.orangeAccent, size: 16),
+                   const SizedBox(width: 6),
+                   Expanded(
+                     child: Text(
+                       '目標: ${plan.targetCalories} kcal (P:${plan.targetProtein}g / F:${plan.targetFat}g / C:${plan.targetCarbs}g)',
+                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                     ),
+                   ),
                 ]),
               ],
             ),

@@ -254,16 +254,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                     RadioListTile<String>(
-                      title: const Text('Gemini 2.5 Flash'),
-                      subtitle: const Text('高速・低コストでバランスが良いモデルです。制限も比較的緩やかです。'),
-                      value: 'models/gemini-2.5-flash',
+                      title: const Text('Gemini 1.5 Pro'),
+                      subtitle: const Text('【最高性能】複雑な推論や長い文脈に対応。'),
+                      value: 'models/gemini-1.5-pro',
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
-                      title: const Text('Gemini 2.5 Pro'),
-                      subtitle: const Text('高度な推論と詳細な分析。無料枠の回数制限が厳しいです。'),
-                      value: 'models/gemini-2.5-pro',
+                      title: const Text('Gemini 2.0 Flash (Experimental)'),
+                      subtitle: const Text('【次世代・超高速】最新のアーキテクチャによる高い応答性。'),
+                      value: 'models/gemini-2.0-flash-exp',
+                      groupValue: selected,
+                      onChanged: (val) => setDialogState(() => selected = val!),
+                    ),
+                    RadioListTile<String>(
+                      title: const Text('Gemini 1.5 Flash'),
+                      subtitle: const Text('【標準・高速】レスポンス速度とコストのバランスが良い推奨モデル。'),
+                      value: 'models/gemini-1.5-flash',
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
@@ -321,7 +328,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           }
           
           // 表示用の仮データまたはFirestoreのデータ
-          final visionText = user?.vision?.isNotEmpty == true ? user!.vision : '未設定（タップして編集）';
+          final visionText = user?.vision != null && user!.vision.isNotEmpty == true ? user.vision : '未設定（タップして編集）';
           final age = user?.baseProfile['age'] ?? '未設定';
           final height = user?.baseProfile['height'] ?? '未設定';
           final weight = user?.baseProfile['weight'] ?? '未設定';
@@ -332,8 +339,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final envCrowd = user?.baseProfile['env_crowd'] ?? '-';
           final envDataText = '水路: $envLength / 水深: $envDepth m / 人数: $envCrowd 人';
 
-          final aiModelKey = user?.baseProfile['aiModel'] ?? 'models/gemini-2.5-flash';
-          final aiModelText = (aiModelKey == 'models/gemini-2.5-flash' || aiModelKey == 'gemini-1.5-flash' || aiModelKey == 'gemini-2.5-flash') ? 'Gemini 2.5 Flash' : 'Gemini 2.5 Pro';
+          final aiModelKey = user?.baseProfile['aiModel'] ?? 'models/gemini-1.5-flash';
+          String aiModelText = 'Gemini 1.5 Flash';
+          if (aiModelKey.contains('1.5-pro')) {
+            aiModelText = 'Gemini 1.5 Pro';
+          } else if (aiModelKey.contains('1.5-flash')) {
+            aiModelText = 'Gemini 1.5 Flash';
+          } else if (aiModelKey.contains('2.0-flash')) {
+            aiModelText = 'Gemini 2.0 Flash';
+          }
 
           return ListView(
             children: [

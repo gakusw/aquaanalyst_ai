@@ -6,6 +6,9 @@ class DailyPlan {
   final String dryland;
   final String intensity; // "低", "中", "高", "OFF", "REST"
   final int targetCalories;
+  final int targetProtein;
+  final int targetFat;
+  final int targetCarbs;
 
   DailyPlan({
     required this.dateStr,
@@ -13,6 +16,9 @@ class DailyPlan {
     required this.dryland,
     required this.intensity,
     required this.targetCalories,
+    this.targetProtein = 0,
+    this.targetFat = 0,
+    this.targetCarbs = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -22,6 +28,9 @@ class DailyPlan {
       'dryland': dryland,
       'intensity': intensity,
       'targetCalories': targetCalories,
+      'targetProtein': targetProtein,
+      'targetFat': targetFat,
+      'targetCarbs': targetCarbs,
     };
   }
 
@@ -32,6 +41,9 @@ class DailyPlan {
       dryland: map['dryland'] ?? '',
       intensity: map['intensity'] ?? '中',
       targetCalories: (map['targetCalories'] ?? 2500).toInt(),
+      targetProtein: (map['targetProtein'] ?? 0).toInt(),
+      targetFat: (map['targetFat'] ?? 0).toInt(),
+      targetCarbs: (map['targetCarbs'] ?? 0).toInt(),
     );
   }
 }

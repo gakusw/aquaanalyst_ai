@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/services/firestore_service.dart';
-import '../../data/models/personal_best.dart';
 import '../../data/models/chat_session.dart';
 
 class AgentFeedbackScreen extends StatefulWidget {
@@ -31,7 +30,6 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
 
   final List<CoachMessage> _messages = [];
   ChatSession? _chatSession;
-  bool _isInit = false;
   bool _isTyping = false;
   String? _currentSessionId = _activeSessionId;
   String? _activeModelId;
@@ -65,21 +63,26 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
       
       // システムプロンプトを取得するためのセッション情報を取得
       final sessions = await _firestoreService.getChatSessionsStream().first;
-      final currentSession = sessions.firstWhere((s) => s.id == sessionId);
+      sessions.firstWhere((s) => s.id == sessionId);
 
-      // Geminiの型に変換
-      final List<Content> geminiHistory = history.map<Content>((m) => 
+      final user = await _firestoreService.getUserProfileStream().first;
+      if (user == null) throw Exception('ユーザー情報が見つかりません');
+      
+      final modelId = user.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
+      _activeModelId = modelId;
+
+      // 共通メソッドを使用してシステム指示を生成
+      final sysInst = GeminiService().getCoachSystemInstruction(user);
+
+      // トトークン節約のため、Geminiに送る履歴を直近20件に制限
+      final List<Content> geminiHistory = history.reversed.take(20).toList().reversed.map<Content>((m) => 
         m.isAi ? Content.model([TextPart(m.text)]) : Content.text(m.text)
       ).toList();
 
-      final user = await _firestoreService.getUserProfileStream().first;
-      final modelId = user?.baseProfile['aiModel'] as String? ?? GeminiService.modelPro;
-      _activeModelId = modelId;
-
       _chatSession = GeminiService().startChat(
-        systemInstruction: currentSession.systemInstruction,
+        systemInstruction: sysInst,
         history: geminiHistory,
-        modelId: modelId,
+        modelId: _activeModelId,
       );
 
       setState(() {
@@ -89,7 +92,6 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
           type: MessageType.normal,
         )));
         _isTyping = false;
-        _isInit = true;
       });
       _scrollToBottom();
     } catch (e) {
@@ -102,34 +104,30 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
     setState(() {
       _messages.clear();
       _isTyping = true;
-      _isInit = false;
     });
 
     try {
       final user = await _firestoreService.getUserProfileStream().first;
-      final expertiseLevel = (user?.baseProfile['expertiseLevel'] as num?)?.toDouble() ?? 5.0;
-      final vision = user?.vision ?? '未設定';
-      final idealCoach = user?.baseProfile['idealCoachPersona'] as String? ?? 'ロジカルで、選手のモチベーションを高めてくれる専門家';
-      final modelId = user?.baseProfile['aiModel'] as String? ?? GeminiService.modelPro;
+      if (user == null) throw Exception('ユーザー情報が見つかりません');
+      final modelId = user.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
 
       // 節約のため直近5件に制限
       final records = await _firestoreService.getTrainingRecordsStream(limit: 5).first;
-      final latestPlan = await _firestoreService.getLatestWeeklyPlanStream().first;
       final allPbs = await _firestoreService.getPersonalBestsStream().first;
 
       String recordsText = records.isEmpty ? "なし" : records.map((r) => "- ${r.date.toIso8601String().substring(0,10)}: ${r.type}").join('\n');
       String pbText = allPbs.isEmpty ? "なし" : allPbs.take(5).map((pb) => "- ${pb.event}: ${pb.value}").join('\n');
 
-      final sysInst = '''
-あなたは競泳コーチです。
-理想のコーチ像: $idealCoach
-目標: $vision
-レベル: $expertiseLevel/10
-最新の記録:
+      // 共通メソッドを使用してシステム指示を生成
+      final sysInst = GeminiService().getCoachSystemInstruction(
+        user,
+        supplementaryContext: """
+[最新のトレーニング状況]
 $recordsText
-自己ベスト(一部):
+[自己ベスト]
 $pbText
-''';
+""",
+      );
 
       final sessionId = await _firestoreService.createChatSession(
         title: '${DateTime.now().month}/${DateTime.now().day} の相談',
@@ -149,7 +147,6 @@ $pbText
       setState(() {
         _messages.add(CoachMessage(text: aiMsg, isAi: true));
         _isTyping = false;
-        _isInit = true;
       });
     } catch (e) {
       setState(() {
