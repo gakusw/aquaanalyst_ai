@@ -97,10 +97,34 @@ class _NutritionScreenState extends State<NutritionScreen> {
       
       final result = await GeminiService().analyzeNutrition(_memoController.text, modelId: modelId);
       if (result != null) {
+        // 異常値のバリデーション (スライダーの最大値を超える場合)
+        if (result.protein > 250 || result.fat > 150 || result.carbs > 400) {
+          if (!mounted) return;
+          final bool? proceed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              icon: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 48),
+              title: const Text('異常な推定値を検出'),
+              content: Text(
+                'AIの推定結果に異常な数値が含まれています：\n\n'
+                '・タンパク質: ${result.protein.round()}g (上限250)\n'
+                '・脂質: ${result.fat.round()}g (上限150)\n'
+                '・炭水化物: ${result.carbs.round()}g (上限400)\n\n'
+                'このまま上限値に丸めて反映しますか？食事内容が正しく解析できていない可能性があります。'
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('キャンセル')),
+                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('上限値で反映')),
+              ],
+            ),
+          );
+          if (proceed != true) return;
+        }
+
         setState(() {
-          _subjectiveProtein = result.protein;
-          _subjectiveFat = result.fat;
-          _subjectiveCarbs = result.carbs;
+          _subjectiveProtein = result.protein.clamp(0.0, 250.0);
+          _subjectiveFat = result.fat.clamp(0.0, 150.0);
+          _subjectiveCarbs = result.carbs.clamp(0.0, 400.0);
           _hasAnalyzed = true; // 推定完了フラグを立てる
         });
         if (mounted) {
@@ -143,6 +167,11 @@ class _NutritionScreenState extends State<NutritionScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text('A. 食事の栄養量 (g) 推定', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 8),
+                Text(
+                  '推定合計エネルギー: ${(_subjectiveProtein * 4 + _subjectiveFat * 9 + _subjectiveCarbs * 4).round()} kcal',
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigoAccent),
+                ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -152,8 +181,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   ],
                 ),
                 Slider(
-                  value: _subjectiveProtein.clamp(0.0, 500.0),
-                  min: 0, max: 500, divisions: 100,
+                  value: _subjectiveProtein.clamp(0.0, 250.0),
+                  min: 0, max: 250, divisions: 50,
                   onChanged: (val) => setState(() => _subjectiveProtein = val),
                   activeColor: Colors.blueAccent,
                 ),
@@ -165,8 +194,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   ],
                 ),
                 Slider(
-                  value: _subjectiveFat.clamp(0.0, 1000.0),
-                  min: 0, max: 1000, divisions: 100,
+                  value: _subjectiveFat.clamp(0.0, 150.0),
+                  min: 0, max: 150, divisions: 30,
                   onChanged: (val) => setState(() => _subjectiveFat = val),
                   activeColor: Colors.redAccent,
                 ),
@@ -178,8 +207,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
                   ],
                 ),
                 Slider(
-                  value: _subjectiveCarbs.clamp(0.0, 1000.0),
-                  min: 0, max: 1000, divisions: 100,
+                  value: _subjectiveCarbs.clamp(0.0, 400.0),
+                  min: 0, max: 400, divisions: 80,
                   onChanged: (val) => setState(() => _subjectiveCarbs = val),
                   activeColor: Colors.orangeAccent,
                 ),

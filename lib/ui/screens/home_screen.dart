@@ -1210,15 +1210,50 @@ P: $p, F: $f, C: $c
             children: [
               if (widget.nutritionRecords.isEmpty) 
                 const _DetailRow(label: '食事内容', value: '未入力'),
-              for (var r in widget.nutritionRecords)
-                _DetailRow(
+              ...widget.nutritionRecords.map((r) {
+                final double p = (r.subjectiveMetrics['protein'] as num?)?.toDouble() ?? 0.0;
+                final double f = (r.subjectiveMetrics['fat'] as num?)?.toDouble() ?? 0.0;
+                final double c = (r.subjectiveMetrics['carbs'] as num?)?.toDouble() ?? 0.0;
+                final kcal = (p * 4 + f * 9 + c * 4).round();
+                
+                return _DetailRow(
                   label: r.subjectiveMetrics['meal_label'] as String? ?? '未分類', 
-                  child: _ExpandableText(r.details.isNotEmpty ? r.details.first['content'] : '記録あり')
-                ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: _ExpandableText(r.details.isNotEmpty ? r.details.first['content'] : '記録あり')),
+                          const SizedBox(width: 8),
+                          Text('$kcal kcal', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigoAccent.withOpacity(0.8))),
+                        ],
+                      ),
+                    ],
+                  )
+                );
+              }),
               const SizedBox(height: 12),
-              _PfcStatusRow(label: 'タンパク質 (P)', value: proteinValue, maxValue: targetP.toDouble(), color: Colors.redAccent, status: proteinValue >= targetP ? '達成' : '不足'),
-              _PfcStatusRow(label: '脂質 (F)', value: fatValue, maxValue: targetF.toDouble(), color: Colors.deepOrangeAccent, status: fatValue >= targetF ? '達成' : '不足'),
-              _PfcStatusRow(label: '炭水化物 (C)', value: carbsValue, maxValue: targetC.toDouble(), color: Colors.greenAccent, status: carbsValue >= targetC ? '達成' : '不足'),
+              _PfcStatusRow(
+                label: 'タンパク質 (P)', 
+                value: proteinValue, 
+                maxValue: targetP.toDouble(), 
+                color: Colors.redAccent, 
+                status: proteinValue >= targetP * 1.2 ? '過多' : (proteinValue >= targetP ? '達成' : '不足')
+              ),
+              _PfcStatusRow(
+                label: '脂質 (F)', 
+                value: fatValue, 
+                maxValue: targetF.toDouble(), 
+                color: Colors.deepOrangeAccent, 
+                status: fatValue >= targetF * 1.2 ? '過多' : (fatValue >= targetF ? '達成' : '不足')
+              ),
+              _PfcStatusRow(
+                label: '炭水化物 (C)', 
+                value: carbsValue, 
+                maxValue: targetC.toDouble(), 
+                color: Colors.greenAccent, 
+                status: carbsValue >= targetC * 1.2 ? '過多' : (carbsValue >= targetC ? '達成' : '不足')
+              ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 4.0),
                 child: Divider(height: 1),
@@ -1228,7 +1263,7 @@ P: $p, F: $f, C: $c
                 value: totalCalories, 
                 maxValue: targetCalories > 0 ? targetCalories : 2500, 
                 color: Colors.purpleAccent, 
-                status: calorieStatus
+                status: targetCalories > 0 && totalCalories >= targetCalories * 1.2 ? '過多' : (targetCalories > 0 && totalCalories >= targetCalories ? '達成' : calorieStatus)
               ),
             ],
           ),
