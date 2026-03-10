@@ -256,28 +256,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                     RadioListTile<String>(
                       title: const Text('Gemini 3.1 Flash'),
-                      subtitle: const Text('【最新・最高峰】3.1世代の標準Flashモデル。'),
+                      subtitle: const Text('【最新】次世代Flashモデル。'),
                       value: GeminiService.model31Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 3.1 Flash-Lite'),
-                      subtitle: const Text('【最軽量】圧倒的なレスポンス速度。'),
+                      subtitle: const Text('【最速】軽量・高レスポンス。'),
                       value: GeminiService.model31FlashLite,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
-                      title: const Text('Gemini 3.0 Flash'),
-                      subtitle: const Text('【安定版】3.0世代の高速モデル。'),
-                      value: GeminiService.model30Flash,
+                      title: const Text('Gemini 2.5 Pro'),
+                      subtitle: const Text('【高精度】以前のメインモデル。'),
+                      value: GeminiService.model25Pro,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 2.5 Flash'),
-                      subtitle: const Text('【高速】2.5世代のFlashモデル。'),
+                      subtitle: const Text('【高速】以前の標準モデル。'),
                       value: GeminiService.model25Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
@@ -291,8 +291,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 1.5 Pro'),
-                      subtitle: const Text('【高機能】複雑な推論や長い文脈に対応。'),
+                      subtitle: const Text('【標準Pro】複雑な推論に対応。'),
                       value: GeminiService.model15Pro,
+                      groupValue: selected,
+                      onChanged: (val) => setDialogState(() => selected = val!),
+                    ),
+                    RadioListTile<String>(
+                      title: const Text('Gemini 1.5 Flash'),
+                      subtitle: const Text('【標準Flash】速度と性能のバランス。'),
+                      value: GeminiService.model15Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
@@ -374,8 +381,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             aiModelText = 'Gemini 3.1 Flash-Lite';
           } else if (aiModelKey.contains('3.1-flash')) {
             aiModelText = 'Gemini 3.1 Flash';
-          } else if (aiModelKey.contains('3.0-flash')) {
-            aiModelText = 'Gemini 3.0 Flash';
+          } else if (aiModelKey.contains('2.5-pro')) {
+            aiModelText = 'Gemini 2.5 Pro';
           } else if (aiModelKey.contains('2.5-flash')) {
             aiModelText = 'Gemini 2.5 Flash';
           } else if (aiModelKey.contains('2.0-flash')) {
