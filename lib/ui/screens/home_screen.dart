@@ -249,6 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
               }
             ),
+            /* // パフォーマンス向上のため一時非表示
             const SizedBox(height: 32),            // レーダーチャート領域（栄養バランス）
             const Text(
               '最新の栄養バランス (自己評価合算)',
@@ -299,6 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 32),
+            */
 
 
             // 折れ線グラフ (体重・筋量推移)
@@ -1238,21 +1240,21 @@ P: $p, F: $f, C: $c
                 value: proteinValue, 
                 maxValue: targetP.toDouble(), 
                 color: Colors.redAccent, 
-                status: proteinValue >= targetP * 1.2 ? '過多' : (proteinValue >= targetP ? '達成' : '不足')
+                status: proteinValue >= targetP ? '達成' : '不足' // タンパク質は目標を超えていれば達成
               ),
               _PfcStatusRow(
                 label: '脂質 (F)', 
                 value: fatValue, 
                 maxValue: targetF.toDouble(), 
                 color: Colors.deepOrangeAccent, 
-                status: fatValue >= targetF * 1.2 ? '過多' : (fatValue >= targetF ? '達成' : '不足')
+                status: fatValue > targetF * 1.15 ? '過多' : (fatValue >= targetF * 0.85 ? '達成' : '不足')
               ),
               _PfcStatusRow(
                 label: '炭水化物 (C)', 
                 value: carbsValue, 
                 maxValue: targetC.toDouble(), 
                 color: Colors.greenAccent, 
-                status: carbsValue >= targetC * 1.2 ? '過多' : (carbsValue >= targetC ? '達成' : '不足')
+                status: carbsValue > targetC * 1.15 ? '過多' : (carbsValue >= targetC * 0.85 ? '達成' : '不足')
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 4.0),
@@ -1263,7 +1265,9 @@ P: $p, F: $f, C: $c
                 value: totalCalories, 
                 maxValue: targetCalories > 0 ? targetCalories : 2500, 
                 color: Colors.purpleAccent, 
-                status: targetCalories > 0 && totalCalories >= targetCalories * 1.2 ? '過多' : (targetCalories > 0 && totalCalories >= targetCalories ? '達成' : calorieStatus)
+                status: targetCalories > 0 
+                    ? (totalCalories > targetCalories * 1.08 ? '過多' : (totalCalories >= targetCalories * 0.92 ? '達成' : '不足'))
+                    : calorieStatus
               ),
             ],
           ),
