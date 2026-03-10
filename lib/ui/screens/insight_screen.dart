@@ -138,6 +138,7 @@ class _InsightScreenState extends State<InsightScreen> {
 
 【回答形式 (JSON)】
 以下の構造を持つJSONオブジェクトのみを出力してください。Markdownのコードブロックなどは含めないでください。
+解説やインサイト等のテキストデータはすべて日本語で記述してください。
 {
   "overallInsight": "全体の分析（現在のコンディションや成長傾向）",
   "agentThinkingSteps": ["分析ステップ1", "分析ステップ2", "分析ステップ3", "分析ステップ4"],

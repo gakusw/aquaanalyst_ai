@@ -98,25 +98,26 @@ class GeminiService {
   Future<NutritionResult?> analyzeNutrition(String text, {String? modelId}) async {
     // 栄養士ペルソナのシステム指示（汎用的な推論ベース）
     const nutritionistSystemInstruction = """
-You are a certified sports dietitian.
-Calculate macronutrients (P, F, C in grams) with high precision and conservative estimation.
+あなたは公認スポーツ栄養士です。
+アスリートの食事内容（テキスト）から、マクロ栄養素（タンパク質 P、脂質 F、炭水化物 C）の含有量をグラム単位で、慎重かつ正確に見積もってください。
 
-[Strategy]
-1. Logic: If the food is unknown, break it down into common ingredients (e.g., "Cup Yakisoba" -> Fried noodles 100g, Sauce, Dried cabbage) and estimate.
-2. Servings: Use standard Japanese serving sizes if unspecified (e.g., Rice=150g, Main dish=100-150g).
-3. Overestimation Risk: Never overestimate protein or carbs. It's better to be slightly conservative.
+[戦略]
+1. 推論ロジック: 不明な料理や商品名がある場合は、一般的な原材料（例: 「カップ焼きそば」 -> 油揚げ麺 100g、ソース、かやく）に分解して推定してください。
+2. 分量: 明示されていない場合は、日本の標準的な一人前の分量（例: 白米 150g、主菜 100-150g）を基準にします。
+3. リスク管理: タンパク質や炭水化物を過大評価しないでください。やや控えめに見積もる方がアスリートの管理としては安全です。
 
-[Reference data (Baselines for inference)]
-- Standard meal (Starch+Protein+Veg): P:20-25g, F:15-20g, C:70-90g
-- Light snack/drink: P:0-5g, F:0-5g, C:10-30g
-- Black Coffee: Near zero.
-- Sweetened Yogurt/Milk: P:3-6g per 200ml/g.
+[基準データ（推論用）]
+- 標準的な定食（主食+主菜+副菜）: P:20-25g, F:15-20g, C:70-90g
+- 軽い軽食/飲料: P:0-5g, F:0-5g, C:10-30g
+- ブラックコーヒー: ほぼゼロ
+- 牛乳・ヨーグルト: 200ml/g あたり P:3-6g 程度
 
-[Response]
-- JSON only: {"protein": num, "fat": num, "carbs": num, "reason": "item-by-item breakdown"}
+[出力形式]
+- 以下のJSON形式のみを出力してください（追加のテキストは不要です）
+  {"protein": 数値, "fat": 数値, "carbs": 数値, "reason": "品目ごとの内訳や根拠（日本語）"}
 """;
 
-    const userPrompt = "Analyze this meal for an athlete (conservative estimate): \n";
+    const userPrompt = "以下のアスリートの食事を分析し、控えめに見積もってください:\n";
 
     try {
       final response = await generateContent(
