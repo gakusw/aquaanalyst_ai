@@ -114,6 +114,27 @@ class _InsightScreenState extends State<InsightScreen> {
         'value': gt.value,
       }).toList();
 
+      // 履歴から目標設定日(gt.date)の時点でのタイム（またはそれに最も近い過去の最速値）を抽出
+      final goalBaselineTimes = goalTimesSnapshot.map((gt) {
+        // 目標設定日以前の記録から、その種目の最小値（ベスト）を探す
+        final pastPbAtGoalSetting = pbs
+            .where((pb) => pb.event == gt.event && (pb.date.isBefore(gt.date) || pb.date.isAtSameMomentAs(gt.date)))
+            .toList();
+        
+        double? baselineValue;
+        if (pastPbAtGoalSetting.isNotEmpty) {
+          pastPbAtGoalSetting.sort((a, b) => a.value.compareTo(b.value));
+          baselineValue = pastPbAtGoalSetting.first.value;
+        }
+
+        return {
+          'event': gt.event,
+          'goalValue': gt.value,
+          'goalSetDate': gt.date.toIso8601String(),
+          'baselineValueAtGoalSet': baselineValue ?? '記録なし',
+        };
+      }).toList();
+
       // 練習内容の要约
       final trainingSummary = recentRecords
           .where((r) => r.type == 'pool' || r.type == 'dryland')
@@ -126,13 +147,27 @@ class _InsightScreenState extends State<InsightScreen> {
           })
           .toList();
 
+      final systemInstruction = user != null 
+          ? ai.GeminiService().getCoachSystemInstruction(user, supplementaryContext: """
+競泳データアナリストとして、以下の「分析の厳格な指針」に従ってJSON形式で回答してください。
+
+【分析の厳格な指針】
+1. **科学的リアリズムの徹底**: 練習データが不足している、あるいは強度が低い場合、自己ベストを上回る予測は行わないでください。
+2. **目標達成率(successRate)の定義**: 
+   - 「目標に対してどれだけ近づいたか（進捗率）」を0.0〜1.0で表してください。
+   - 0.0: 目標設定時のタイム (baselineValueAtGoalSet)。
+   - 1.0: 目標タイム (goalValue)。
+   - 予測が基準より遅ければ0.0、目標を超えれば1.0。
+3. **身体組成の影響**: 体組成の変化が、種目の特性にどう影響するかを考慮してください。
+""")
+          : "あなたは世界トップレベルの競泳データアナリスト兼コーチングスペシャリストです。";
+
       final prompt = """
-あなたは超一流の競泳データアナリスト兼コーチです。以下のユーザーデータを基に、統計的かつ生理学的な見地から次戦のタイムを予測し、JSON形式で回答してください。
+以下のユーザーデータを基に、次戦のタイムを予測してください。
 
 【ユーザーデータ】
-- 選手としてのビジョン: ${user?.vision ?? '未設定'}
 - 最新の自己ベスト: $swimPbs
-- ユーザーが設定した目標タイム: $goalTimes
+- ユーザーが設定した目標タイムと設定時の基準タイム: $goalBaselineTimes
 - 直近の体組成推移: $bodyComp
 - 最近の練習内容と主観評価: $trainingSummary
 
@@ -140,28 +175,27 @@ class _InsightScreenState extends State<InsightScreen> {
 以下の構造を持つJSONオブジェクトのみを出力してください。Markdownのコードブロックなどは含めないでください。
 解説やインサイト等のテキストデータはすべて日本語で記述してください。
 {
-  "overallInsight": "全体の分析（現在のコンディションや成長傾向）",
+  "overallInsight": "全体の分析",
   "agentThinkingSteps": ["分析ステップ1", "分析ステップ2", "分析ステップ3", "分析ステップ4"],
   "predictions": [
     {
-      "eventName": "種目名 (自己ベストにある種目名を正確に使用)",
+      "eventName": "種目名",
       "predictedTime": "予想タイム (秒)",
-      "confidenceInterval": "信頼区間 (例: 22.8s 〜 23.1s)",
-      "successRate": 0.0〜1.0 (ユーザーが設定した「目標タイム」を達成できる確率。目標タイムが未設定の種目の場合は、自己ベスト更新の確率。),
-      "specificInsight": "その種目に対する具体的なアドバイス（1-2文）",
+      "confidenceInterval": "信頼区間",
+      "successRate": 0.0〜1.0,
+      "specificInsight": "具体的なアドバイス",
       "laps": [
-        { "section": "区間 (例: 0-25m)", "time": "区間タイム", "strokeCount": 推定ストローク数 }
+        { "section": "区間", "time": "区間タイム", "strokeCount": 推定ストローク数 }
       ]
     }
   ]
 }
-
-※ 注意: 予測タイムは、筋量、練習内容（強度や距離）、主観的な疲労度、過去のPBからの期間などを考慮してリアリティのある数値を算出してください。
 """;
 
-      final modelId = user?.baseProfile['aiModel'] as String? ?? ai.GeminiService.modelFlash;
+      final modelId = user?.baseProfile['aiModel'] as String? ?? ai.GeminiService.modelForInsight;
       final response = await ai.GeminiService().generateContent(
         prompt, 
+        systemInstruction: systemInstruction,
         modelId: modelId,
         responseMimeType: 'application/json',
       );
@@ -596,6 +630,26 @@ class _InsightScreenState extends State<InsightScreen> {
             const Text('統計的タイム推移と予測', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const Text('自己ベストの推移とAIによる次戦予測', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, size: 14, color: Colors.blue),
+                  SizedBox(width: 6),
+                  Text(
+                    '達成率は目標設定時を0%とした現在の進捗です',
+                    style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             
             // 種目選択

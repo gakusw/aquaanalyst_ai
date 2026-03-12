@@ -22,15 +22,23 @@ class GeminiService {
   static const String model15Flash = 'gemini-1.5-flash';
   static const String model15Flash8b = 'gemini-1.5-flash-8b';
   static const String model20Flash = 'gemini-2.0-flash';
-  static const String model25Flash = 'gemini-2.5-flash';
   static const String model25Pro = 'gemini-2.5-pro';
-  static const String model30Flash = 'gemini-3.0-flash';
-  static const String model31Flash = 'gemini-3.1-flash';
-  static const String model31FlashLite = 'gemini-3.1-flash-lite';
+  static const String model25Flash = 'gemini-2.5-flash';
+  static const String model31FlashPreview = 'gemini-3.1-flash-preview';
+  static const String model31FlashLitePreview = 'gemini-3.1-flash-lite-preview';
+
+  // 公認のプレビュー版含め、実際に呼び出し可能なIDへのマッピング
+  static const String model31Flash = model31FlashPreview;
+  static const String model31FlashLite = model31FlashLitePreview;
 
   // 下位互換用エイリアス
   static const String modelPro = model25Pro;
-  static const String modelFlash = model25Flash;
+  static const String modelFlash = model25Flash; 
+
+  // ユースケース別推奨モデル (コスパ最適化)
+  static const String modelForChat = model31Flash;
+  static const String modelForInsight = model25Pro;
+  static const String modelForNutrition = model15Flash8b;
 
   /// 初期化処理
   void init() {
@@ -40,20 +48,35 @@ class GeminiService {
     }
   }
 
+  /// 指定されたModelIdを安定版に正規化する
+  String _normalizeModelId(String requestedId) {
+    String id = requestedId.toLowerCase();
+    
+    // 3.1系でpreviewがない場合は強制付与、または安定版へ
+    if (id == 'gemini-3.1-flash' || id == '3.1-flash') return model31FlashPreview;
+    if (id == 'gemini-3.1-flash-lite' || id == '3.1-flash-lite') return model31FlashLitePreview;
+
+    // 1.5系の素のIDで404が出る環境のための暫定的なマッピング
+    // ユーザー報告により 1.5-flash/pro は NotFound とのこと
+    if (id == 'gemini-1.5-flash' || id == '1.5-flash') return model20Flash; 
+    if (id == 'gemini-1.5-pro' || id == '1.5-pro') return model25Pro;
+
+    // プレフィックスの自動除去
+    return requestedId.replaceFirst('models/', '');
+  }
+
   GenerativeModel? _createModel({
     String? modelId,
     String? systemInstruction,
     String? responseMimeType,
   }) {
     if (_apiKey == null || _apiKey!.isEmpty || _apiKey == 'YOUR_KEY_HERE') return null;
-    String effectiveModelId = modelId ?? modelFlash;
-    // 'models/' プレフィックスを付ける。ユーザーが既に付けている場合は重複させない。
-    if (!effectiveModelId.startsWith('models/')) {
-      effectiveModelId = 'models/$effectiveModelId';
-    }
+    
+    final requestedId = modelId ?? modelFlash;
+    final effectiveModelId = _normalizeModelId(requestedId);
 
     return GenerativeModel(
-      model: effectiveModelId,
+      model: 'models/$effectiveModelId',
       apiKey: _apiKey!,
       systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
       generationConfig: responseMimeType != null ? GenerationConfig(responseMimeType: responseMimeType) : null,
@@ -62,7 +85,10 @@ class GeminiService {
 
   /// AIへの単発プロンプト送信
   Future<String?> generateContent(String prompt, {String? systemInstruction, String? responseMimeType, String? modelId}) async {
-    final model = _createModel(modelId: modelId, systemInstruction: systemInstruction, responseMimeType: responseMimeType);
+    final requestedId = modelId ?? modelFlash;
+    final actualId = _normalizeModelId(requestedId);
+    
+    final model = _createModel(modelId: requestedId, systemInstruction: systemInstruction, responseMimeType: responseMimeType);
     if (model == null) return 'AIモデルが初期化されていません。';
 
     try {
@@ -70,7 +96,7 @@ class GeminiService {
       final response = await model.generateContent(content);
       return response.text;
     } catch (e) {
-      throw Exception(translateError(e, modelId: modelId));
+      throw Exception(translateError(e, requestedId: requestedId, actualId: actualId));
     }
   }
 
@@ -81,9 +107,12 @@ class GeminiService {
     String mimeType, {
     String? systemInstruction,
     String? responseMimeType,
-    String? modelId = 'models/gemini-1.5-flash',
+    String? modelId,
   }) async {
-    final model = _createModel(modelId: modelId, systemInstruction: systemInstruction, responseMimeType: responseMimeType);
+    final requestedId = modelId ?? model15Flash;
+    final actualId = _normalizeModelId(requestedId);
+
+    final model = _createModel(modelId: requestedId, systemInstruction: systemInstruction, responseMimeType: responseMimeType);
     if (model == null) return 'AIモデルが初期化されていません。';
 
     try {
@@ -96,7 +125,7 @@ class GeminiService {
       final response = await model.generateContent(content);
       return response.text;
     } catch (e) {
-      throw Exception(translateError(e, modelId: modelId));
+      throw Exception(translateError(e, requestedId: requestedId, actualId: actualId));
     }
   }
 
@@ -129,7 +158,7 @@ class GeminiService {
       final response = await generateContent(
         "$userPrompt$text",
         systemInstruction: nutritionistSystemInstruction,
-        modelId: modelId ?? modelFlash,  // ユーザー設定があればそれを使用
+        modelId: modelId ?? modelForNutrition,  // 栄養解析用の軽量モデルをデフォルトに
         responseMimeType: 'application/json',
       );
 
@@ -157,25 +186,31 @@ class GeminiService {
   }
 
   /// エラーメッセージを日本語に翻訳する
-  String translateError(dynamic e, {String? modelId}) {
+  String translateError(dynamic e, {String? requestedId, String? actualId, String? modelId}) {
     final errorStr = e.toString();
-    final modelName = modelId ?? modelPro;
-    debugPrint('Gemini API Error details ($modelName): $errorStr');
+    final reqModel = requestedId ?? modelId ?? modelPro;
+    final actModel = actualId ?? _normalizeModelId(reqModel);
+    
+    final modelContext = reqModel == actModel ? actModel : "$reqModel (試行: $actModel)";
+    debugPrint('Gemini API Error details ($modelContext): $errorStr');
 
     if (errorStr.contains('Quota exceeded') || errorStr.contains('429')) {
-      return 'AIの利用制限（1日、または1分間あたりの回数上限）に達しました。モデル: $modelName\n1.5 Flash などの軽量モデルに切り替えることをお勧めします。1〜2分待ってから再度お試しください。';
+      return 'AIの利用制限（回数上限/クォータ）に達しました。1〜2分待つか、Flashモデルへの切り替えをお勧めします。モデル: $modelContext';
+    }
+    if (errorStr.contains('503') || errorStr.contains('Service Unavailable')) {
+      return '現在、GoogleのAIサーバーが非常に混雑しています (503 error)。特にPreview版や最新版で発生しやすいため、しばらく待つか、1.5 Flash などの安定版（Stable）をお試しください。モデル: $modelContext';
     }
     if (errorStr.contains('not found') || errorStr.contains('404')) {
-      return '指定されたAIモデル ($modelName) が見つかりません。最新のモデルIDを確認してください。';
+      return '指定されたAIモデルが見つかりません。最新のモデルIDをアプリで確認してください。モデル: $modelContext';
     }
     if (errorStr.contains('User Location is not supported')) {
-      return 'お住いの地域ではこのAIモデル ($modelName) の利用が制限されています。';
+      return 'お住いの地域ではこのAIモデルの利用が制限されています。モデル: $modelContext';
     }
     if (errorStr.contains('Safety') || errorStr.contains('HARM_CATEGORY')) {
       return 'AIが不適切な内容と判断したため、回答を生成できませんでした。';
     }
     
-    return '通信エラーが発生しました ($modelName)。時間を置いてから再度お試しください。';
+    return '通信エラーが発生しました。時間を置いてから再度お試しください。モデル: $modelContext';
   }
 
   /// アプリ共通のコーチ人格（システム指示）を生成する
@@ -184,20 +219,35 @@ class GeminiService {
     final vision = user.vision;
     final idealCoach = user.baseProfile['idealCoachPersona'] as String? ?? '専門的かつモチベーションを高めてくれるコーチ';
 
+    // 専門レベルに応じた修飾語
+    String scientificTone = "";
+    if (expertiseLevel >= 8) {
+      scientificTone = "流体力学、運動生理学、バイオメカニクスの高度な専門用語を駆使し、論文ベースの科学的なエビデンスに基づいた指導を行ってください。";
+    } else if (expertiseLevel >= 5) {
+      scientificTone = "トレーニング科学や栄養学の基礎に基づき、具体的かつ論理的な根拠を添えて指導を行ってください。";
+    } else {
+      scientificTone = "初心者でも理解しやすいよう、専門的な概念を平易な言葉や比喩に変換して、親しみやすく指導してください。";
+    }
+
     return """
-あなたは、ユーザーの目標達成を支える専属の競泳コーチングAIです。
+あなたは、世界トップレベルの競泳コーチングスペシャリストです。
+データ分析、バイオメカニクス、運動生理学に精通しており、ユーザーのポテンシャルを最大限に引き出す論理的かつ科学的な指導を行います。
 
 [あなたの性格・口調（最優先）]
 $idealCoach
 
+[科学的アプローチの指針]
+$scientificTone
+
 [ターゲット（ユーザー設定）]
 - ビジョン(最終目標): $vision
-- 専門知識の要求レベル: $expertiseLevel/10 (1:初心者向け平易, 10:科学的・専門的)
+- 専門知識の要求レベル: $expertiseLevel/10
 
 [行動指針]
 1. 上記の「口調」を常に維持し、一貫した人格で接してください。
 2. ユーザーの「ビジョン」を常に念頭に置き、すべての回答をその達成へ結びつけてください。
-3. 専門レベルに応じた深さで解説を行ってください。
+3. 専門レベル($expertiseLevel/10)に応じた深さと語彙で解説を行ってください。
+4. 根拠のない精神論は避け、常に生理学的・運動学的な論理性を持って回答してください。
 $supplementaryContext
 """;
   }

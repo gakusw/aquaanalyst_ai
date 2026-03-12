@@ -70,6 +70,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         updatedVision = newValue;
       } else if (fieldKey == 'displayName') {
         updatedDisplayName = newValue;
+      } else if (fieldKey == 'idealCoachPersona') {
+        updatedProfile[fieldKey] = newValue;
       } else {
         updatedProfile[fieldKey] = newValue;
       }
@@ -255,60 +257,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                     RadioListTile<String>(
-                      title: const Text('Gemini 3.1 Flash'),
-                      subtitle: const Text('【最新】次世代Flashモデル。'),
-                      value: GeminiService.model31Flash,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 3.1 Flash-Lite'),
-                      subtitle: const Text('【最速】軽量・高レスポンス。'),
-                      value: GeminiService.model31FlashLite,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 2.5 Pro'),
-                      subtitle: const Text('【高精度】以前のメインモデル。'),
-                      value: GeminiService.model25Pro,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 2.5 Flash'),
-                      subtitle: const Text('【高速】以前の標準モデル。'),
+                      title: const Text('Gemini 2.5 Flash (推奨)'),
+                      subtitle: const Text('【高速・高能率】2026年標準モデル。クォータ: 約1,500回/日。'),
                       value: GeminiService.model25Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
-                      title: const Text('Gemini 2.0 Flash'),
-                      subtitle: const Text('【高速】2.0世代の高レスポンスモデル。'),
-                      value: GeminiService.model20Flash,
+                      title: const Text('Gemini 2.5 Pro'),
+                      subtitle: const Text('【分析推奨】最強の推論。クォータ: 約50回/日。※制限が厳しいためチャット常用は向きません。'),
+                      value: GeminiService.model25Pro,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
-                      title: const Text('Gemini 1.5 Pro'),
-                      subtitle: const Text('【標準Pro】複雑な推論に対応。'),
-                      value: GeminiService.model15Pro,
+                      title: const Text('Gemini 3.1 Flash (Preview)'),
+                      subtitle: const Text('【最新鋭】Googleの最新世代。クォータ: 約1,500回/日。'),
+                      value: GeminiService.model31Flash,
+                      groupValue: selected,
+                      onChanged: (val) => setDialogState(() => selected = val!),
+                    ),
+                    RadioListTile<String>(
+                      title: const Text('Gemini 3.1 Flash-Lite (Preview)'),
+                      subtitle: const Text('【最速】高レスポンスモデル。クォータ: 約1,500回/日。'),
+                      value: GeminiService.model31FlashLite,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 1.5 Flash'),
-                      subtitle: const Text('【標準Flash】速度と性能のバランス。'),
+                      subtitle: const Text('【安定版】旧世代。最も実績がありエラーが起きにくい。'),
                       value: GeminiService.model15Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 1.5 Flash'),
-                      subtitle: const Text('【標準】速度と性能のバランス。'),
-                      value: GeminiService.model15Flash,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
+                    const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '💡 クォータについて',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'ProモデルはFlashモデルと比べて1日あたりに使える回数が「30分の1」程度と非常に限られています。通常はFlash推奨です。',
+                            style: TextStyle(fontSize: 10, color: Colors.grey),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '※ サーバー混雑(503)時、アプリ側で自動的に安定版(1.5 Flash)へ切り替えてエラーを防ぐ場合があります。',
+                            style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+                          ),
+                        ],
+                      ),
                     ),
                 ],
               ),
@@ -376,21 +379,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final envDataText = '水路: $envLength / 水深: $envDepth m / 人数: $envCrowd 人';
 
           final aiModelKey = user?.baseProfile['aiModel'] ?? GeminiService.modelFlash;
-          String aiModelText = 'Gemini 1.5 Flash';
-          if (aiModelKey.contains('3.1-flash-lite')) {
-            aiModelText = 'Gemini 3.1 Flash-Lite';
-          } else if (aiModelKey.contains('3.1-flash')) {
-            aiModelText = 'Gemini 3.1 Flash';
-          } else if (aiModelKey.contains('2.5-pro')) {
+          String aiModelText = 'Gemini 2.5 Flash';
+          if (aiModelKey.contains('2.5-pro')) {
             aiModelText = 'Gemini 2.5 Pro';
           } else if (aiModelKey.contains('2.5-flash')) {
             aiModelText = 'Gemini 2.5 Flash';
-          } else if (aiModelKey.contains('2.0-flash')) {
-            aiModelText = 'Gemini 2.0 Flash';
+          } else if (aiModelKey.contains('3.1-flash-lite')) {
+            aiModelText = 'Gemini 3.1 Flash-Lite';
+          } else if (aiModelKey.contains('3.1-flash')) {
+            aiModelText = 'Gemini 3.1 Flash';
           } else if (aiModelKey.contains('1.5-pro')) {
             aiModelText = 'Gemini 1.5 Pro';
           } else if (aiModelKey.contains('1.5-flash')) {
             aiModelText = 'Gemini 1.5 Flash';
+          } else if (aiModelKey.contains('2.0')) {
+            aiModelText = 'Gemini 2.0';
           }
 
           return ListView(
@@ -406,6 +409,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: const Icon(Icons.edit, size: 16),
                 onTap: () {
                   if (user != null) _editProfileField(context, user, 'ビジョン', 'vision', user.vision);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.psychology_alt),
+                title: const Text('理想のコーチ像'),
+                subtitle: Text(user?.baseProfile['idealCoachPersona'] as String? ?? '専門的かつモチベーションを高めてくれるコーチ'),
+                trailing: const Icon(Icons.edit, size: 16),
+                onTap: () {
+                  if (user != null) {
+                    _editProfileField(
+                      context, 
+                      user, 
+                      '理想のコーチ像', 
+                      'idealCoachPersona', 
+                      user.baseProfile['idealCoachPersona'] as String? ?? '専門적かつモチベーションを高めてくれるコーチ'
+                    );
+                  }
                 },
               ),
               ListTile(
