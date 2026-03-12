@@ -20,21 +20,21 @@ class GeminiService {
   String? _apiKey;
   static const String model15Pro = 'gemini-1.5-pro';
   static const String model15Flash = 'gemini-1.5-flash';
-  static const String model15Flash8b = 'gemini-1.5-flash-8b';
-  static const String model20Flash = 'gemini-2.0-flash';
-  
-  // 安定版へのマッピング用（3.1系が不安定なため）
+  static const String model25Pro = 'gemini-2.5-pro';
+  static const String model25Flash = 'gemini-2.5-flash';
+
+  // 時代遅れ・不安定なモデルの安定版へのマッピング用
   static const String model31Flash = model15Flash;
-  static const String model31FlashLite = model15Flash8b;
+  static const String model31FlashLite = model15Flash; // 8bで404が出るため1.5-flashへ
 
   // 下位互換用エイリアス
-  static const String modelPro = model15Pro;
-  static const String modelFlash = model20Flash; 
+  static const String modelPro = model25Pro;
+  static const String modelFlash = model25Flash; 
 
   // ユースケース別推奨モデル (コスパ最適化)
   static const String modelForChat = model31Flash;      // 日々のチャット (最新・高速)
-  static const String modelForInsight = model15Pro;    // タイム予測・深い分析 (知能優先)
-  static const String modelForNutrition = model15Flash8b; // 栄養解析 (格安・データ抽出)
+  static const String modelForInsight = model25Pro;    // タイム予測・深い分析 (2.5系の知能優先)
+  static const String modelForNutrition = model15Flash; // 栄養解析 (安定版ベースライン)
 
   /// 初期化処理
   void init() {
@@ -48,18 +48,19 @@ class GeminiService {
   String _normalizeModelId(String requestedId) {
     String id = requestedId.toLowerCase();
     
-    // 3.1系や特定のPreview/Experimentalで503エラー（混雑）が多発するため安定版へ強制マッピング
-    if (id.contains('3.1-flash-lite') || id.contains('flash-8b-preview')) {
-      return model15Flash8b;
+    // 3.x系や2.0系、および特定のPreview/Experimentalで404や503エラーが多発するため安定版へ強制マッピング
+    // 2026年現在は 2.5 シリーズが標準
+    if (id.contains('3.1-flash') || id.contains('3.0-flash') || id.contains('flash-8b') || id.contains('lite')) {
+      return model15Flash; // 最も堅牢なベースライン
     }
-    if (id.contains('3.1-flash') || id.contains('flash-lite-preview')) {
-      return model15Flash;
+    if (id.contains('2.0-flash') || id.contains('exp')) {
+      return model25Flash;
     }
-    if (id.contains('2.5-flash') || id.contains('2.0-flash-exp')) {
-      return model20Flash;
+    if (id.contains('1.5-pro') || id.contains('2.0-pro')) {
+      return model25Pro;
     }
     
-    // プレフィックスの自動除去（createModelで付与するため）
+    // プレフィックスの自動除去
     return requestedId.replaceFirst('models/', '');
   }
 

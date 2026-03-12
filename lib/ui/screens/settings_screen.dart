@@ -257,30 +257,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                     RadioListTile<String>(
-                      title: const Text('Gemini 2.0 Flash (推奨)'),
-                      subtitle: const Text('【高速・高能率】最新世代。クォータ: 約1,500回/日。日常チャットに最適。'),
-                      value: GeminiService.model20Flash,
+                      title: const Text('Gemini 2.5 Flash (推奨)'),
+                      subtitle: const Text('【高速・高能率】2026年標準モデル。クォータ: 約1,500回/日。日常チャットに最適。'),
+                      value: GeminiService.model25Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
-                      title: const Text('Gemini 1.5 Pro'),
+                      title: const Text('Gemini 2.5 Pro'),
                       subtitle: const Text('【分析推奨】最強の推論。クォータ: 約50回/日。※制限が非常に厳しいためチャット常用には向きません。'),
-                      value: GeminiService.model15Pro,
+                      value: GeminiService.model25Pro,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 1.5 Flash'),
-                      subtitle: const Text('【安定版】旧世代。クォータ: 約1,500回/日。軽量で安定性が最も高い。'),
+                      subtitle: const Text('【安定版】旧世代。クォータ: 約1,500回/日。最も実績がありエラーが起きにくい。'),
                       value: GeminiService.model15Flash,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 1.5 Flash-8b'),
-                      subtitle: const Text('【最速】最も軽量なモデル。クォータ: 約1,500回/日。'),
-                      value: GeminiService.model15Flash8b,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
@@ -372,17 +365,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final envDataText = '水路: $envLength / 水深: $envDepth m / 人数: $envCrowd 人';
 
           final aiModelKey = user?.baseProfile['aiModel'] ?? GeminiService.modelFlash;
-          String aiModelText = 'Gemini 2.0 Flash';
-          if (aiModelKey.contains('1.5-pro')) {
+          String aiModelText = 'Gemini 2.5 Flash';
+          if (aiModelKey.contains('2.5-pro')) {
+            aiModelText = 'Gemini 2.5 Pro';
+          } else if (aiModelKey.contains('2.5-flash')) {
+            aiModelText = 'Gemini 2.5 Flash';
+          } else if (aiModelKey.contains('1.5-pro')) {
             aiModelText = 'Gemini 1.5 Pro';
           } else if (aiModelKey.contains('1.5-flash')) {
             aiModelText = 'Gemini 1.5 Flash';
-          } else if (aiModelKey.contains('2.0-flash')) {
-            aiModelText = 'Gemini 2.0 Flash';
-          } else if (aiModelKey.contains('3.1-flash')) {
+          } else if (aiModelKey.contains('3.1') || aiModelKey.contains('3.0')) {
             aiModelText = 'Gemini 3.1 (Stableへ転送中)';
-          } else if (aiModelKey.contains('2.5-flash')) {
-            aiModelText = 'Gemini 2.5 (2.0へ転送中)';
+          } else if (aiModelKey.contains('2.0')) {
+            aiModelText = 'Gemini 2.0 (2.5へ転送中)';
           }
 
           return ListView(
