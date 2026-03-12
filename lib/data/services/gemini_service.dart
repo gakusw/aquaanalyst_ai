@@ -22,13 +22,14 @@ class GeminiService {
   static const String model15Flash = 'gemini-1.5-flash';
   static const String model15Flash8b = 'gemini-1.5-flash-8b';
   static const String model20Flash = 'gemini-2.0-flash';
-  static const String model31Flash = 'gemini-1.5-flash'; // プレビュー版の不安定回避のため1.5を安定版として使用
-  static const String model31FlashLite = 'gemini-1.5-flash-8b';
-  static const String model20FlashExp = 'gemini-2.0-flash-exp';
+  
+  // 安定版へのマッピング用（3.1系が不安定なため）
+  static const String model31Flash = model15Flash;
+  static const String model31FlashLite = model15Flash8b;
 
   // 下位互換用エイリアス
   static const String modelPro = model15Pro;
-  static const String modelFlash = model20Flash; // 2.0 Flashを標準の高速モデルに
+  static const String modelFlash = model20Flash; 
 
   // ユースケース別推奨モデル (コスパ最適化)
   static const String modelForChat = model31Flash;      // 日々のチャット (最新・高速)
@@ -43,28 +44,37 @@ class GeminiService {
     }
   }
 
+  /// 指定されたModelIdを安定版に正規化する
+  String _normalizeModelId(String requestedId) {
+    String id = requestedId.toLowerCase();
+    
+    // 3.1系や特定のPreview/Experimentalで503エラー（混雑）が多発するため安定版へ強制マッピング
+    if (id.contains('3.1-flash-lite') || id.contains('flash-8b-preview')) {
+      return model15Flash8b;
+    }
+    if (id.contains('3.1-flash') || id.contains('flash-lite-preview')) {
+      return model15Flash;
+    }
+    if (id.contains('2.5-flash') || id.contains('2.0-flash-exp')) {
+      return model20Flash;
+    }
+    
+    // プレフィックスの自動除去（createModelで付与するため）
+    return requestedId.replaceFirst('models/', '');
+  }
+
   GenerativeModel? _createModel({
     String? modelId,
     String? systemInstruction,
     String? responseMimeType,
   }) {
     if (_apiKey == null || _apiKey!.isEmpty || _apiKey == 'YOUR_KEY_HERE') return null;
-    String effectiveModelId = modelId ?? modelFlash;
-
-    // 最新のPreview/Experimentalモデルが503エラー（混雑）を起こす場合、安定版へフォールバック
-    if (effectiveModelId.contains('3.1-flash-lite-preview') || effectiveModelId.contains('gemini-3.1-flash-lite')) {
-      effectiveModelId = model15Flash8b;
-    } else if (effectiveModelId.contains('3.1-flash-preview') || effectiveModelId.contains('gemini-3.1-flash')) {
-      effectiveModelId = model15Flash;
-    }
-
-    // 'models/' プレフィックスを付ける。ユーザーが既に付けている場合は重複させない。
-    if (!effectiveModelId.startsWith('models/')) {
-      effectiveModelId = 'models/$effectiveModelId';
-    }
+    
+    final requestedId = modelId ?? modelFlash;
+    final effectiveModelId = _normalizeModelId(requestedId);
 
     return GenerativeModel(
-      model: effectiveModelId,
+      model: 'models/$effectiveModelId',
       apiKey: _apiKey!,
       systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
       generationConfig: responseMimeType != null ? GenerationConfig(responseMimeType: responseMimeType) : null,
@@ -73,7 +83,10 @@ class GeminiService {
 
   /// AIへの単発プロンプト送信
   Future<String?> generateContent(String prompt, {String? systemInstruction, String? responseMimeType, String? modelId}) async {
-    final model = _createModel(modelId: modelId, systemInstruction: systemInstruction, responseMimeType: responseMimeType);
+    final requestedId = modelId ?? modelFlash;
+    final actualId = _normalizeModelId(requestedId);
+    
+    final model = _createModel(modelId: requestedId, systemInstruction: systemInstruction, responseMimeType: responseMimeType);
     if (model == null) return 'AIモデルが初期化されていません。';
 
     try {
@@ -81,7 +94,7 @@ class GeminiService {
       final response = await model.generateContent(content);
       return response.text;
     } catch (e) {
-      throw Exception(translateError(e, modelId: modelId));
+      throw Exception(translateError(e, requestedId: requestedId, actualId: actualId));
     }
   }
 
@@ -92,9 +105,12 @@ class GeminiService {
     String mimeType, {
     String? systemInstruction,
     String? responseMimeType,
-    String? modelId = 'models/gemini-1.5-flash',
+    String? modelId,
   }) async {
-    final model = _createModel(modelId: modelId, systemInstruction: systemInstruction, responseMimeType: responseMimeType);
+    final requestedId = modelId ?? model15Flash;
+    final actualId = _normalizeModelId(requestedId);
+
+    final model = _createModel(modelId: requestedId, systemInstruction: systemInstruction, responseMimeType: responseMimeType);
     if (model == null) return 'AIモデルが初期化されていません。';
 
     try {
@@ -107,7 +123,7 @@ class GeminiService {
       final response = await model.generateContent(content);
       return response.text;
     } catch (e) {
-      throw Exception(translateError(e, modelId: modelId));
+      throw Exception(translateError(e, requestedId: requestedId, actualId: actualId));
     }
   }
 
@@ -168,28 +184,31 @@ class GeminiService {
   }
 
   /// エラーメッセージを日本語に翻訳する
-  String translateError(dynamic e, {String? modelId}) {
+  String translateError(dynamic e, {String? requestedId, String? actualId, String? modelId}) {
     final errorStr = e.toString();
-    final modelName = modelId ?? modelPro;
-    debugPrint('Gemini API Error details ($modelName): $errorStr');
+    final reqModel = requestedId ?? modelId ?? modelPro;
+    final actModel = actualId ?? _normalizeModelId(reqModel);
+    
+    final modelContext = reqModel == actModel ? actModel : "$reqModel (試行: $actModel)";
+    debugPrint('Gemini API Error details ($modelContext): $errorStr');
 
     if (errorStr.contains('Quota exceeded') || errorStr.contains('429')) {
-      return 'AIの利用制限（回数上限）に達しました。1〜2分待つか、1.5 Flash などの軽量モデルへ切り替えてください。';
+      return 'AIの利用制限（回数上限/クォータ）に達しました。1〜2分待つか、Flashモデルへの切り替えをお勧めします。モデル: $modelContext';
     }
     if (errorStr.contains('503') || errorStr.contains('Service Unavailable')) {
-      return '現在、Googleのサーバーが大変混み合っています (503 error)。特にPreview版モデルで発生しやすいため、1.5 Flash などの安定版（Stable）モデルへの切り替えをお勧めします。';
+      return '現在、GoogleのAIサーバーが非常に混雑しています (503 error)。特にPreview版や最新版で発生しやすいため、しばらく待つか、1.5 Flash などの安定版（Stable）をお試しください。モデル: $modelContext';
     }
     if (errorStr.contains('not found') || errorStr.contains('404')) {
-      return '指定されたAIモデル ($modelName) が見つかりません。最新のモデルIDをアプリで確認してください。';
+      return '指定されたAIモデルが見つかりません。最新のモデルIDをアプリで確認してください。モデル: $modelContext';
     }
     if (errorStr.contains('User Location is not supported')) {
-      return 'お住いの地域ではこのAIモデル ($modelName) の利用が制限されています。';
+      return 'お住いの地域ではこのAIモデルの利用が制限されています。モデル: $modelContext';
     }
     if (errorStr.contains('Safety') || errorStr.contains('HARM_CATEGORY')) {
       return 'AIが不適切な内容と判断したため、回答を生成できませんでした。';
     }
     
-    return '通信エラーが発生しました ($modelName)。時間を置いてから再度お試しください。';
+    return '通信エラーが発生しました。時間を置いてから再度お試しください。モデル: $modelContext';
   }
 
   /// アプリ共通のコーチ人格（システム指示）を生成する

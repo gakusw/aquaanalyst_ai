@@ -258,37 +258,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                     RadioListTile<String>(
                       title: const Text('Gemini 2.0 Flash (推奨)'),
-                      subtitle: const Text('【高速・高能率】最新世代。バランス抜群。'),
+                      subtitle: const Text('【高速・高能率】最新世代。クォータ: 約1,500回/日。日常チャットに最適。'),
                       value: GeminiService.model20Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 1.5 Pro'),
-                      subtitle: const Text('【分析推奨】深い思考と大規模データ分析用。'),
+                      subtitle: const Text('【分析推奨】最強の推論。クォータ: 約50回/日。※制限が非常に厳しいためチャット常用には向きません。'),
                       value: GeminiService.model15Pro,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 1.5 Flash'),
-                      subtitle: const Text('【安定版】旧世代。軽量で安定性が最も高い。'),
+                      subtitle: const Text('【安定版】旧世代。クォータ: 約1,500回/日。軽量で安定性が最も高い。'),
                       value: GeminiService.model15Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 1.5 Flash-8b'),
-                      subtitle: const Text('【最速】最も軽量なモデル。'),
+                      subtitle: const Text('【最速】最も軽量なモデル。クォータ: 約1,500回/日。'),
                       value: GeminiService.model15Flash8b,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text(
-                        '※ 混雑状況(503エラー)により、Preview版などの最新モデルが一時的に利用できない場合があります。その際は安定版(1.5 Flash)をお試しください。',
-                        style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+                      padding: EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '💡 クォータについて',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'ProモデルはFlashモデルと比べて1日あたりに使える回数が「30分の1」程度と非常に限られています。通常はFlash推奨です。',
+                            style: TextStyle(fontSize: 10, color: Colors.grey),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            '※ サーバー混雑(503)時、アプリ側で自動的に安定版(1.5 Flash)へ切り替えてエラーを防ぐ場合があります。',
+                            style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -357,21 +372,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final envDataText = '水路: $envLength / 水深: $envDepth m / 人数: $envCrowd 人';
 
           final aiModelKey = user?.baseProfile['aiModel'] ?? GeminiService.modelFlash;
-          String aiModelText = 'Gemini 1.5 Flash';
-          if (aiModelKey.contains('3.1-flash-lite')) {
-            aiModelText = 'Gemini 3.1 Flash-Lite';
-          } else if (aiModelKey.contains('3.1-flash')) {
-            aiModelText = 'Gemini 3.1 Flash';
-          } else if (aiModelKey.contains('2.5-pro')) {
-            aiModelText = 'Gemini 2.5 Pro';
-          } else if (aiModelKey.contains('2.5-flash')) {
-            aiModelText = 'Gemini 2.5 Flash';
-          } else if (aiModelKey.contains('2.0-flash')) {
-            aiModelText = 'Gemini 2.0 Flash';
-          } else if (aiModelKey.contains('1.5-pro')) {
+          String aiModelText = 'Gemini 2.0 Flash';
+          if (aiModelKey.contains('1.5-pro')) {
             aiModelText = 'Gemini 1.5 Pro';
           } else if (aiModelKey.contains('1.5-flash')) {
             aiModelText = 'Gemini 1.5 Flash';
+          } else if (aiModelKey.contains('2.0-flash')) {
+            aiModelText = 'Gemini 2.0 Flash';
+          } else if (aiModelKey.contains('3.1-flash')) {
+            aiModelText = 'Gemini 3.1 (Stableへ転送中)';
+          } else if (aiModelKey.contains('2.5-flash')) {
+            aiModelText = 'Gemini 2.5 (2.0へ転送中)';
           }
 
           return ListView(
