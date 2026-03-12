@@ -114,6 +114,27 @@ class _InsightScreenState extends State<InsightScreen> {
         'value': gt.value,
       }).toList();
 
+      // 履歴から目標設定日(gt.date)の時点でのタイム（またはそれに最も近い過去の最速値）を抽出
+      final goalBaselineTimes = goalTimesSnapshot.map((gt) {
+        // 目標設定日以前の記録から、その種目の最小値（ベスト）を探す
+        final pastPbAtGoalSetting = pbs
+            .where((pb) => pb.event == gt.event && (pb.date.isBefore(gt.date) || pb.date.isAtSameMomentAs(gt.date)))
+            .toList();
+        
+        double? baselineValue;
+        if (pastPbAtGoalSetting.isNotEmpty) {
+          pastPbAtGoalSetting.sort((a, b) => a.value.compareTo(b.value));
+          baselineValue = pastPbAtGoalSetting.first.value;
+        }
+
+        return {
+          'event': gt.event,
+          'goalValue': gt.value,
+          'goalSetDate': gt.date.toIso8601String(),
+          'baselineValueAtGoalSet': baselineValue ?? '記録なし',
+        };
+      }).toList();
+
       // 練習内容の要约
       final trainingSummary = recentRecords
           .where((r) => r.type == 'pool' || r.type == 'dryland')
@@ -126,47 +147,55 @@ class _InsightScreenState extends State<InsightScreen> {
           })
           .toList();
 
-      final prompt = """
-あなたは、世界トップレベルの競泳データアナリスト兼コーチングスペシャリストです。
-以下のユーザーデータを基に、生理学的・統計的な見地から次戦のタイムを予測し、JSON形式で回答してください。
-
-【ユーザーデータ】
-- 選手としてのビジョン: ${user?.vision ?? '未設定'}
-- 最新の自己ベスト: $swimPbs
-- ユーザーが設定した目標タイム: $goalTimes
-- 直近の体組成推移: $bodyComp
-- 最近の練習内容と主観評価: $trainingSummary
+      final systemInstruction = user != null 
+          ? ai.GeminiService().getCoachSystemInstruction(user, supplementaryContext: """
+競泳データアナリストとして、以下の「分析の厳格な指針」に従ってJSON形式で回答してください。
 
 【分析の厳格な指針】
-1. **科学的リアリズムの徹底**: 練習データ($trainingSummary)が不足している、あるいは強度が低い場合、自己ベスト($swimPbs)を上回る（タイムが縮まる）予測は絶対に行わないでください。トレーニング刺激が筋肉細胞の超回復や神経系の適応を引き起こすのに不十分な場合、タイムは現状維持か、むしろ低下するはずです。
-2. **魔法のような進歩の禁止**: 練習を登録していないにもかかわらず、タイム予測を実行するたびに予測タイムが上がっていくような挙動は「非科学的」であり、コーチとして失格です。データに基づかない根拠のないポジティブな予測は避け、厳格に判定してください。
-3. **専門的なインサイト**: 回答は競泳スペシャリストとしての専門用語（例：ストローク長、ピッチ、無酸素性作業閾値、乳酸耐性など）を適切に交え、生理学的な根拠を添えてください。
-4. **身体組成の影響**: 体組成($bodyComp)の変化（筋量増、体脂肪率減など）が、その種目の特性（スプリントなら瞬発力、長距離ならパワーウェイトレシオ）にどう影響するかを考慮してください。
+1. **科学的リアリズムの徹底**: 練習データが不足している、あるいは強度が低い場合、自己ベストを上回る予測は行わないでください。
+2. **目標達成率(successRate)の定義**: 
+   - 「目標に対してどれだけ近づいたか（進捗率）」を0.0〜1.0で表してください。
+   - 0.0: 目標設定時のタイム (baselineValueAtGoalSet)。
+   - 1.0: 目標タイム (goalValue)。
+   - 予測が基準より遅ければ0.0、目標を超えれば1.0。
+3. **身体組成の影響**: 体組成の変化が、種目の特性にどう影響するかを考慮してください。
+""")
+          : "あなたは世界トップレベルの競泳データアナリスト兼コーチングスペシャリストです。";
+
+      final prompt = """
+以下のユーザーデータを基に、次戦のタイムを予測してください。
+
+【ユーザーデータ】
+- 最新の自己ベスト: $swimPbs
+- ユーザーが設定した目標タイムと設定時の基準タイム: $goalBaselineTimes
+- 直近の体組成推移: $bodyComp
+- 最近の練習内容と主観評価: $trainingSummary
 
 【回答形式 (JSON)】
 以下の構造を持つJSONオブジェクトのみを出力してください。Markdownのコードブロックなどは含めないでください。
 解説やインサイト等のテキストデータはすべて日本語で記述してください。
 {
-  "overallInsight": "全体の分析（現在のコンディションや成長傾向、生理学的適応の有無）",
+  "overallInsight": "全体の分析",
   "agentThinkingSteps": ["分析ステップ1", "分析ステップ2", "分析ステップ3", "分析ステップ4"],
   "predictions": [
     {
-      "eventName": "種目名 (自己ベストにある種目名を正確に使用)",
+      "eventName": "種目名",
       "predictedTime": "予想タイム (秒)",
-      "confidenceInterval": "信頼区間 (例: 22.8s 〜 23.1s)",
+      "confidenceInterval": "信頼区間",
       "successRate": 0.0〜1.0,
-      "specificInsight": "その種目に対する生理学的・技術的な具体的なアドバイス",
+      "specificInsight": "具体的なアドバイス",
       "laps": [
-        { "section": "区間 (例: 0-25m)", "time": "区間タイム", "strokeCount": 推定ストローク数 }
+        { "section": "区間", "time": "区間タイム", "strokeCount": 推定ストローク数 }
       ]
     }
   ]
 }
 """;
 
-      final modelId = user?.baseProfile['aiModel'] as String? ?? ai.GeminiService.modelFlash;
+      final modelId = user?.baseProfile['aiModel'] as String? ?? ai.GeminiService.modelForInsight;
       final response = await ai.GeminiService().generateContent(
         prompt, 
+        systemInstruction: systemInstruction,
         modelId: modelId,
         responseMimeType: 'application/json',
       );
@@ -601,6 +630,26 @@ class _InsightScreenState extends State<InsightScreen> {
             const Text('統計的タイム推移と予測', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const Text('自己ベストの推移とAIによる次戦予測', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, size: 14, color: Colors.blue),
+                  SizedBox(width: 6),
+                  Text(
+                    '達成率は目標設定時を0%とした現在の進捗です',
+                    style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             
             // 種目選択

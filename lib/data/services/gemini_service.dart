@@ -22,15 +22,18 @@ class GeminiService {
   static const String model15Flash = 'gemini-1.5-flash';
   static const String model15Flash8b = 'gemini-1.5-flash-8b';
   static const String model20Flash = 'gemini-2.0-flash';
-  static const String model25Flash = 'gemini-2.5-flash';
-  static const String model25Pro = 'gemini-2.5-pro';
-  static const String model30Flash = 'gemini-3.0-flash';
-  static const String model31Flash = 'gemini-3.1-flash-preview';
-  static const String model31FlashLite = 'gemini-3.1-flash-lite-preview';
+  static const String model31Flash = 'gemini-1.5-flash'; // プレビュー版の不安定回避のため1.5を安定版として使用
+  static const String model31FlashLite = 'gemini-1.5-flash-8b';
+  static const String model20FlashExp = 'gemini-2.0-flash-exp';
 
   // 下位互換用エイリアス
-  static const String modelPro = model25Pro;
-  static const String modelFlash = model25Flash;
+  static const String modelPro = model15Pro;
+  static const String modelFlash = model20Flash; // 2.0 Flashを標準の高速モデルに
+
+  // ユースケース別推奨モデル (コスパ最適化)
+  static const String modelForChat = model31Flash;      // 日々のチャット (最新・高速)
+  static const String modelForInsight = model15Pro;    // タイム予測・深い分析 (知能優先)
+  static const String modelForNutrition = model15Flash8b; // 栄養解析 (格安・データ抽出)
 
   /// 初期化処理
   void init() {
@@ -47,6 +50,14 @@ class GeminiService {
   }) {
     if (_apiKey == null || _apiKey!.isEmpty || _apiKey == 'YOUR_KEY_HERE') return null;
     String effectiveModelId = modelId ?? modelFlash;
+
+    // 最新のPreview/Experimentalモデルが503エラー（混雑）を起こす場合、安定版へフォールバック
+    if (effectiveModelId.contains('3.1-flash-lite-preview') || effectiveModelId.contains('gemini-3.1-flash-lite')) {
+      effectiveModelId = model15Flash8b;
+    } else if (effectiveModelId.contains('3.1-flash-preview') || effectiveModelId.contains('gemini-3.1-flash')) {
+      effectiveModelId = model15Flash;
+    }
+
     // 'models/' プレフィックスを付ける。ユーザーが既に付けている場合は重複させない。
     if (!effectiveModelId.startsWith('models/')) {
       effectiveModelId = 'models/$effectiveModelId';
@@ -129,7 +140,7 @@ class GeminiService {
       final response = await generateContent(
         "$userPrompt$text",
         systemInstruction: nutritionistSystemInstruction,
-        modelId: modelId ?? modelFlash,  // ユーザー設定があればそれを使用
+        modelId: modelId ?? modelForNutrition,  // 栄養解析用の軽量モデルをデフォルトに
         responseMimeType: 'application/json',
       );
 
@@ -163,10 +174,13 @@ class GeminiService {
     debugPrint('Gemini API Error details ($modelName): $errorStr');
 
     if (errorStr.contains('Quota exceeded') || errorStr.contains('429')) {
-      return 'AIの利用制限（1日、または1分間あたりの回数上限）に達しました。モデル: $modelName\n1.5 Flash などの軽量モデルに切り替えることをお勧めします。1〜2分待ってから再度お試しください。';
+      return 'AIの利用制限（回数上限）に達しました。1〜2分待つか、1.5 Flash などの軽量モデルへ切り替えてください。';
+    }
+    if (errorStr.contains('503') || errorStr.contains('Service Unavailable')) {
+      return '現在、Googleのサーバーが大変混み合っています (503 error)。特にPreview版モデルで発生しやすいため、1.5 Flash などの安定版（Stable）モデルへの切り替えをお勧めします。';
     }
     if (errorStr.contains('not found') || errorStr.contains('404')) {
-      return '指定されたAIモデル ($modelName) が見つかりません。最新のモデルIDを確認してください。';
+      return '指定されたAIモデル ($modelName) が見つかりません。最新のモデルIDをアプリで確認してください。';
     }
     if (errorStr.contains('User Location is not supported')) {
       return 'お住いの地域ではこのAIモデル ($modelName) の利用が制限されています。';

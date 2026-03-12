@@ -6,6 +6,7 @@ import '../../data/models/training_record.dart';
 import '../../data/models/personal_best.dart';
 import '../../data/models/goal_time.dart';
 import '../../data/models/weekly_plan.dart';
+import '../../data/models/app_user.dart';
 import '../../utils/event_utils.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late final Stream<List<PersonalBest>> _pbsStream;
   late final Stream<List<GoalTime>> _goalTimesStream;
   late final Stream<WeeklyPlan?> _latestPlanStream;
+  late final Stream<AppUser?> _userStream;
   int _bodyCompOffset = 1; // デフォルトで今月を右から2番目にするためのオフセット
   bool _showMonthlyBadges = true; // バッジ表示切替フラグ
 
@@ -31,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _pbsStream = _firestoreService.getPersonalBestsStream();
     _goalTimesStream = _firestoreService.getGoalTimesStream();
     _latestPlanStream = _firestoreService.getLatestWeeklyPlanStream();
+    _userStream = _firestoreService.getUserProfileStream();
   }
 
   @override
@@ -47,9 +50,13 @@ class _HomeScreenState extends State<HomeScreen> {
         stream: _latestPlanStream,
         builder: (context, planSnapshot) {
           final plan = planSnapshot.data;
-          return StreamBuilder<List<TrainingRecord>>(
-            stream: _recordsStream,
-            builder: (context, snapshot) {
+          return StreamBuilder<AppUser?>(
+            stream: _userStream,
+            builder: (context, userSnapshot) {
+              final user = userSnapshot.data;
+              return StreamBuilder<List<TrainingRecord>>(
+                stream: _recordsStream,
+                builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -108,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         r.type == 'nutrition' && 
                         r.subjectiveMetrics['is_body_composition'] != true
                       ).toList(),
+                      user: user,
                       latestPlan: plan,
                     ),
                     const SizedBox(height: 24),
@@ -360,14 +368,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               );
+                    },
+                  );
+                },
+              );
             },
           );
         },
-      );
-    },
-  ),
-);
-}
+      ),
+    );
+  }
 
   void _showAddPbDialog(BuildContext context, String category) {
     final eventController = TextEditingController();
@@ -1046,12 +1056,14 @@ class _TodaySummaryCard extends StatefulWidget {
   final TrainingRecord? poolRecord;
   final TrainingRecord? drylandRecord;
   final List<TrainingRecord> nutritionRecords;
+  final AppUser? user;
   final WeeklyPlan? latestPlan;
 
   const _TodaySummaryCard({
     required this.poolRecord,
     required this.drylandRecord,
     required this.nutritionRecords,
+    this.user,
     this.latestPlan,
   });
 
@@ -1078,7 +1090,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     setState(() => _isAiLoading = true);
     try {
       final prompt = """
-あなたは水泳のAIコーチです。以下の本日の食事内容とメニュー内容から、本日の栄養状態に対する1-2文の簡潔なフィードバックを行ってください。
+以下の本日の食事内容とPFC自己評価から、栄養状態に対する1-2文の簡潔なフィードバックを行ってください。
 【食事内容（合算）】
 $nutritionMenu
 【PFC自己評価（各15点満点）】
@@ -1086,7 +1098,16 @@ P: $p, F: $f, C: $c
 
 評価は具体的に不足している栄養素を補うアドバイスか、よく摂れている点に対する称賛を含めてください。
 """;
-      final result = await GeminiService().generateContent(prompt, modelId: GeminiService.modelFlash);
+
+      final systemInstruction = widget.user != null 
+          ? GeminiService().getCoachSystemInstruction(widget.user!)
+          : "あなたは水泳のAIコーチです。";
+
+      final result = await GeminiService().generateContent(
+        prompt, 
+        systemInstruction: systemInstruction,
+        modelId: GeminiService.modelForNutrition,
+      );
       if (mounted) {
         setState(() => _aiEvaluation = result);
       }

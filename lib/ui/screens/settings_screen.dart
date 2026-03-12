@@ -70,6 +70,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         updatedVision = newValue;
       } else if (fieldKey == 'displayName') {
         updatedDisplayName = newValue;
+      } else if (fieldKey == 'idealCoachPersona') {
+        updatedProfile[fieldKey] = newValue;
       } else {
         updatedProfile[fieldKey] = newValue;
       }
@@ -255,60 +257,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                     RadioListTile<String>(
-                      title: const Text('Gemini 3.1 Flash'),
-                      subtitle: const Text('【最新】次世代Flashモデル。'),
-                      value: GeminiService.model31Flash,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 3.1 Flash-Lite'),
-                      subtitle: const Text('【最速】軽量・高レスポンス。'),
-                      value: GeminiService.model31FlashLite,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 2.5 Pro'),
-                      subtitle: const Text('【高精度】以前のメインモデル。'),
-                      value: GeminiService.model25Pro,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 2.5 Flash'),
-                      subtitle: const Text('【高速】以前の標準モデル。'),
-                      value: GeminiService.model25Flash,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 2.0 Flash'),
-                      subtitle: const Text('【高速】2.0世代の高レスポンスモデル。'),
+                      title: const Text('Gemini 2.0 Flash (推奨)'),
+                      subtitle: const Text('【高速・高能率】最新世代。バランス抜群。'),
                       value: GeminiService.model20Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 1.5 Pro'),
-                      subtitle: const Text('【標準Pro】複雑な推論に対応。'),
+                      subtitle: const Text('【分析推奨】深い思考と大規模データ分析用。'),
                       value: GeminiService.model15Pro,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 1.5 Flash'),
-                      subtitle: const Text('【標準Flash】速度と性能のバランス。'),
+                      subtitle: const Text('【安定版】旧世代。軽量で安定性が最も高い。'),
                       value: GeminiService.model15Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
-                      title: const Text('Gemini 1.5 Flash'),
-                      subtitle: const Text('【標準】速度と性能のバランス。'),
-                      value: GeminiService.model15Flash,
+                      title: const Text('Gemini 1.5 Flash-8b'),
+                      subtitle: const Text('【最速】最も軽量なモデル。'),
+                      value: GeminiService.model15Flash8b,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Text(
+                        '※ 混雑状況(503エラー)により、Preview版などの最新モデルが一時的に利用できない場合があります。その際は安定版(1.5 Flash)をお試しください。',
+                        style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
+                      ),
                     ),
                 ],
               ),
@@ -406,6 +387,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: const Icon(Icons.edit, size: 16),
                 onTap: () {
                   if (user != null) _editProfileField(context, user, 'ビジョン', 'vision', user.vision);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.psychology_alt),
+                title: const Text('理想のコーチ像'),
+                subtitle: Text(user?.baseProfile['idealCoachPersona'] as String? ?? '専門的かつモチベーションを高めてくれるコーチ'),
+                trailing: const Icon(Icons.edit, size: 16),
+                onTap: () {
+                  if (user != null) {
+                    _editProfileField(
+                      context, 
+                      user, 
+                      '理想のコーチ像', 
+                      'idealCoachPersona', 
+                      user.baseProfile['idealCoachPersona'] as String? ?? '専門적かつモチベーションを高めてくれるコーチ'
+                    );
+                  }
                 },
               ),
               ListTile(
