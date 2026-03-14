@@ -1449,21 +1449,32 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
 
   Future<void> _shareSummary() async {
     try {
-      if (kIsWeb) {
-        // Webでは画像共有の制限があるためテキスト共有を優先
-        _shareSummaryText();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Web版ではテキストとして共有しました')),
-        );
-        return;
-      }
-
       final image = await _screenshotController.capture(
         delay: const Duration(milliseconds: 10),
         pixelRatio: 2.0,
       );
 
       if (image != null) {
+        if (kIsWeb) {
+          // Web: Try native image sharing, fallback to text
+          try {
+            await Share.shareXFiles(
+              [XFile.fromData(image, name: 'summary.png', mimeType: 'image/png')],
+              text: '今日のスイム・コンディショニングサマリー #AquaAnalystAI',
+            );
+            return;
+          } catch (e) {
+            debugPrint('Web image share failed: $e');
+            _shareSummaryText();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('お使いの環境では画像共有が制限されているため、テキストで共有しました')),
+              );
+            }
+            return;
+          }
+        }
+
         final io.Directory directory = await getTemporaryDirectory();
         final io.File imagePath = await io.File('${directory.path}/summary.png').create();
         await imagePath.writeAsBytes(image);
@@ -1482,15 +1493,12 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
   Future<void> _copySummaryToClipboard() async {
     try {
       if (kIsWeb) {
-        // Webではブラウザのセキュリティ制限によりWeb API経由の画像コピーが複雑なため
-        // まずはテキストをコピーする
-        final poolDist = widget.poolRecord != null ? '${widget.poolRecord!.durationMinutes}分' : '未入力';
-        final text = "🌊 今日の成果: 水中 $poolDist #AquaAnalyst";
+        final text = _generateSummaryText();
         await Clipboard.setData(ClipboardData(text: text));
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('レポート内容をコピーしました（Web版はテキストのみ）')),
+            const SnackBar(content: Text('レポート内容をコピーしました')),
           );
         }
         return;
@@ -1550,6 +1558,10 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
   }
 
   void _shareSummaryText() {
+    Share.share(_generateSummaryText());
+  }
+
+  String _generateSummaryText() {
     final poolDist = widget.poolRecord != null ? '${widget.poolRecord!.durationMinutes}分' : '未入力';
     final poolMenu = widget.poolRecord != null && widget.poolRecord!.details.isNotEmpty
         ? widget.poolRecord!.details.first['content'] ?? '記録あり' : '未入力';
@@ -1592,7 +1604,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
         ? '${(widget.sleepRecord!.durationMinutes / 60).floor()}時間 ${widget.sleepRecord!.durationMinutes % 60}分'
         : '未入力';
 
-    final text = """
+    return """
 🌊 今日の AquaAnalyst 成果！
 
 【水中】$poolDist ($poolMenu)
@@ -1602,8 +1614,6 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
 
 #AquaAnalyst #競泳 #アスリート
 """;
-
-    Share.share(text);
   }
 
   @override
