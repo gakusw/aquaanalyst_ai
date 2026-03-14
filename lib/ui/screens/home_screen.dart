@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:pasteboard/pasteboard.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/firestore_service.dart';
@@ -1445,10 +1446,9 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
 
   Future<void> _shareSummary() async {
     try {
-      // スクリーンショットを撮影
       final image = await _screenshotController.capture(
         delay: const Duration(milliseconds: 10),
-        pixelRatio: 2.0, // 高画質化
+        pixelRatio: 2.0,
       );
 
       if (image != null) {
@@ -1463,8 +1463,37 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
       }
     } catch (e) {
       debugPrint('Error sharing summary image: $e');
-      // フォールバックとして従来のテキスト共有を行う
       _shareSummaryText();
+    }
+  }
+
+  Future<void> _copySummaryToClipboard() async {
+    try {
+      final image = await _screenshotController.capture(
+        delay: const Duration(milliseconds: 10),
+        pixelRatio: 2.0,
+      );
+
+      if (image != null) {
+        final directory = await getTemporaryDirectory();
+        final imagePath = await File('${directory.path}/temp_summary.png').create();
+        await imagePath.writeAsBytes(image);
+        
+        await Pasteboard.writeFiles([imagePath.path]);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('レポート画像をクリップボードにコピーしました')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error copying summary image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('コピーに失敗しました')),
+        );
+      }
     }
   }
 
@@ -1578,16 +1607,14 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
       }
     }
 
-    // カロリー計算 (P*4, F*9, C*4)
-    final double totalCalories = (proteinValue * 4) + (fatValue * 9) + (carbsValue * 4);
-    final double targetCalories = (targetP * 4.0) + (targetF * 9.0) + (targetC * 4.0);
+    final summaryPrimaryColor = Theme.of(context).colorScheme.primary;
 
     return Screenshot(
       controller: _screenshotController,
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          border: Border.all(color: Theme.of(context).colorScheme.primaryContainer),
+          border: Border.all(color: summaryPrimaryColor.withOpacity(0.5)),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), spreadRadius: 1, blurRadius: 4)],
         ),
@@ -1598,15 +1625,29 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('今日のサマリー', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
-              IconButton(
-                onPressed: _shareSummary,
-                icon: const Icon(Icons.share, size: 20),
-                style: IconButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                ),
-                tooltip: 'SNSに共有',
+              Text('今日のサマリー', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: summaryPrimaryColor)),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: _copySummaryToClipboard,
+                    icon: const Icon(Icons.copy, size: 20),
+                    style: IconButton.styleFrom(
+                      backgroundColor: summaryPrimaryColor.withOpacity(0.1),
+                      foregroundColor: summaryPrimaryColor,
+                    ),
+                    tooltip: 'クリップボードにコピー',
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _shareSummary,
+                    icon: const Icon(Icons.share, size: 20),
+                    style: IconButton.styleFrom(
+                      backgroundColor: summaryPrimaryColor.withOpacity(0.1),
+                      foregroundColor: summaryPrimaryColor,
+                    ),
+                    tooltip: 'SNSに共有',
+                  ),
+                ],
               ),
             ],
           ),
@@ -1846,49 +1887,187 @@ class _ActivityCalendarState extends ConsumerState<_ActivityCalendar> {
       return;
     }
 
+    // カテゴリごとに整理
+    final poolRecords = dayRecords.where((r) => r.type == 'pool').toList();
+    final drylandRecords = dayRecords.where((r) => r.type == 'dryland').toList();
+    final nutritionRecords = dayRecords.where((r) => r.type == 'nutrition').toList();
+    final sleepRecords = dayRecords.where((r) => r.type == 'sleep').toList();
+
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${date.year}年${date.month}月${date.day}日の記録', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  ...dayRecords.where((r) => r.type != 'body_composition' && r.subjectiveMetrics['is_body_composition'] != true).map((r) {
-                    final typeStr = r.type == 'pool' ? '🏊 水中トレーニング' : (r.type == 'dryland' ? '🏋 陸トレ' : '🍎 栄養');
-                    
-                    final detailsList = r.details as List<dynamic>? ?? [];
-                    final previewText = detailsList.map((d) {
-                      if (d['type'] == 'dryland_set') {
-                        return '${d['exercise']} ${d['weight']}kg ${d['reps']}回';
-                      }
-                      return d['content']?.toString() ?? '';
-                    }).join(' ');
-
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(typeStr),
-                      subtitle: Text('${r.durationMinutes > 0 ? '${r.durationMinutes}分 ' : ''}$previewText'
-                        .characters.take(50).toString() + (previewText.length > 50 ? '...' : '')),
-                      trailing: const Icon(Icons.edit, size: 20, color: Colors.grey),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _showEditRecordDialog(context, r);
-                      },
-                    );
-                  }),
-                ],
-              ),
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, controller) => SafeArea(
+            child: Column(
+              children: [
+                // ハンドル
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(color: Colors.grey.withOpacity(0.3), borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.event, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text('${date.year}年${date.month}月${date.day}日のアクティビティ', 
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    controller: controller,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    children: [
+                      // 水中トレーニングブロック
+                      _buildCategoryBlock(
+                        context,
+                        title: '水中トレーニング',
+                        icon: Icons.pool,
+                        color: AppColors.pool,
+                        records: poolRecords,
+                        summary: poolRecords.isEmpty ? '記録なし' : '${poolRecords.fold(0, (sum, r) => sum + r.durationMinutes)}分',
+                        contentPreview: poolRecords.map((r) => r.details.firstOrNull?['content'] ?? '記録あり').join(', '),
+                        onTapRecord: (r) { Navigator.pop(ctx); _showEditRecordDialog(context, r); },
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // 陸上トレーニングブロック
+                      _buildCategoryBlock(
+                        context,
+                        title: '陸上トレーニング',
+                        icon: Icons.fitness_center,
+                        color: AppColors.dryland,
+                        records: drylandRecords,
+                        summary: drylandRecords.isEmpty ? '記録なし' : '${drylandRecords.length}件の記録',
+                        contentPreview: drylandRecords.map((r) {
+                          final menu = r.details.where((d) => d['type'] == 'menu_text').firstOrNull;
+                          return menu?['content'] ?? '記録あり';
+                        }).join(', '),
+                        onTapRecord: (r) { Navigator.pop(ctx); _showEditRecordDialog(context, r); },
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // 栄養状態ブロック
+                      _buildCategoryBlock(
+                        context,
+                        title: '栄養状態',
+                        icon: Icons.restaurant,
+                        color: AppColors.carbs,
+                        records: nutritionRecords,
+                        summary: nutritionRecords.isEmpty ? '記録なし' : () {
+                          double p = 0, f = 0, c = 0;
+                          for (var r in nutritionRecords) {
+                            p += r.subjectiveMetrics['protein']?.toDouble() ?? 0;
+                            f += r.subjectiveMetrics['fat']?.toDouble() ?? 0;
+                            c += r.subjectiveMetrics['carbs']?.toDouble() ?? 0;
+                          }
+                          return 'P:${p.toInt()} F:${f.toInt()} C:${c.toInt()}';
+                        }(),
+                        contentPreview: nutritionRecords.map((r) => r.subjectiveMetrics['meal_label'] ?? '未分類').join(', '),
+                        onTapRecord: (r) { Navigator.pop(ctx); _showEditRecordDialog(context, r); },
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // 睡眠時間ブロック
+                      _buildCategoryBlock(
+                        context,
+                        title: '睡眠時間',
+                        icon: Icons.bedtime,
+                        color: AppColors.sleep,
+                        records: sleepRecords,
+                        summary: sleepRecords.isEmpty ? '記録なし' : () {
+                          final totalMins = sleepRecords.fold(0, (sum, r) => sum + r.durationMinutes);
+                          return '${(totalMins / 60).floor()}時間 ${totalMins % 60}分';
+                        }(),
+                        contentPreview: sleepRecords.isEmpty ? '' : '記録あり',
+                        onTapRecord: (r) { Navigator.pop(ctx); _showEditRecordDialog(context, r); },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         );
       }
+    );
+  }
+
+  Widget _buildCategoryBlock(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Color color,
+    required List<TrainingRecord> records,
+    required String summary,
+    required String contentPreview,
+    required Function(TrainingRecord) onTapRecord,
+  }) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final effectiveColor = isLight ? AppColors.getEffectiveColor(context, color) : color;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: effectiveColor.withOpacity(isLight ? 0.3 : 0.1)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: effectiveColor.withOpacity(0.1),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: effectiveColor),
+                const SizedBox(width: 8),
+                Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: effectiveColor)),
+                const Spacer(),
+                if (records.isNotEmpty)
+                  Text(summary, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: effectiveColor)),
+              ],
+            ),
+          ),
+          if (records.isEmpty)
+             const Padding(
+               padding: EdgeInsets.all(16.0),
+               child: Text('記録がありません', style: TextStyle(color: Colors.grey, fontSize: 13)),
+             )
+          else
+            ...records.map((r) => Material(
+              color: Colors.transparent,
+              child: ListTile(
+                dense: true,
+                visualDensity: VisualDensity.compact,
+                title: Text(
+                  r.type == 'nutrition' ? (r.subjectiveMetrics['meal_label'] ?? '未分類') : (r.details.firstOrNull?['content'] ?? '記録あり'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13),
+                ),
+                trailing: const Icon(Icons.chevron_right, size: 16),
+                onTap: () => onTapRecord(r),
+              ),
+            )),
+        ],
+      ),
     );
   }
 
