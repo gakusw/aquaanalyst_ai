@@ -18,6 +18,7 @@ import '../../data/models/app_user.dart';
 import '../../utils/event_utils.dart';
 import '../../utils/date_utils.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/file_saver.dart'; // Add this
 import '../../data/providers/providers.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -1523,6 +1524,31 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     }
   }
 
+  Future<void> _downloadSummaryWeb() async {
+    try {
+      final image = await _screenshotController.capture(
+        delay: const Duration(milliseconds: 10),
+        pixelRatio: 2.0,
+      );
+
+      if (image != null) {
+        saveFile(image, 'TodaySummary.png');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('サマリー画像をダウンロードしました')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error downloading summary image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ダウンロードに失敗しました')),
+        );
+      }
+    }
+  }
+
   void _shareSummaryText() {
     final poolDist = widget.poolRecord != null ? '${widget.poolRecord!.durationMinutes}分' : '未入力';
     final poolMenu = widget.poolRecord != null && widget.poolRecord!.details.isNotEmpty
@@ -1658,6 +1684,18 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
               Text('今日のサマリー', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: summaryPrimaryColor)),
               Row(
                 children: [
+                  if (kIsWeb) ...[
+                    IconButton(
+                      onPressed: _downloadSummaryWeb,
+                      icon: const Icon(Icons.download, size: 20),
+                      style: IconButton.styleFrom(
+                        backgroundColor: summaryPrimaryColor.withOpacity(0.1),
+                        foregroundColor: summaryPrimaryColor,
+                      ),
+                      tooltip: '画像を保存（ダウンロード）',
+                    ),
+                    const SizedBox(width: 8),
+                  ],
                   IconButton(
                     onPressed: _copySummaryToClipboard,
                     icon: const Icon(Icons.copy, size: 20),
