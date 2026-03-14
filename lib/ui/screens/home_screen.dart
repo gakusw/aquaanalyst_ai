@@ -11,6 +11,7 @@ import '../../data/models/weekly_plan.dart';
 import '../../data/models/app_user.dart';
 import '../../utils/event_utils.dart';
 import '../../utils/date_utils.dart';
+import '../../utils/app_colors.dart';
 import '../../data/providers/providers.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -546,8 +547,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('BEST TIME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
-                  Text(_formatSeconds(pb.value), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
+                  Text('BEST TIME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade900 : Colors.tealAccent)),
+                  Text(_formatSeconds(pb.value), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade900 : Colors.tealAccent)),
                 ],
               ),
               Text('${pb.date.year}/${pb.date.month}/${pb.date.day}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -559,7 +560,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         const Divider(),
         Expanded(
           child: lapsData.isEmpty 
-            ? const Center(child: Text('ラップデータがありません', style: TextStyle(fontSize: 12, color: Colors.white54)))
+            ? const Center(child: Text('ラップデータがありません', style: TextStyle(fontSize: 12, color: Colors.grey)))
             : ListView.separated(
                 itemCount: lapsData.length,
                 separatorBuilder: (_, __) => const Divider(height: 1),
@@ -570,8 +571,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Row(
                       children: [
                         SizedBox(width: 60, child: Text(lap['section'] ?? '', style: const TextStyle(fontSize: 12, color: Colors.grey))),
-                        Expanded(child: Text(lap['cumulative'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold))),
-                        Text('(${lap['time'] ?? ''})', style: const TextStyle(fontSize: 12, color: Colors.tealAccent)),
+                        Expanded(child: Text(lap['cumulative'] ?? '', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.light ? Colors.black87 : Colors.white))),
+                        Text('(${lap['time'] ?? ''})', style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade800 : Colors.tealAccent)),
                       ],
                     ),
                   );
@@ -1332,11 +1333,11 @@ class _BadgeCountSection extends ConsumerWidget {
               runSpacing: 12,
               alignment: WrapAlignment.center,
               children: [
-                _BadgeCountItem(icon: Icons.pool, color: Colors.blueAccent, count: showMonthly ? poolMonth : poolTotal, label: '水中'),
-                _BadgeCountItem(icon: Icons.fitness_center, color: Colors.amber, count: showMonthly ? drylandMonth : drylandTotal, label: '陸トレ'),
-                _BadgeCountItem(icon: Icons.restaurant, color: Colors.redAccent, count: showMonthly ? pMonth : pTotal, label: 'P'),
-                _BadgeCountItem(icon: Icons.restaurant, color: Colors.deepOrangeAccent, count: showMonthly ? fMonth : fTotal, label: 'F'),
-                _BadgeCountItem(icon: Icons.restaurant, color: Colors.greenAccent, count: showMonthly ? cMonth : cTotal, label: 'C'),
+                _BadgeCountItem(icon: Icons.pool, color: AppColors.pool, count: showMonthly ? poolMonth : poolTotal, label: '水中'),
+                _BadgeCountItem(icon: Icons.fitness_center, color: AppColors.dryland, count: showMonthly ? drylandMonth : drylandTotal, label: '陸トレ'),
+                _BadgeCountItem(icon: Icons.restaurant, color: AppColors.protein, count: showMonthly ? pMonth : pTotal, label: 'P'),
+                _BadgeCountItem(icon: Icons.restaurant, color: AppColors.fat, count: showMonthly ? fMonth : fTotal, label: 'F'),
+                _BadgeCountItem(icon: Icons.restaurant, color: AppColors.carbs, count: showMonthly ? cMonth : cTotal, label: 'C'),
               ],
             ),
           ],
@@ -1643,21 +1644,21 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 label: 'タンパク質 (P)', 
                 value: proteinValue, 
                 maxValue: targetP.toDouble(), 
-                color: Colors.redAccent, 
+                color: AppColors.protein, 
                 status: (targetP > 0 && proteinValue >= targetP) ? '達成' : '不足'
               ),
               _PfcStatusRow(
                 label: '脂質 (F)', 
                 value: fatValue, 
                 maxValue: targetF.toDouble(), 
-                color: Colors.deepOrangeAccent, 
+                color: AppColors.fat, 
                 status: (targetF > 0 && fatValue >= targetF) ? '達成' : '不足'
               ),
               _PfcStatusRow(
                 label: '炭水化物 (C)', 
                 value: carbsValue, 
                 maxValue: targetC.toDouble(), 
-                color: Colors.green.shade400, 
+                color: AppColors.carbs, 
                 status: (targetC > 0 && carbsValue >= targetC) ? '達成' : '不足'
               ),
               const Padding(
@@ -1711,7 +1712,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                       label: const Text('睡眠記録を入力', style: TextStyle(fontSize: 12)),
                       style: TextButton.styleFrom(
                         visualDensity: VisualDensity.compact,
-                        foregroundColor: Colors.pinkAccent,
+                        foregroundColor: AppColors.sleep,
                       ),
                     ),
                   ],
@@ -1748,7 +1749,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
 
   Widget _buildSummarySection(BuildContext context, {required IconData icon, required String label, required Color color, required List<Widget> children}) {
     final isLight = Theme.of(context).brightness == Brightness.light;
-    final effectiveColor = isLight ? (color == Colors.blueAccent ? Colors.blue.shade900 : color == Colors.amber ? Colors.amber.shade900 : color) : color;
+    final effectiveColor = isLight ? AppColors.getEffectiveColor(context, color) : color;
     
     return Container(
       decoration: BoxDecoration(
@@ -1880,6 +1881,11 @@ class _ActivityCalendarState extends ConsumerState<_ActivityCalendar> {
     final detailsController = TextEditingController(text: initialText);
     final durationController = TextEditingController(text: record.durationMinutes > 0 ? record.durationMinutes.toString() : '');
     final bool isNutrition = record.type == 'nutrition';
+    
+    // PFC用のコントローラー（栄養記録の場合のみ使用）
+    final pController = TextEditingController(text: isNutrition ? (record.subjectiveMetrics['protein']?.toString() ?? '0') : '');
+    final fController = TextEditingController(text: isNutrition ? (record.subjectiveMetrics['fat']?.toString() ?? '0') : '');
+    final cController = TextEditingController(text: isNutrition ? (record.subjectiveMetrics['carbs']?.toString() ?? '0') : '');
 
     showDialog(
       context: context,
@@ -1897,7 +1903,20 @@ class _ActivityCalendarState extends ConsumerState<_ActivityCalendar> {
                   decoration: const InputDecoration(labelText: '時間 (分)'),
                   keyboardType: TextInputType.number,
                 ),
+              )
+            else ...[
+              const Text('栄養素 (g)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  Expanded(child: TextField(controller: pController, decoration: const InputDecoration(labelText: 'P'), keyboardType: TextInputType.number)),
+                  const SizedBox(width: 8),
+                  Expanded(child: TextField(controller: fController, decoration: const InputDecoration(labelText: 'F'), keyboardType: TextInputType.number)),
+                  const SizedBox(width: 8),
+                  Expanded(child: TextField(controller: cController, decoration: const InputDecoration(labelText: 'C'), keyboardType: TextInputType.number)),
+                ],
               ),
+              const SizedBox(height: 16),
+            ],
             TextField(
               controller: detailsController,
               decoration: const InputDecoration(labelText: '内容・メニュー'),
@@ -1989,6 +2008,12 @@ class _ActivityCalendarState extends ConsumerState<_ActivityCalendar> {
               await FirestoreService().updateTrainingRecord(record.id, {
                 'details': newDetailsList,
                 if (!isNutrition && newDuration != null) 'durationMinutes': newDuration,
+                if (isNutrition) 'subjectiveMetrics': {
+                  ...record.subjectiveMetrics,
+                  'protein': double.tryParse(pController.text) ?? 0.0,
+                  'fat': double.tryParse(fController.text) ?? 0.0,
+                  'carbs': double.tryParse(cController.text) ?? 0.0,
+                },
               });
               
               if (record.type == 'dryland') {
@@ -2125,11 +2150,11 @@ class _ActivityCalendarState extends ConsumerState<_ActivityCalendar> {
                           runSpacing: 1,
                           alignment: WrapAlignment.center,
                           children: [
-                            if (hasPool) Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle)),
-                            if (hasDryland) Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.amber, shape: BoxShape.circle)),
-                            if (pOk) Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)),
-                            if (fOk) Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.orangeAccent, shape: BoxShape.circle)),
-                            if (cOk) Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle)),
+                            if (hasPool) Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.pool, shape: BoxShape.circle)),
+                            if (hasDryland) Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.dryland, shape: BoxShape.circle)),
+                            if (pOk) Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.protein, shape: BoxShape.circle)),
+                            if (fOk) Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.fat, shape: BoxShape.circle)),
+                            if (cOk) Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.carbs, shape: BoxShape.circle)),
                           ],
                         ),
                       ],

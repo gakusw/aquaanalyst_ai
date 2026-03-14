@@ -9,6 +9,7 @@ import '../../data/models/training_record.dart';
 import '../../data/models/personal_best.dart';
 import '../../data/models/app_user.dart';
 import '../../utils/date_utils.dart';
+import '../../utils/app_colors.dart';
 import '../../data/providers/providers.dart';
 
 class InsightScreen extends ConsumerStatefulWidget {
@@ -410,20 +411,20 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                         lineBarsData: [
                           if (weightSpots.isNotEmpty)
                             LineChartBarData(
-                              spots: weightSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? Colors.blue.shade800 : Colors.blue, barWidth: 3, dotData: const FlDotData(show: true),
+                              spots: weightSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.pool) : AppColors.pool, barWidth: 3, dotData: const FlDotData(show: true),
                             ),
                           if (muscleSpots.isNotEmpty)
                             LineChartBarData(
-                              spots: muscleSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? Colors.green.shade800 : Colors.green, barWidth: 3, dotData: const FlDotData(show: true),
+                              spots: muscleSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.carbs) : AppColors.carbs, barWidth: 3, dotData: const FlDotData(show: true),
                             ),
                           if (normalizedFatSpots.isNotEmpty)
                             LineChartBarData(
-                              spots: normalizedFatSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? Colors.orange.shade900 : Colors.orange, barWidth: 2, dotData: const FlDotData(show: true),
+                              spots: normalizedFatSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.fat) : AppColors.fat, barWidth: 2, dotData: const FlDotData(show: true),
                               dashArray: [5, 5],
                             ),
                           if (normalizedSleepSpots.isNotEmpty)
                             LineChartBarData(
-                              spots: normalizedSleepSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? Colors.pink.shade800 : Colors.pinkAccent, barWidth: 3, dotData: const FlDotData(show: true),
+                              spots: normalizedSleepSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.sleep) : AppColors.sleep, barWidth: 3, dotData: const FlDotData(show: true),
                             ),
                         ],
                         titlesData: FlTitlesData(
@@ -495,10 +496,10 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
               runSpacing: 8,
               alignment: WrapAlignment.center,
               children: [
-                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? Colors.blue.shade800 : Colors.blue, label: '体重 (kg)'),
-                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? Colors.green.shade800 : Colors.green, label: '筋肉量 (kg)'),
-                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? Colors.orange.shade900 : Colors.orange, label: '体脂肪率 (%)'),
-                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? Colors.pink.shade800 : Colors.pinkAccent, label: '睡眠時間 (h)'),
+                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.pool) : AppColors.pool, label: '体重 (kg)'),
+                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.carbs) : AppColors.carbs, label: '筋肉量 (kg)'),
+                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.fat) : AppColors.fat, label: '体脂肪率 (%)'),
+                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.sleep) : AppColors.sleep, label: '睡眠時間 (h)'),
               ],
             ),
           ],
@@ -579,11 +580,11 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8.0),
                         child: ChoiceChip(
-                          label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? Colors.black : Colors.white70)),
+                          label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? (Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black) : (Theme.of(context).brightness == Brightness.light ? Colors.black87 : Colors.white70))),
                           selected: isSelected,
                           onSelected: (_) => setState(() => _selectedEventIndex = index),
-                          selectedColor: Colors.tealAccent,
-                          backgroundColor: Colors.white10,
+                          selectedColor: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.tealAccent,
+                          backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withOpacity(0.1) : Colors.white10,
                         ),
                       );
                     }),
@@ -766,11 +767,11 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8.0),
                         child: ChoiceChip(
-                          label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? Colors.black : Colors.white70)),
+                          label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? (Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black) : (Theme.of(context).brightness == Brightness.light ? Colors.black87 : Colors.white70))),
                           selected: isSelected,
                           onSelected: (_) => setState(() => _selectedEventIndex = index),
-                          selectedColor: Colors.tealAccent,
-                          backgroundColor: Colors.white10,
+                          selectedColor: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.tealAccent,
+                          backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withOpacity(0.1) : Colors.white10,
                         ),
                       );
                     }),
