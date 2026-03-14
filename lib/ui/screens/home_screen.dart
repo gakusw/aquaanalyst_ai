@@ -1,6 +1,7 @@
-import 'dart:io';
+import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:screenshot/screenshot.dart';
@@ -1462,8 +1463,8 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
       );
 
       if (image != null) {
-        final directory = await getTemporaryDirectory();
-        final imagePath = await File('${directory.path}/summary.png').create();
+        final io.Directory directory = await getTemporaryDirectory();
+        final io.File imagePath = await io.File('${directory.path}/summary.png').create();
         await imagePath.writeAsBytes(image);
 
         await Share.shareXFiles(
@@ -1500,8 +1501,8 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
       );
 
       if (image != null) {
-        final directory = await getTemporaryDirectory();
-        final imagePath = await File('${directory.path}/temp_summary.png').create();
+        final io.Directory directory = await getTemporaryDirectory();
+        final io.File imagePath = await io.File('${directory.path}/temp_summary.png').create();
         await imagePath.writeAsBytes(image);
         
         await Pasteboard.writeFiles([imagePath.path]);
