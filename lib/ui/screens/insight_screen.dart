@@ -583,7 +583,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                           label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? (Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black) : (Theme.of(context).brightness == Brightness.light ? Colors.black87 : Colors.white70))),
                           selected: isSelected,
                           onSelected: (_) => setState(() => _selectedEventIndex = index),
-                          selectedColor: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.tealAccent,
+                          selectedColor: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.teal.shade400,
                           backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withOpacity(0.1) : Colors.white10,
                         ),
                       );
@@ -770,7 +770,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                           label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? (Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black) : (Theme.of(context).brightness == Brightness.light ? Colors.black87 : Colors.white70))),
                           selected: isSelected,
                           onSelected: (_) => setState(() => _selectedEventIndex = index),
-                          selectedColor: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.tealAccent,
+                          selectedColor: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.teal.shade400,
                           backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withOpacity(0.1) : Colors.white10,
                         ),
                       );
@@ -799,20 +799,20 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                           LineChartBarData(
                             spots: historySpots,
                             isCurved: true,
-                            color: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.tealAccent,
+                            color: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.teal.shade300,
                             barWidth: 4,
                             dotData: FlDotData(
                               show: true,
                               getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
                                 radius: 4,
-                                color: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade900 : Colors.tealAccent,
+                                color: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade900 : Colors.teal.shade400,
                                 strokeWidth: 1,
                                 strokeColor: Colors.white,
                               ),
                             ),
                             belowBarData: BarAreaData(
                               show: true,
-                              color: (Theme.of(context).brightness == Brightness.light ? Colors.teal : Colors.tealAccent).withOpacity(0.1),
+                              color: (Theme.of(context).brightness == Brightness.light ? Colors.teal : Colors.teal.shade400).withOpacity(0.1),
                             ),
                           ),
                         ],

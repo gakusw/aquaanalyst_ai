@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/firestore_service.dart';
@@ -1428,6 +1431,7 @@ class _TodaySummaryCard extends StatefulWidget {
 
 class _TodaySummaryCardState extends State<_TodaySummaryCard> {
   final String? _aiEvaluation = null;
+  final ScreenshotController _screenshotController = ScreenshotController();
 
   @override
   void initState() {
@@ -1439,7 +1443,32 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     super.didUpdateWidget(oldWidget);
   }
 
-  void _shareSummary() {
+  Future<void> _shareSummary() async {
+    try {
+      // スクリーンショットを撮影
+      final image = await _screenshotController.capture(
+        delay: const Duration(milliseconds: 10),
+        pixelRatio: 2.0, // 高画質化
+      );
+
+      if (image != null) {
+        final directory = await getTemporaryDirectory();
+        final imagePath = await File('${directory.path}/summary.png').create();
+        await imagePath.writeAsBytes(image);
+
+        await Share.shareXFiles(
+          [XFile(imagePath.path)],
+          text: '今日のスイム・コンディショニングサマリー #AquaAnalystAI',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error sharing summary image: $e');
+      // フォールバックとして従来のテキスト共有を行う
+      _shareSummaryText();
+    }
+  }
+
+  void _shareSummaryText() {
     final poolDist = widget.poolRecord != null ? '${widget.poolRecord!.durationMinutes}分' : '未入力';
     final poolMenu = widget.poolRecord != null && widget.poolRecord!.details.isNotEmpty
         ? widget.poolRecord!.details.first['content'] ?? '記録あり' : '未入力';
@@ -1553,13 +1582,15 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     final double totalCalories = (proteinValue * 4) + (fatValue * 9) + (carbsValue * 4);
     final double targetCalories = (targetP * 4.0) + (targetF * 9.0) + (targetC * 4.0);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: Border.all(color: Theme.of(context).colorScheme.primaryContainer),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), spreadRadius: 1, blurRadius: 4)],
-      ),
+    return Screenshot(
+      controller: _screenshotController,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          border: Border.all(color: Theme.of(context).colorScheme.primaryContainer),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), spreadRadius: 1, blurRadius: 4)],
+        ),
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
