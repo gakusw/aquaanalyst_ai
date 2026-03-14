@@ -490,7 +490,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                 ),
             ),
             const SizedBox(height: 12),
-            const Wrap(
+            Wrap(
               spacing: 12,
               runSpacing: 8,
               alignment: WrapAlignment.center,
