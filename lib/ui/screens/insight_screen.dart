@@ -334,25 +334,35 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
     // 身体組成データを抽出
     final bodyCompRecords = records.where((r) => r.type == 'body_composition').toList()..sort((a, b) => a.date.compareTo(b.date));
     
+    // 全てのデータの基準日（最古の日付）を特定
+    final allRelevantRecords = [...bodyCompRecords, ...records.where((r) => r.type == 'sleep')];
+    if (allRelevantRecords.isEmpty) return const SizedBox.shrink();
+    
+    final minDate = allRelevantRecords.map((r) => r.date).reduce((a, b) => a.isBefore(b) ? a : b);
+    final Set<int> registeredDays = {};
+
     final List<FlSpot> weightSpots = [];
     final List<FlSpot> muscleSpots = [];
     final List<FlSpot> fatSpots = [];
     
-    for (int i = 0; i < bodyCompRecords.length; i++) {
-      final r = bodyCompRecords[i];
+    for (var r in bodyCompRecords) {
+      final dayOffset = r.date.difference(minDate).inDays;
+      registeredDays.add(dayOffset);
       final w = r.subjectiveMetrics['weight']?.toDouble();
       final m = r.subjectiveMetrics['muscle_mass']?.toDouble();
       final f = r.subjectiveMetrics['body_fat']?.toDouble();
-      if (w != null) weightSpots.add(FlSpot(i.toDouble(), w));
-      if (m != null) muscleSpots.add(FlSpot(i.toDouble(), m));
-      if (f != null) fatSpots.add(FlSpot(i.toDouble(), f));
+      if (w != null) weightSpots.add(FlSpot(dayOffset.toDouble(), w));
+      if (m != null) muscleSpots.add(FlSpot(dayOffset.toDouble(), m));
+      if (f != null) fatSpots.add(FlSpot(dayOffset.toDouble(), f));
     }
 
-    // 睡眠データを抽出・ソートしてグラフ化
+    // 睡眠データを抽出
     final List<FlSpot> sleepSpots = [];
     final sleepRecords = records.where((r) => r.type == 'sleep').toList()..sort((a, b) => a.date.compareTo(b.date));
-    for (int i = 0; i < sleepRecords.length; i++) {
-       sleepSpots.add(FlSpot(i.toDouble(), sleepRecords[i].durationMinutes / 60.0)); // 時間単位
+    for (var r in sleepRecords) {
+       final dayOffset = r.date.difference(minDate).inDays;
+       registeredDays.add(dayOffset);
+       sleepSpots.add(FlSpot(dayOffset.toDouble(), r.durationMinutes / 60.0));
     }
 
     return Card(
@@ -434,7 +444,14 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                               showTitles: true,
                               reservedSize: 22,
                               interval: 1,
-                              getTitlesWidget: (v, m) => const SizedBox.shrink(), // X軸ラベルは一旦非表示（データが多いと被るため）
+                              getTitlesWidget: (v, m) {
+                                if (!registeredDays.contains(v.toInt())) return const SizedBox.shrink();
+                                final date = minDate.add(Duration(days: v.toInt()));
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text('${date.month}/${date.day}', style: const TextStyle(fontSize: 8, color: Colors.grey)),
+                                );
+                              },
                             ),
                           ),
                           leftTitles: AxisTitles(

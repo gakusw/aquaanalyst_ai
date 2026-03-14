@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
@@ -1446,6 +1447,15 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
 
   Future<void> _shareSummary() async {
     try {
+      if (kIsWeb) {
+        // Webでは画像共有の制限があるためテキスト共有を優先
+        _shareSummaryText();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Web版ではテキストとして共有しました')),
+        );
+        return;
+      }
+
       final image = await _screenshotController.capture(
         delay: const Duration(milliseconds: 10),
         pixelRatio: 2.0,
@@ -1469,6 +1479,21 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
 
   Future<void> _copySummaryToClipboard() async {
     try {
+      if (kIsWeb) {
+        // Webではブラウザのセキュリティ制限によりWeb API経由の画像コピーが複雑なため
+        // まずはテキストをコピーする
+        final poolDist = widget.poolRecord != null ? '${widget.poolRecord!.durationMinutes}分' : '未入力';
+        final text = "🌊 今日の成果: 水中 $poolDist #AquaAnalyst";
+        await Clipboard.setData(ClipboardData(text: text));
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('レポート内容をコピーしました（Web版はテキストのみ）')),
+          );
+        }
+        return;
+      }
+
       final image = await _screenshotController.capture(
         delay: const Duration(milliseconds: 10),
         pixelRatio: 2.0,
@@ -1607,6 +1632,10 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
       }
     }
 
+    // カロリー計算 (P*4, F*9, C*4)
+    final double totalCalories = (proteinValue * 4) + (fatValue * 9) + (carbsValue * 4);
+    final double targetCalories = (targetP * 4.0) + (targetF * 9.0) + (targetC * 4.0);
+
     final summaryPrimaryColor = Theme.of(context).colorScheme.primary;
 
     return Screenshot(
@@ -1651,7 +1680,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
               ),
             ],
           ),
-          Divider(color: Theme.of(context).colorScheme.primaryContainer, height: 24),
+          Divider(color: summaryPrimaryColor.withOpacity(0.3), height: 24),
           
           // 水中トレーニング
           _buildSummarySection(
