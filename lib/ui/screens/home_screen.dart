@@ -1775,6 +1775,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
             )
         ],
       ),
+    ),
     );
   }
 
