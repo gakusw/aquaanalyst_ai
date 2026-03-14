@@ -411,20 +411,20 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                         lineBarsData: [
                           if (weightSpots.isNotEmpty)
                             LineChartBarData(
-                              spots: weightSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.pool) : AppColors.pool, barWidth: 3, dotData: const FlDotData(show: true),
+                              spots: weightSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.pool) : AppColors.pool, barWidth: 4, dotData: const FlDotData(show: true),
                             ),
                           if (muscleSpots.isNotEmpty)
                             LineChartBarData(
-                              spots: muscleSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.carbs) : AppColors.carbs, barWidth: 3, dotData: const FlDotData(show: true),
+                              spots: muscleSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.carbs) : AppColors.carbs, barWidth: 4, dotData: const FlDotData(show: true),
                             ),
                           if (normalizedFatSpots.isNotEmpty)
                             LineChartBarData(
-                              spots: normalizedFatSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.fat) : AppColors.fat, barWidth: 2, dotData: const FlDotData(show: true),
+                              spots: normalizedFatSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.fat) : AppColors.fat, barWidth: 3, dotData: const FlDotData(show: true),
                               dashArray: [5, 5],
                             ),
                           if (normalizedSleepSpots.isNotEmpty)
                             LineChartBarData(
-                              spots: normalizedSleepSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.sleep) : AppColors.sleep, barWidth: 3, dotData: const FlDotData(show: true),
+                              spots: normalizedSleepSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.sleep) : AppColors.sleep, barWidth: 4, dotData: const FlDotData(show: true),
                             ),
                         ],
                         titlesData: FlTitlesData(
@@ -799,12 +799,20 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                           LineChartBarData(
                             spots: historySpots,
                             isCurved: true,
-                            color: Colors.tealAccent,
-                            barWidth: 3,
-                            dotData: const FlDotData(show: true),
+                            color: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.tealAccent,
+                            barWidth: 4,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                                radius: 4,
+                                color: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade900 : Colors.tealAccent,
+                                strokeWidth: 1,
+                                strokeColor: Colors.white,
+                              ),
+                            ),
                             belowBarData: BarAreaData(
                               show: true,
-                              color: Colors.tealAccent.withOpacity(0.1),
+                              color: (Theme.of(context).brightness == Brightness.light ? Colors.teal : Colors.tealAccent).withOpacity(0.1),
                             ),
                           ),
                         ],

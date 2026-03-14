@@ -1586,7 +1586,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
             context,
             icon: Icons.pool,
             label: '水中トレーニング',
-            color: Colors.blueAccent,
+            color: AppColors.pool,
             children: [
               _DetailRow(label: '時間/詳細', value: poolDistanceLabel),
               _DetailRow(label: '内容', child: _ExpandableText(poolMenuLabel)),
@@ -1600,7 +1600,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
             context,
             icon: Icons.fitness_center,
             label: '陸上トレーニング',
-            color: Colors.amber,
+            color: AppColors.dryland,
             children: [
               _DetailRow(label: '内容', child: _ExpandableText(drylandMenuLabel)),
               _DetailRow(label: '疲労度', value: '$drylandSubjective / 10'),
@@ -1613,7 +1613,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
             context,
             icon: Icons.restaurant,
             label: '栄養状態',
-            color: Colors.lightGreen.shade700,
+            color: AppColors.carbs,
             children: [
               if (widget.nutritionRecords.isEmpty) 
                 const _DetailRow(label: '食事内容', value: '未入力'),
@@ -1681,7 +1681,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
             context,
             icon: Icons.bedtime,
             label: '睡眠時間',
-            color: Colors.pinkAccent,
+            color: AppColors.sleep,
             children: [
               if (widget.sleepRecord != null)
                 Column(
@@ -1725,13 +1725,13 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
             Container(
               padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
-                color: Colors.blueAccent.withOpacity(0.1),
-                border: Border.all(color: Colors.blueAccent),
+                color: AppColors.pool.withOpacity(0.1),
+                border: Border.all(color: AppColors.pool.withOpacity(0.5)),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.wb_twilight, color: Colors.blueAccent, size: 20),
+                  const Icon(Icons.wb_twilight, color: AppColors.pool, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(

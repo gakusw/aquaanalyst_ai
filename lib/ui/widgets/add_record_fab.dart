@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../utils/app_colors.dart';
 
 class AddRecordFab extends StatelessWidget {
   const AddRecordFab({super.key});
@@ -22,7 +23,7 @@ class AddRecordFab extends StatelessWidget {
               const Text('記録を追加', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               const SizedBox(height: 8),
               ListTile(
-                leading: const CircleAvatar(backgroundColor: Colors.blueAccent, child: Icon(Icons.pool, color: Colors.white)),
+                leading: CircleAvatar(backgroundColor: AppColors.pool, child: const Icon(Icons.pool, color: Colors.white)),
                 title: const Text('トレーニング記録'),
                 subtitle: const Text('水中・陸上メニューを入力'),
                 trailing: const Icon(Icons.chevron_right),
@@ -32,7 +33,7 @@ class AddRecordFab extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: const CircleAvatar(backgroundColor: Colors.orangeAccent, child: Icon(Icons.restaurant, color: Colors.white)),
+                leading: CircleAvatar(backgroundColor: AppColors.fat, child: const Icon(Icons.restaurant, color: Colors.white)),
                 title: const Text('食事記録'),
                 subtitle: const Text('食事・PFCバランスを入力'),
                 trailing: const Icon(Icons.chevron_right),
@@ -42,7 +43,7 @@ class AddRecordFab extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: const CircleAvatar(backgroundColor: Colors.purpleAccent, child: Icon(Icons.monitor_weight, color: Colors.white)),
+                leading: CircleAvatar(backgroundColor: Colors.blueGrey, child: const Icon(Icons.monitor_weight, color: Colors.white)),
                 title: const Text('体組成記録'),
                 subtitle: const Text('体重・筋肉量・体脂肪率を入力'),
                 trailing: const Icon(Icons.chevron_right),
@@ -52,7 +53,7 @@ class AddRecordFab extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: const CircleAvatar(backgroundColor: Colors.pinkAccent, child: Icon(Icons.bedtime, color: Colors.white)),
+                leading: CircleAvatar(backgroundColor: AppColors.sleep, child: const Icon(Icons.bedtime, color: Colors.white)),
                 title: const Text('睡眠記録'),
                 subtitle: const Text('入眠・起床時間を入力'),
                 trailing: const Icon(Icons.chevron_right),
