@@ -1468,7 +1468,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
             _shareSummaryText();
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('お使いの環境では画像共有が制限されているため、テキストで共有しました')),
+                const SnackBar(content: Text('ブラウザの制限により、テキストで共有しました。画像で共有したい場合は「画像をコピー」またはダウンロードをご利用ください。')),
               );
             }
             return;
@@ -1493,12 +1493,35 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
   Future<void> _copySummaryToClipboard() async {
     try {
       if (kIsWeb) {
+        final image = await _screenshotController.capture(
+          delay: const Duration(milliseconds: 10),
+          pixelRatio: 2.0,
+        );
+
+        if (image != null) {
+          try {
+            await copyImageToClipboard(image);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('レポート画像をコピーしました！InstagramなどのSNSに直接「貼り付け」でシェアできます。'),
+                  duration: Duration(seconds: 4),
+                ),
+              );
+            }
+            return;
+          } catch (e) {
+            debugPrint('Web image clipboard copy failed, falling back to text: $e');
+          }
+        }
+
+        // Fallback to text
         final text = _generateSummaryText();
         await Clipboard.setData(ClipboardData(text: text));
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('レポート内容をコピーしました')),
+            const SnackBar(content: Text('レポート内容をテキストとしてコピーしました')),
           );
         }
         return;
@@ -1695,14 +1718,15 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
               Row(
                 children: [
                   if (kIsWeb) ...[
-                    IconButton(
+                    TextButton.icon(
                       onPressed: _downloadSummaryWeb,
                       icon: const Icon(Icons.download, size: 20),
-                      style: IconButton.styleFrom(
+                      label: const Text('画像を保存', style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(
                         backgroundColor: summaryPrimaryColor.withOpacity(0.1),
                         foregroundColor: summaryPrimaryColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
                       ),
-                      tooltip: '画像を保存（ダウンロード）',
                     ),
                     const SizedBox(width: 8),
                   ],
