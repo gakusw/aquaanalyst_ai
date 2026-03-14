@@ -8,9 +8,18 @@ import '../models/personal_best.dart';
 import '../models/chat_session.dart';
 import '../models/goal_time.dart';
 
+import '../services/gemini_service.dart';
+import 'dart:typed_data';
+
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GeminiService _gemini = GeminiService();
+
+  /// 画像解析（OCR）を行って分析シートのデータを取得する
+  Future<Map<String, dynamic>?> analyzeAnalysisSheetWithGemini(Uint8List imageBytes, String mimeType) async {
+    return _gemini.analyzeSwimmingAnalysisSheet(imageBytes, mimeType);
+  }
 
   String? get currentUserId => _auth.currentUser?.uid;
 
@@ -39,7 +48,7 @@ class FirestoreService {
   // --- トレーニング・栄養記録関連 ---
 
   /// 特定の期間の記録を取得するStream
-  Stream<List<TrainingRecord>> getTrainingRecordsStream({int limit = 30}) {
+  Stream<List<TrainingRecord>> getTrainingRecordsStream({int limit = 50}) {
     final uid = currentUserId;
     if (uid == null) return Stream.value([]);
 
@@ -99,15 +108,17 @@ class FirestoreService {
   }
 
   /// 記録の追加
-  Future<void> addTrainingRecord(TrainingRecord record) async {
+  Future<String> addTrainingRecord(TrainingRecord record) async {
     final uid = currentUserId;
     if (uid == null) throw Exception('ログインしていません');
 
-    await _db
+    final docRef = await _db
         .collection('users')
         .doc(uid)
         .collection('training_records')
         .add(record.toMap());
+    
+    return docRef.id;
   }
 
   /// 記録の更新（AIフィードバックの追記など）
@@ -121,6 +132,22 @@ class FirestoreService {
         .collection('training_records')
         .doc(recordId)
         .update(data);
+  }
+
+  /// 特定の記録を取得
+  Future<TrainingRecord?> getTrainingRecord(String recordId) async {
+    final uid = currentUserId;
+    if (uid == null) return null;
+
+    final doc = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('training_records')
+        .doc(recordId)
+        .get();
+
+    if (!doc.exists || doc.data() == null) return null;
+    return TrainingRecord.fromMap(doc.data()!, doc.id);
   }
 
   /// 記録の削除
@@ -260,6 +287,28 @@ class FirestoreService {
     await docRef.set(pb.toMap(), SetOptions(merge: true));
   }
 
+  /// タイムが以前の自己ベストより速い場合、または記録がない場合に自己ベストを更新する
+  Future<void> updatePersonalBestIfFaster({
+    required String event,
+    required double value,
+    required DateTime date,
+    String category = 'swim',
+    String? trainingRecordId,
+  }) async {
+    final uid = currentUserId;
+    if (uid == null) return;
+
+    // 履歴として残したいので、既存記録の有無にかかわらず新規作成する
+    await savePersonalBest(PersonalBest(
+      id: '', // 自動生成
+      category: category,
+      event: event,
+      value: value,
+      date: date,
+      trainingRecordId: trainingRecordId,
+    ));
+  }
+
   // --- 目標タイム関連 ---
 
   /// 目標タイムのリストを取得するStream
@@ -339,7 +388,6 @@ class FirestoreService {
             .toList());
   }
 
-  /// 新しいチャットセッションを作成する
   Future<String> createChatSession({required String title, String? systemInstruction}) async {
     final uid = currentUserId;
     if (uid == null) throw Exception('ログインしていません');
@@ -355,6 +403,41 @@ class FirestoreService {
     });
 
     return docRef.id;
+  }
+
+  /// 指定したIDでチャットセッションを保存または上書きする
+  Future<void> saveChatSession(ChatSessionModel session) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('chat_sessions')
+        .doc(session.id)
+        .set(session.toMap());
+  }
+
+  /// チャットセッションにメッセージを追加する
+  Future<void> saveChatMessage(String sessionId, ChatMessage message) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('chat_sessions')
+        .doc(sessionId)
+        .collection('messages')
+        .add(message.toMap());
+
+    // 最終更新日を更新
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('chat_sessions')
+        .doc(sessionId)
+        .update({'lastMessageAt': FieldValue.serverTimestamp()});
   }
 
   /// チャットセッションのタイトルを更新する
@@ -574,6 +657,26 @@ class FirestoreService {
       createBatch.set(newPbRef, newPb.toMap());
     }
     await createBatch.commit();
+  }
+
+  // --- システム設定関連 (管理者用) ---
+
+  /// システム設定を取得するStream
+  Stream<Map<String, dynamic>> getSystemSettingsStream() {
+    return _db.collection('system_settings').doc('ai_config').snapshots().map((snapshot) {
+      return snapshot.data() ?? {};
+    });
+  }
+
+  /// システム設定を取得する (単発)
+  Future<Map<String, dynamic>> getSystemSettings() async {
+    final snapshot = await _db.collection('system_settings').doc('ai_config').get();
+    return snapshot.data() ?? {};
+  }
+
+  /// システム設定を保存する
+  Future<void> saveSystemSettings(Map<String, dynamic> settings) async {
+    await _db.collection('system_settings').doc('ai_config').set(settings, SetOptions(merge: true));
   }
 }
 

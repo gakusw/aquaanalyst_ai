@@ -17,6 +17,8 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLogin = true; // true: Login, false: SignUp
   bool _isLoading = false;
   String? _errorMessage;
+  int _logoTapCount = 0;
+  bool _isAdminMode = false;
 
   @override
   void dispose() {
@@ -78,6 +80,7 @@ class _AuthScreenState extends State<AuthScreen> {
             uid: userCredential.user!.uid,
             displayName: 'スイマー', // デフォルト名
             vision: '',
+            role: _isAdminMode ? 'admin' : 'user',
             baseProfile: {
               'age': '', 'height': '', 'weight': '', 'environment': ''
             },
@@ -87,6 +90,11 @@ class _AuthScreenState extends State<AuthScreen> {
       }
       // 成功時は自動でStreamBuilderが反応して画面遷移する想定だが、念のため明示的にルーティング
       if (mounted) {
+        if (_isAdminMode) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('管理者としてログインしました'), backgroundColor: Colors.amber),
+          );
+        }
         context.go('/home');
       }
     } on FirebaseAuthException catch (e) {
@@ -167,18 +175,35 @@ class _AuthScreenState extends State<AuthScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(
-                  Icons.pool,
-                  size: 80,
-                  color: Theme.of(context).colorScheme.primary,
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _logoTapCount++;
+                      if (_logoTapCount >= 5) {
+                        _isAdminMode = !_isAdminMode;
+                        _logoTapCount = 0;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(_isAdminMode ? '管理者モードを有効にしました' : '一般モードに戻りました'),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    });
+                  },
+                  child: Icon(
+                    _isAdminMode ? Icons.admin_panel_settings : Icons.pool,
+                    size: 80,
+                    color: _isAdminMode ? Colors.amber : Theme.of(context).colorScheme.primary,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'AquaAnalyst AI',
+                  _isAdminMode ? 'AquaAnalyst Admin' : 'AquaAnalyst AI',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: _isAdminMode ? Colors.amber : Theme.of(context).colorScheme.primary,
                       ),
                 ),
                 const SizedBox(height: 32),

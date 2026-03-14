@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:aquaanalyst_ai/main.dart' show appThemeMode;
@@ -6,27 +7,27 @@ import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/app_user.dart';
 import '../widgets/stable_text_field.dart';
+import '../../data/providers/providers.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  late final Stream<AppUser?> _userProfileStream;
   double _expertiseLevel = 5.0;
   bool _isDraggingExpertise = false; // ドラッグ中の上書き防止フラグ
 
   @override
   void initState() {
     super.initState();
-    _userProfileStream = _firestoreService.getUserProfileStream();
     
     // アプリ起動時のテーマ同期
-    _firestoreService.getUserProfileStream().first.then((user) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = ref.read(userProfileProvider).value;
       if (user != null) {
         final savedTheme = user.baseProfile['themeMode'] as String?;
         if (savedTheme != null && mounted) {
@@ -49,8 +50,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: StableTextField(
             controller: controller,
             hintText: '新しい $title を入力',
-            lines: fieldKey == 'vision' ? 5 : 1,
-            keyboardType: fieldKey == 'vision' ? TextInputType.multiline : TextInputType.text,
+            lines: (fieldKey == 'vision' || fieldKey == 'idealCoachPersona' || fieldKey == 'medicalHistory') ? 5 : 1,
+            keyboardType: (fieldKey == 'vision' || fieldKey == 'idealCoachPersona' || fieldKey == 'medicalHistory') ? TextInputType.multiline : TextInputType.text,
           ),
         ),
         actions: [
@@ -258,36 +259,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                     RadioListTile<String>(
                       title: const Text('Gemini 2.5 Flash (推奨)'),
-                      subtitle: const Text('【高速・高能率】2026年標準モデル。クォータ: 約1,500回/日。'),
+                      subtitle: const Text('【高速・高能率】2026年標準モデル。'),
                       value: GeminiService.model25Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
-                      title: const Text('Gemini 2.5 Pro'),
-                      subtitle: const Text('【分析推奨】最強の推論。クォータ: 約50回/日。※制限が厳しいためチャット常用は向きません。'),
-                      value: GeminiService.model25Pro,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 3.1 Flash (Preview)'),
-                      subtitle: const Text('【最新鋭】Googleの最新世代。クォータ: 約1,500回/日。'),
-                      value: GeminiService.model31Flash,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
                       title: const Text('Gemini 3.1 Flash-Lite (Preview)'),
-                      subtitle: const Text('【最速】高レスポンスモデル。クォータ: 約1,500回/日。'),
+                      subtitle: const Text('【最速】高レスポンスモデル。'),
                       value: GeminiService.model31FlashLite,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 1.5 Flash'),
-                      subtitle: const Text('【安定版】旧世代。最も実績がありエラーが起きにくい。'),
-                      value: GeminiService.model15Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
@@ -344,18 +324,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
+    final userAsync = ref.watch(userProfileProvider);
+    final dailyUsageAsync = ref.watch(dailyUsageProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('設定')),
-      body: StreamBuilder<AppUser?>(
-        stream: _userProfileStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final user = snapshot.data;
-          
+      body: userAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, s) => Center(child: Text('読み込みエラー: $e')),
+        data: (user) {
           // Firestoreの値でローカル状態を同期
           if (user != null && !_isDraggingExpertise) {
             final savedLevel = (user.baseProfile['expertiseLevel'] as num?)?.toDouble();
@@ -366,7 +346,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             }
           }
           
-          // 表示用の仮データまたはFirestoreのデータ
           final visionText = user?.vision != null && user!.vision.isNotEmpty == true ? user.vision : '未設定（タップして編集）';
           final age = user?.baseProfile['age'] ?? '未設定';
           final height = user?.baseProfile['height'] ?? '未設定';
@@ -380,20 +359,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           final aiModelKey = user?.baseProfile['aiModel'] ?? GeminiService.modelFlash;
           String aiModelText = 'Gemini 2.5 Flash';
-          if (aiModelKey.contains('2.5-pro')) {
-            aiModelText = 'Gemini 2.5 Pro';
+          if (aiModelKey.contains('3.1-flash-lite')) {
+            aiModelText = 'Gemini 3.1 Flash-Lite';
           } else if (aiModelKey.contains('2.5-flash')) {
             aiModelText = 'Gemini 2.5 Flash';
-          } else if (aiModelKey.contains('3.1-flash-lite')) {
-            aiModelText = 'Gemini 3.1 Flash-Lite';
-          } else if (aiModelKey.contains('3.1-flash')) {
-            aiModelText = 'Gemini 3.1 Flash';
-          } else if (aiModelKey.contains('1.5-pro')) {
-            aiModelText = 'Gemini 1.5 Pro';
-          } else if (aiModelKey.contains('1.5-flash')) {
-            aiModelText = 'Gemini 1.5 Flash';
-          } else if (aiModelKey.contains('2.0')) {
-            aiModelText = 'Gemini 2.0';
           }
 
           return ListView(
@@ -409,23 +378,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: const Icon(Icons.edit, size: 16),
                 onTap: () {
                   if (user != null) _editProfileField(context, user, 'ビジョン', 'vision', user.vision);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.psychology_alt),
-                title: const Text('理想のコーチ像'),
-                subtitle: Text(user?.baseProfile['idealCoachPersona'] as String? ?? '専門的かつモチベーションを高めてくれるコーチ'),
-                trailing: const Icon(Icons.edit, size: 16),
-                onTap: () {
-                  if (user != null) {
-                    _editProfileField(
-                      context, 
-                      user, 
-                      '理想のコーチ像', 
-                      'idealCoachPersona', 
-                      user.baseProfile['idealCoachPersona'] as String? ?? '専門적かつモチベーションを高めてくれるコーチ'
-                    );
-                  }
                 },
               ),
               ListTile(
@@ -447,6 +399,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () {
                   if (user != null) {
                     _editEnvironment(context, user);
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.medical_services_outlined),
+                title: const Text('怪我・病気の既往歴'),
+                subtitle: Text(user?.baseProfile['medicalHistory'] as String? ?? 'なし'),
+                trailing: const Icon(Icons.edit, size: 16),
+                onTap: () {
+                  if (user != null) {
+                    _editProfileField(
+                      context, 
+                      user, 
+                      '怪我・病気の既往歴', 
+                      'medicalHistory', 
+                      user.baseProfile['medicalHistory'] as String? ?? 'なし'
+                    );
                   }
                 },
               ),
@@ -580,6 +549,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           ListTile(
+            leading: const Icon(Icons.psychology_alt),
+            title: const Text('理想のコーチ像'),
+            subtitle: Text(user?.baseProfile['idealCoachPersona'] as String? ?? '専門的かつモチベーションを高めてくれるコーチ'),
+            trailing: const Icon(Icons.edit, size: 16),
+            onTap: () {
+              if (user != null) {
+                _editProfileField(
+                  context, 
+                  user, 
+                  '理想のコーチ像', 
+                  'idealCoachPersona', 
+                  user.baseProfile['idealCoachPersona'] as String? ?? '専門的かつモチベーションを高めてくれるコーチ'
+                );
+              }
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.refresh),
             title: const Text('初期設定（オンボーディング）をやり直す'),
             onTap: () => context.go('/onboarding'),
@@ -591,8 +577,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('バージョン 1.0.0 (Prototype)'),
-            onTap: () {},
           ),
+          if (user?.role == 'admin') ...[
+            const Divider(),
+            ListTile(
+              title: const Text('管理者メニュー', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+              subtitle: const Text('詳細なパラメータ調整やデバッグ機能'),
+              leading: const Icon(Icons.admin_panel_settings, color: Colors.amber),
+              onTap: () {
+                context.go('/admin');
+              },
+            ),
+          ],
           const Divider(height: 32),
           // ログアウトボタン
           Padding(
@@ -622,12 +618,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Text('デバッグ情報', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.outline)),
                 const SizedBox(height: 8),
-                StreamBuilder<int>(
-                  stream: _firestoreService.getDailyUsageStream(),
-                  builder: (context, snapshot) {
-                    final count = snapshot.data ?? 0;
-                    return Text('本日のAI利用回数 (送信成功数): $count 回', style: const TextStyle(fontSize: 12, color: Colors.grey));
-                  },
+                dailyUsageAsync.when(
+                  data: (count) => Text('本日のAI利用回数 (送信成功数): $count 回', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  loading: () => const Text('本日のAI利用回数: 読み込み中...', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  error: (e, s) => Text('利用回数取得エラー: $e', style: const TextStyle(fontSize: 12, color: Colors.red)),
                 ),
                 const SizedBox(height: 4),
                 const Text('※実際のクォータと完全に一致するものではありません。', style: TextStyle(fontSize: 10, color: Colors.grey)),
@@ -637,7 +631,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 32),
         ],
         );
-      }),
+       },
+     ),
     );
   }
 }

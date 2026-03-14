@@ -1,77 +1,26 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart' as ai;
 import '../../data/models/training_insight.dart';
 import '../../data/models/training_record.dart';
 import '../../data/models/personal_best.dart';
-import '../../data/models/goal_time.dart';
 import '../../data/models/app_user.dart';
-class _EventPrediction {
-  final String name;
-  final String predictedTime;
-  final String confidenceInterval;
-  final double successRate;
-  final List<_LapPrediction> laps;
-  final String insight;
-  const _EventPrediction({required this.name, required this.predictedTime, required this.confidenceInterval, required this.successRate, required this.laps, required this.insight});
-}
+import '../../utils/date_utils.dart';
+import '../../data/providers/providers.dart';
 
-class _LapPrediction {
-  final String section;
-  final String time;
-  final int strokeCount;
-  const _LapPrediction({required this.section, required this.time, required this.strokeCount});
-}
-
-const _mockPredictions = [
-  _EventPrediction(
-    name: '50m 自由形', predictedTime: '22.95',
-    confidenceInterval: '22.85s 〜 23.10s', successRate: 0.68,
-    laps: [
-      _LapPrediction(section: '0-25m', time: '10.85', strokeCount: 10),
-      _LapPrediction(section: '25-50m', time: '12.10', strokeCount: 11),
-    ],
-    insight: '前半は突っ込みを抑え，ストローク効率を維持することで後半のタイムが安定します．',
-  ),
-  _EventPrediction(
-    name: '100m 自由形', predictedTime: '50.84',
-    confidenceInterval: '50.50s 〜 51.20s', successRate: 0.55,
-    laps: [
-      _LapPrediction(section: '0-25m', time: '11.10', strokeCount: 10),
-      _LapPrediction(section: '25-50m', time: '12.50', strokeCount: 12),
-      _LapPrediction(section: '50-75m', time: '13.40', strokeCount: 13),
-      _LapPrediction(section: '75-100m', time: '13.84', strokeCount: 14),
-    ],
-    insight: '後半50m以降のラップ落ちが顕著です．タンパク質補充による超回復と持久力向上を優先してください．',
-  ),
-  _EventPrediction(
-    name: '50m バタフライ', predictedTime: '24.65',
-    confidenceInterval: '24.40s 〜 24.90s', successRate: 0.42,
-    laps: [
-      _LapPrediction(section: '0-25m', time: '11.40', strokeCount: 9),
-      _LapPrediction(section: '25-50m', time: '13.25', strokeCount: 11),
-    ],
-    insight: '後半のストローク数増加が体幹持久力不足を示唆しています．ドライランドによる体幹強化が有効です．',
-  ),
-];
-
-class InsightScreen extends StatefulWidget {
+class InsightScreen extends ConsumerStatefulWidget {
   const InsightScreen({super.key});
   @override
-  State<InsightScreen> createState() => _InsightScreenState();
+  ConsumerState<InsightScreen> createState() => _InsightScreenState();
 }
 
-class _InsightScreenState extends State<InsightScreen> {
+class _InsightScreenState extends ConsumerState<InsightScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  late final Stream<TrainingInsight?> _insightStream;
-  late final Stream<List<TrainingRecord>> _recordsStream;
-  late final Stream<List<PersonalBest>> _pbStream;
-  late final Stream<AppUser?> _userStream;
-
   int _selectedEventIndex = 0;
-  int _selectedViewIndex = 0; // 0:相関, 1:体組成, 2:タイム予測 (3:ビジョンは非表示)
+  int _selectedViewIndex = 0; // 0:種目推移, 1:身体・栄養, 2:タイム予測
   bool _isPredicting = false; // AI分析実行中フラグ
 
   Future<void> _runAiPrediction(
@@ -86,9 +35,9 @@ class _InsightScreenState extends State<InsightScreen> {
       // 最近のデータを抽出 (直近20件または30日分程度)
       final recentRecords = records.take(20).toList();
       
-      // 体組成データの抽出
+      // 体組成データの抽出 (body_compositionタイプから)
       final bodyComp = recentRecords
-          .where((r) => r.type == 'nutrition')
+          .where((r) => r.type == 'body_composition')
           .map((r) => {
             'date': r.date.toIso8601String(),
             'weight': r.subjectiveMetrics['weight'],
@@ -108,11 +57,9 @@ class _InsightScreenState extends State<InsightScreen> {
           .toList();
 
       // 目標タイムの取得
-      final goalTimesSnapshot = await _firestoreService.getGoalTimesStream().first;
-      final goalTimes = goalTimesSnapshot.map((gt) => {
-        'event': gt.event,
-        'value': gt.value,
-      }).toList();
+      final goalTimesSnapshot = ref.read(goalTimesProvider).value ?? [];
+      // 2. 選択された種目のPB履歴を抽出（グラフ用）
+      // Removed unused local variable 'goalTimes'
 
       // 履歴から目標設定日(gt.date)の時点でのタイム（またはそれに最も近い過去の最速値）を抽出
       final goalBaselineTimes = goalTimesSnapshot.map((gt) {
@@ -135,7 +82,21 @@ class _InsightScreenState extends State<InsightScreen> {
         };
       }).toList();
 
-      // 練習内容の要约
+      // 栄養記録の抽出
+      final nutritionSummary = recentRecords
+          .where((r) => r.type == 'nutrition')
+          .map((r) {
+            final detail = r.details.firstWhere((d) => d['type'] == 'memo', orElse: () => {'content': ''});
+            return {
+              'date': r.date.toIso8601String(),
+              'meal': r.subjectiveMetrics['meal_label'] ?? '不明',
+              'content': detail['content'],
+              'metrics': r.subjectiveMetrics,
+            };
+          })
+          .toList();
+
+      // 練習内容の要約
       final trainingSummary = recentRecords
           .where((r) => r.type == 'pool' || r.type == 'dryland')
           .map((r) => {
@@ -148,49 +109,16 @@ class _InsightScreenState extends State<InsightScreen> {
           .toList();
 
       final systemInstruction = user != null 
-          ? ai.GeminiService().getCoachSystemInstruction(user, supplementaryContext: """
-競泳データアナリストとして、以下の「分析の厳格な指針」に従ってJSON形式で回答してください。
-
-【分析の厳格な指針】
-1. **科学的リアリズムの徹底**: 練習データが不足している、あるいは強度が低い場合、自己ベストを上回る予測は行わないでください。
-2. **目標達成率(successRate)の定義**: 
-   - 「目標に対してどれだけ近づいたか（進捗率）」を0.0〜1.0で表してください。
-   - 0.0: 目標設定時のタイム (baselineValueAtGoalSet)。
-   - 1.0: 目標タイム (goalValue)。
-   - 予測が基準より遅ければ0.0、目標を超えれば1.0。
-3. **身体組成の影響**: 体組成の変化が、種目の特性にどう影響するかを考慮してください。
-""")
+          ? await ai.GeminiService().getCoachSystemInstruction(user, supplementaryContext: await ai.GeminiService().insightGuidelineInstruction)
           : "あなたは世界トップレベルの競泳データアナリスト兼コーチングスペシャリストです。";
 
-      final prompt = """
-以下のユーザーデータを基に、次戦のタイムを予測してください。
-
-【ユーザーデータ】
-- 最新の自己ベスト: $swimPbs
-- ユーザーが設定した目標タイムと設定時の基準タイム: $goalBaselineTimes
-- 直近の体組成推移: $bodyComp
-- 最近の練習内容と主観評価: $trainingSummary
-
-【回答形式 (JSON)】
-以下の構造を持つJSONオブジェクトのみを出力してください。Markdownのコードブロックなどは含めないでください。
-解説やインサイト等のテキストデータはすべて日本語で記述してください。
-{
-  "overallInsight": "全体の分析",
-  "agentThinkingSteps": ["分析ステップ1", "分析ステップ2", "分析ステップ3", "分析ステップ4"],
-  "predictions": [
-    {
-      "eventName": "種目名",
-      "predictedTime": "予想タイム (秒)",
-      "confidenceInterval": "信頼区間",
-      "successRate": 0.0〜1.0,
-      "specificInsight": "具体的なアドバイス",
-      "laps": [
-        { "section": "区間", "time": "区間タイム", "strokeCount": 推定ストローク数 }
-      ]
-    }
-  ]
-}
-""";
+      final promptTemplate = await ai.GeminiService().insightPredictionInstruction;
+      final prompt = promptTemplate
+          .replaceAll('{swimPbs}', swimPbs.toString())
+          .replaceAll('{goalBaselineTimes}', goalBaselineTimes.toString())
+          .replaceAll('{bodyComp}', bodyComp.toString())
+          .replaceAll('{nutritionSummary}', nutritionSummary.toString())
+          .replaceAll('{trainingSummary}', trainingSummary.toString());
 
       final modelId = user?.baseProfile['aiModel'] as String? ?? ai.GeminiService.modelForInsight;
       final response = await ai.GeminiService().generateContent(
@@ -212,8 +140,8 @@ class _InsightScreenState extends State<InsightScreen> {
         agentThinkingSteps: List<String>.from(data['agentThinkingSteps'] ?? []),
         predictions: (data['predictions'] as List<dynamic>?)?.map((p) => EventPrediction(
           eventName: p['eventName'] ?? '',
-          predictedTime: p['predictedTime']?.toString() ?? '',
-          confidenceInterval: p['confidenceInterval'] ?? '',
+          predictedTime: p['predictedTimeSeconds']?.toString() ?? '',
+          confidenceInterval: p['predictedRange'] ?? '',
           successRate: (p['successRate'] as num?)?.toDouble() ?? 0.0,
           specificInsight: p['specificInsight'] ?? '',
           laps: (p['laps'] as List<dynamic>?)?.map((l) => LapPrediction(
@@ -239,43 +167,29 @@ class _InsightScreenState extends State<InsightScreen> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _insightStream = _firestoreService.getLatestInsightStream();
-    _recordsStream = _firestoreService.getTrainingRecordsStream(limit: 50);
-    _pbStream = _firestoreService.getPersonalBestsStream();
-    _userStream = _firestoreService.getUserProfileStream();
-  }
+
 
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width >= 900;
 
-    return StreamBuilder<TrainingInsight?>(
-      stream: _insightStream,
-      builder: (context, insightSnapshot) {
-        return StreamBuilder<List<TrainingRecord>>(
-          stream: _recordsStream,
-          builder: (context, recordsSnapshot) {
-            return StreamBuilder<List<PersonalBest>>(
-              stream: _pbStream,
-              builder: (context, pbsSnapshot) {
-                return StreamBuilder<AppUser?>(
-                  stream: _userStream,
-                  builder: (context, userSnapshot) {
-                    final insightData = insightSnapshot.data;
-                    final recordsData = recordsSnapshot.data ?? [];
-                    final pbsData = pbsSnapshot.data ?? [];
-                    final userData = userSnapshot.data;
+    // 各データを Provider から取得
+    final insightAsync = ref.watch(latestInsightProvider);
+    final userAsync = ref.watch(userProfileProvider);
 
-                    if (insightSnapshot.connectionState == ConnectionState.waiting && insightData == null) {
-                      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-                    }
+    // インサイトデータとユーザーデータの両方が読み込み中の場合
+    if (insightAsync.isLoading || userAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
-                    return Scaffold(
+    final insightData = insightAsync.value;
+    final userData = userAsync.value;
+    final recordsData = ref.watch(trainingRecordsProvider).value ?? [];
+    final pbsData = ref.watch(personalBestsProvider).value ?? [];
+
+    return Scaffold(
                       appBar: AppBar(
-                        title: const Text('インサイト（分析・洞察）'),
+                        title: const Text('インサイト'),
                         actions: [
                           if (isDesktop)
                             TextButton.icon(
@@ -290,6 +204,7 @@ class _InsightScreenState extends State<InsightScreen> {
                       body: Column(
                         children: [
                           _buildAgentThinkingLog(context, insightData),
+                          const Divider(height: 1),
                           Expanded(
                             child: isDesktop 
                                 ? _buildDesktopDashboard(context, insightData, recordsData, pbsData, userData) 
@@ -298,14 +213,6 @@ class _InsightScreenState extends State<InsightScreen> {
                         ],
                       ),
                     );
-                  }
-                );
-              }
-            );
-          }
-        );
-      }
-    );
   }
 
   // --- エージェント思考ログ ---
@@ -361,12 +268,11 @@ class _InsightScreenState extends State<InsightScreen> {
         children: [
           SegmentedButton<int>(
             segments: const [
-              ButtonSegment(value: 0, icon: Icon(Icons.scatter_plot, size: 18), label: Text('相関')),
+              ButtonSegment(value: 0, icon: Icon(Icons.trending_up, size: 18), label: Text('種目推移')),
               ButtonSegment(value: 1, icon: Icon(Icons.fitness_center, size: 18), label: Text('身体・栄養')),
               ButtonSegment(value: 2, icon: Icon(Icons.timer, size: 18), label: Text('タイム予測')),
-              // ButtonSegment(value: 3, icon: Icon(Icons.track_changes, size: 18), label: Text('ビジョン')),
             ],
-            selected: {_selectedViewIndex},
+            selected: <int>{_selectedViewIndex},
             onSelectionChanged: (Set<int> newSelection) {
               setState(() => _selectedViewIndex = newSelection.first);
             },
@@ -375,14 +281,28 @@ class _InsightScreenState extends State<InsightScreen> {
               textStyle: const TextStyle(fontSize: 12),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          if (_selectedViewIndex == 0) _buildCorrelationView(context, insight, records),
+          if (_selectedViewIndex == 0) _buildPbTrendView(context, pbs, insight, records, user),
           if (_selectedViewIndex == 1) _buildBodyNutritionView(context, insight, records),
           if (_selectedViewIndex == 2) _buildPredictionView(context, insight, records, pbs, user),
-          // if (_selectedViewIndex == 3) _buildVisionAlignmentView(context, insight, user),
           
-          const SizedBox(height: 40),
+          const SizedBox(height: 16),
+          if (insight?.overallInsight != null && insight!.overallInsight.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.insights, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(insight.overallInsight, style: const TextStyle(fontSize: 12, height: 1.4)),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -394,21 +314,14 @@ class _InsightScreenState extends State<InsightScreen> {
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _buildCorrelationView(context, insight, records)),
-              const SizedBox(width: 24),
-              Expanded(child: _buildBodyNutritionView(context, insight, records)),
-            ],
-          ),
+          _buildPbTrendView(context, pbs, insight, records, user),
           const SizedBox(height: 24),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Expanded(child: _buildBodyNutritionView(context, insight, records)),
+              const SizedBox(width: 24),
               Expanded(child: _buildPredictionView(context, insight, records, pbs, user)),
-              // const SizedBox(width: 24),
-              // Expanded(child: _buildVisionAlignmentView(context, insight, user)),
             ],
           ),
         ],
@@ -416,95 +329,29 @@ class _InsightScreenState extends State<InsightScreen> {
     );
   }
 
-  // ============== A. 相関分析ビュー ==============
-  Widget _buildCorrelationView(BuildContext context, TrainingInsight? insight, List<TrainingRecord> records) {
-    // 実際に過去の主観評価と練習時間（分）の相関をプロット
-    final scatterSpots = records.where((r) => r.subjectiveMetrics.containsKey('feeling')).map((r) {
-      final feeling = (r.subjectiveMetrics['feeling'] as num?)?.toDouble() ?? 5.0;
-      final duration = r.durationMinutes.toDouble();
-      return ScatterSpot(feeling, duration, dotPainter: FlDotCirclePainter(color: Colors.blueAccent, radius: 4));
-    }).toList();
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('主観・客観 相関分析', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('感覚の良さと実際の練習ボリューム(分)の相関', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 200,
-              child: scatterSpots.isEmpty 
-                ? const Center(child: Text('データが不足しています', style: TextStyle(color: Colors.grey)))
-                : ScatterChart(
-                    ScatterChartData(
-                      scatterSpots: scatterSpots,
-                      minX: 1, maxX: 10, minY: 0, maxY: 180,
-                      titlesData: FlTitlesData(
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: true, reservedSize: 22, getTitlesWidget: (v, m) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 10))),
-                          axisNameWidget: const Text('主観的感覚 (1-10)', style: TextStyle(fontSize: 12)),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (v, m) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 10))),
-                          axisNameWidget: const Text('時間 (分)', style: TextStyle(fontSize: 12)),
-                        ),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      ),
-                      gridData: const FlGridData(show: true),
-                    ),
-                  ),
-            ),
-            const SizedBox(height: 16),
-            if (insight?.overallInsight != null && insight!.overallInsight.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.insights, color: Colors.orange, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(insight.overallInsight, style: const TextStyle(fontSize: 12, height: 1.4)),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ============== B. 身体組成・栄養インパクトビュー ==============
   Widget _buildBodyNutritionView(BuildContext context, TrainingInsight? insight, List<TrainingRecord> records) {
-    // 栄養記録のメモから体重と骨格筋量を抽出してグラフ化
+    // 身体組成データを抽出
+    final bodyCompRecords = records.where((r) => r.type == 'body_composition').toList()..sort((a, b) => a.date.compareTo(b.date));
+    
     final List<FlSpot> weightSpots = [];
     final List<FlSpot> muscleSpots = [];
-    final weightRegex = RegExp(r'体重:\s*([0-9.]+)\s*kg');
-    final muscleRegex = RegExp(r'骨格筋量:\s*([0-9.]+)\s*kg');
+    final List<FlSpot> fatSpots = [];
+    
+    for (int i = 0; i < bodyCompRecords.length; i++) {
+      final r = bodyCompRecords[i];
+      final w = r.subjectiveMetrics['weight']?.toDouble();
+      final m = r.subjectiveMetrics['muscle_mass']?.toDouble();
+      final f = r.subjectiveMetrics['body_fat']?.toDouble();
+      if (w != null) weightSpots.add(FlSpot(i.toDouble(), w));
+      if (m != null) muscleSpots.add(FlSpot(i.toDouble(), m));
+      if (f != null) fatSpots.add(FlSpot(i.toDouble(), f));
+    }
 
-    final nutritionRecords = records.where((r) => r.type == 'nutrition').toList().reversed.toList();
-    for (int i = 0; i < nutritionRecords.length; i++) {
-      final record = nutritionRecords[i];
-      for (final detail in record.details) {
-        if (detail['type'] == 'memo') {
-          final content = detail['content'] as String;
-          final wMatch = weightRegex.firstMatch(content);
-          final mMatch = muscleRegex.firstMatch(content);
-          if (wMatch != null) {
-            weightSpots.add(FlSpot(i.toDouble(), double.parse(wMatch.group(1)!)));
-          }
-          if (mMatch != null) {
-            muscleSpots.add(FlSpot(i.toDouble(), double.parse(mMatch.group(1)!)));
-          }
-        }
-      }
+    // 睡眠データを抽出・ソートしてグラフ化
+    final List<FlSpot> sleepSpots = [];
+    final sleepRecords = records.where((r) => r.type == 'sleep').toList()..sort((a, b) => a.date.compareTo(b.date));
+    for (int i = 0; i < sleepRecords.length; i++) {
+       sleepSpots.add(FlSpot(i.toDouble(), sleepRecords[i].durationMinutes / 60.0)); // 時間単位
     }
 
     return Card(
@@ -513,59 +360,154 @@ class _InsightScreenState extends State<InsightScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('身体・栄養 インパクト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('身体・栄養・睡眠 インパクト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text('体組成の変化と栄養主観評価の推移', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+            Text('体組成の変化と睡眠時間の推移', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
             const SizedBox(height: 16),
             SizedBox(
-              height: 150,
-              child: weightSpots.isEmpty && muscleSpots.isEmpty
-                ? const Center(child: Text('体組成計のデータがありません', style: TextStyle(color: Colors.grey)))
-                : LineChart(
-                    LineChartData(
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: weightSpots,
-                          isCurved: true, color: Colors.blue, barWidth: 3, dotData: const FlDotData(show: true),
+              height: 200,
+              child: weightSpots.isEmpty && muscleSpots.isEmpty && fatSpots.isEmpty && sleepSpots.isEmpty
+                ? const Center(child: Text('データがありません', style: TextStyle(color: Colors.grey)))
+                : Builder(
+                  builder: (context) {
+                    // kg系（体重・筋量）の共通レンジ：左軸
+                    final kgValues = (weightSpots + muscleSpots).map((s) => s.y).toList();
+                    final double minKg = kgValues.isEmpty ? 45 : kgValues.reduce((a, b) => a < b ? a : b) - 2;
+                    final double maxKg = kgValues.isEmpty ? 85 : kgValues.reduce((a, b) => a > b ? a : b) + 2;
+
+                    // 数値系（体脂肪率・睡眠時間）の共通レンジ：右軸
+                    final rightValues = (fatSpots + sleepSpots).map((s) => s.y).toList();
+                    final double minRight = rightValues.isEmpty ? 0 : rightValues.reduce((a, b) => a < b ? a : b) - 1;
+                    final double maxRight = rightValues.isEmpty ? 25 : rightValues.reduce((a, b) => a > b ? a : b) + 1;
+
+                    // 体脂肪率をkgレンジ（描画用メインレンジ）に正規化
+                    final normalizedFatSpots = fatSpots.map((s) {
+                      double normalizedY;
+                      if (maxRight == minRight) {
+                        normalizedY = (maxKg + minKg) / 2;
+                      } else {
+                        normalizedY = (s.y - minRight) / (maxRight - minRight) * (maxKg - minKg) + minKg;
+                      }
+                      return FlSpot(s.x, normalizedY);
+                    }).toList();
+
+                    // 睡眠時間をkgレンジ（描画用メインレンジ）に正規化
+                    final normalizedSleepSpots = sleepSpots.map((s) {
+                      double normalizedY;
+                      if (maxRight == minRight) {
+                        normalizedY = (maxKg + minKg) / 2;
+                      } else {
+                        normalizedY = (s.y - minRight) / (maxRight - minRight) * (maxKg - minKg) + minKg;
+                      }
+                      return FlSpot(s.x, normalizedY);
+                    }).toList();
+
+                    return LineChart(
+                      LineChartData(
+                        minY: minKg,
+                        maxY: maxKg,
+                        clipData: const FlClipData.all(),
+                        lineBarsData: [
+                          if (weightSpots.isNotEmpty)
+                            LineChartBarData(
+                              spots: weightSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? Colors.blue.shade800 : Colors.blue, barWidth: 3, dotData: const FlDotData(show: true),
+                            ),
+                          if (muscleSpots.isNotEmpty)
+                            LineChartBarData(
+                              spots: muscleSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? Colors.green.shade800 : Colors.green, barWidth: 3, dotData: const FlDotData(show: true),
+                            ),
+                          if (normalizedFatSpots.isNotEmpty)
+                            LineChartBarData(
+                              spots: normalizedFatSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? Colors.orange.shade900 : Colors.orange, barWidth: 2, dotData: const FlDotData(show: true),
+                              dashArray: [5, 5],
+                            ),
+                          if (normalizedSleepSpots.isNotEmpty)
+                            LineChartBarData(
+                              spots: normalizedSleepSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? Colors.pink.shade800 : Colors.pinkAccent, barWidth: 3, dotData: const FlDotData(show: true),
+                            ),
+                        ],
+                        titlesData: FlTitlesData(
+                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 22,
+                              interval: 1,
+                              getTitlesWidget: (v, m) => const SizedBox.shrink(), // X軸ラベルは一旦非表示（データが多いと被るため）
+                            ),
+                          ),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 35,
+                              getTitlesWidget: (v, m) => Text(v.toStringAsFixed(0), style: const TextStyle(fontSize: 9, color: Colors.blue)),
+                            ),
+                          ),
+                          rightTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 35,
+                              getTitlesWidget: (v, m) {
+                                if (maxKg == minKg) return const SizedBox.shrink();
+                                // kgレンジから右軸レンジに逆換算
+                                final rightVal = (v - minKg) / (maxKg - minKg) * (maxRight - minRight) + minRight;
+                                return Text(rightVal.toStringAsFixed(1), style: const TextStyle(fontSize: 9, color: Colors.grey));
+                              },
+                            ),
+                          ),
                         ),
-                        LineChartBarData(
-                          spots: muscleSpots,
-                          isCurved: true, color: Colors.green, barWidth: 3, dotData: const FlDotData(show: true),
+                        gridData: const FlGridData(show: false),
+                        borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey.shade300)),
+                        lineTouchData: LineTouchData(
+                          touchTooltipData: LineTouchTooltipData(
+                            getTooltipColor: (_) => Colors.blueGrey,
+                            getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
+                              String unit = ' kg';
+                              double displayValue = s.y;
+                              if (s.bar.color == Colors.orange) {
+                                unit = ' %';
+                                if (maxKg != minKg) {
+                                  displayValue = (s.y - minKg) / (maxKg - minKg) * (maxRight - minRight) + minRight;
+                                } else {
+                                  displayValue = minRight;
+                                }
+                              } else if (s.bar.color == Colors.pinkAccent) {
+                                unit = ' h';
+                                if (maxKg != minKg) {
+                                  displayValue = (s.y - minKg) / (maxKg - minKg) * (maxRight - minRight) + minRight;
+                                } else {
+                                  displayValue = minRight;
+                                }
+                              }
+                              return LineTooltipItem('${displayValue.toStringAsFixed(1)}$unit', const TextStyle(color: Colors.white, fontSize: 10));
+                            }).toList(),
+                          ),
                         ),
-                      ],
-                      titlesData: const FlTitlesData(
-                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       ),
-                      gridData: const FlGridData(show: false),
-                      borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey.shade300)),
-                    ),
-                  ),
+                      duration: Duration.zero,
+                    );
+                  },
+                ),
             ),
-            const SizedBox(height: 8),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            const SizedBox(height: 12),
+            const Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
               children: [
-                Icon(Icons.circle, color: Colors.blue, size: 10), SizedBox(width: 4), Text('体重(kg)', style: TextStyle(fontSize: 10)),
-                SizedBox(width: 12),
-                Icon(Icons.circle, color: Colors.green, size: 10), SizedBox(width: 4), Text('骨格筋量(kg)', style: TextStyle(fontSize: 10)),
+                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? Colors.blue.shade800 : Colors.blue, label: '体重 (kg)'),
+                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? Colors.green.shade800 : Colors.green, label: '筋肉量 (kg)'),
+                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? Colors.orange.shade900 : Colors.orange, label: '体脂肪率 (%)'),
+                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? Colors.pink.shade800 : Colors.pinkAccent, label: '睡眠時間 (h)'),
               ],
-            ),
-            const SizedBox(height: 16),
-            const Text('重要な相関パターンの発見:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            const SizedBox(height: 8),
-            const ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.fitness_center, color: Colors.blue),
-              title: Text('データ分析中...', style: TextStyle(fontSize: 14)),
-              subtitle: Text('十分なデータが集まると、筋量とパフォーマンスの相関がここに表示されます。', style: TextStyle(fontSize: 12)),
             ),
           ],
         ),
       ),
     );
   }
+
+
 
   // ============== C. 統計的タイム予測ビュー ==============
   Widget _buildPredictionView(
@@ -625,71 +567,30 @@ class _InsightScreenState extends State<InsightScreen> {
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('統計的タイム推移と予測', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text('自己ベストの推移とAIによる次戦予測', style: TextStyle(fontSize: 13, color: Colors.grey)),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.blue.withOpacity(0.3)),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.info_outline, size: 14, color: Colors.blue),
-                  SizedBox(width: 6),
-                  Text(
-                    '達成率は目標設定時を0%とした現在の進捗です',
-                    style: TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold),
-                  ),
-                ],
+            // 種目選択（スクロール可能）
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: sortedEvents.isEmpty 
+                  ? [const Text('自己ベストを登録すると予測が表示されます', style: TextStyle(fontSize: 12, color: Colors.grey))]
+                  : List.generate(sortedEvents.length, (index) {
+                      final isSelected = _selectedEventIndex == index;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? Colors.black : Colors.white70)),
+                          selected: isSelected,
+                          onSelected: (_) => setState(() => _selectedEventIndex = index),
+                          selectedColor: Colors.tealAccent,
+                          backgroundColor: Colors.white10,
+                        ),
+                      );
+                    }),
               ),
             ),
             const SizedBox(height: 16),
             
-            // 種目選択
-            const Text('対象種目', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-            const SizedBox(height: 8),
-            sortedEvents.isEmpty 
-              ? const Text('自己ベストがまだ登録されていません', style: TextStyle(fontSize: 12, color: Colors.grey))
-              : Wrap(
-                  spacing: 8,
-                  children: List.generate(sortedEvents.length, (index) {
-                    return ChoiceChip(
-                      label: Text(sortedEvents[index]),
-                      selected: _selectedEventIndex == index,
-                      onSelected: (_) => setState(() => _selectedEventIndex = index),
-                      selectedColor: Colors.teal,
-                    );
-                  }),
-                ),
-            const SizedBox(height: 24),
-
-            // 推移グラフ
-            if (historySpots.isNotEmpty)
-              SizedBox(
-                height: 120,
-                child: LineChart(
-                  LineChartData(
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: historySpots,
-                        isCurved: false, color: Colors.teal, barWidth: 2, dotData: const FlDotData(show: true),
-                      ),
-                    ],
-                    titlesData: const FlTitlesData(show: false),
-                    gridData: const FlGridData(show: false),
-                    borderData: FlBorderData(show: false),
-                  ),
-                ),
-              ),
-            const SizedBox(height: 24),
-
             // 予測セクション
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -721,12 +622,14 @@ class _InsightScreenState extends State<InsightScreen> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              '${prediction.predictedTime} s', 
-                              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)
+                              _formatSeconds(double.tryParse(prediction.predictedTime) ?? 0), 
+                              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)
                             ),
                             Text(
-                              '95% CI: ${prediction.confidenceInterval}', 
-                              style: const TextStyle(fontSize: 11, color: Colors.grey)
+                              prediction.confidenceInterval.isNotEmpty 
+                                ? prediction.confidenceInterval 
+                                : '範囲推定中...', 
+                              style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)
                             ),
                           ],
                         )
@@ -799,79 +702,196 @@ class _InsightScreenState extends State<InsightScreen> {
     );
   }
 
-  // ============== D. ビジョン・アライメントビュー ==============
-  Widget _buildVisionAlignmentView(BuildContext context, TrainingInsight? insight, AppUser? user) {
+
+  // ============== A. 種目別自己ベスト推移ビュー ==============
+  Widget _buildPbTrendView(
+    BuildContext context, 
+    List<PersonalBest> pbs, 
+    TrainingInsight? insight,
+    List<TrainingRecord> records,
+    AppUser? user
+  ) {
+    final Set<String> eventNames = pbs
+        .where((pb) => pb.category == 'swim')
+        .map((pb) => pb.event)
+        .toSet();
+    
+    if (insight?.predictions != null) {
+      final swimPredictionEvents = insight!.predictions
+          .map((p) => p.eventName)
+          .where((name) => eventNames.contains(name) || name.contains('m'));
+      eventNames.addAll(swimPredictionEvents);
+    }
+    final sortedEvents = eventNames.toList()..sort();
+
+    if (_selectedEventIndex >= sortedEvents.length) {
+      _selectedEventIndex = 0;
+    }
+
+    final String selectedEvent = sortedEvents.isNotEmpty ? sortedEvents[_selectedEventIndex] : '種目未登録';
+    
+    // 指定種目の履歴データを取得し、日付順（昇順）にソート
+    final historyList = pbs
+        .where((pb) => pb.event == selectedEvent && pb.category == 'swim')
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+    
+    final historySpots = historyList
+        .map((pb) => FlSpot(pb.date.millisecondsSinceEpoch.toDouble(), -pb.value))
+        .toList();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('ビジョン・アライメント', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text('目標とする「なりたい選手像」と現在地のギャップ', style: TextStyle(fontSize: 13, color: Colors.grey)),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              width: double.infinity,
-              decoration: BoxDecoration(color: Colors.blueGrey.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   const Text('設定ビジョン', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                   const SizedBox(height: 4),
-                   Text(user?.vision != null && user!.vision.isNotEmpty ? '「${user.vision}」' : 'ビジョン未設定', 
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ]
-              )
+            const Row(
+              children: [
+                Icon(Icons.trending_up, color: Colors.tealAccent, size: 20),
+                SizedBox(width: 8),
+                Text('種目別自己ベスト推移', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ],
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 220,
-              child: RadarChart(
-                RadarChartData(
-                  radarTouchData: RadarTouchData(enabled: false),
-                  titlePositionPercentageOffset: 0.15,
-                  tickCount: 4,
-                  ticksTextStyle: const TextStyle(color: Colors.transparent),
-                  gridBorderData: BorderSide(color: Colors.grey.withOpacity(0.5), width: 1),
-                  radarBorderData: const BorderSide(color: Colors.transparent),
-                  getTitle: (index, angle) {
-                    final titles = ['後半のStr維持力', 'ラスト15mのキック', '乳酸耐性(タイム低下率)', '前半の無駄のなさ'];
-                    return RadarChartTitle(text: titles[index], angle: 0);
-                  },
-                  dataSets: [
-                    RadarDataSet(
-                      fillColor: Colors.blue.withOpacity(0.2), borderColor: Colors.blue,
-                      entryRadius: 2, borderWidth: 1.5,
-                      dataEntries: [5, 5, 5, 5].map((e) => RadarEntry(value: e.toDouble())).toList(),
-                    ),
-                    RadarDataSet(
-                      fillColor: Colors.green.withOpacity(0.4), borderColor: Colors.green,
-                      entryRadius: 3, borderWidth: 2,
-                      dataEntries: [3, 2, 4, 4].map((e) => RadarEntry(value: e.toDouble())).toList(),
-                    ),
-                  ],
-                )
+            const SizedBox(height: 12),
+            
+            // 種目選択（スクロール可能）
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: sortedEvents.isEmpty 
+                  ? [const Text('自己ベストを登録すると推移が表示されます', style: TextStyle(fontSize: 12, color: Colors.grey))]
+                  : List.generate(sortedEvents.length, (index) {
+                      final isSelected = _selectedEventIndex == index;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? Colors.black : Colors.white70)),
+                          selected: isSelected,
+                          onSelected: (_) => setState(() => _selectedEventIndex = index),
+                          selectedColor: Colors.tealAccent,
+                          backgroundColor: Colors.white10,
+                        ),
+                      );
+                    }),
               ),
             ),
             const SizedBox(height: 16),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.circle, color: Colors.green, size: 12), SizedBox(width: 4), Text('現在地', style: TextStyle(fontSize: 12)),
-                SizedBox(width: 16),
-                Icon(Icons.circle, color: Colors.blue, size: 12), SizedBox(width: 4), Text('ビジョン要求レベル', style: TextStyle(fontSize: 12)),
-              ],
-            ),
-            const Divider(height: 32),
-            const Text('今すぐ改善すべき1つのアクション:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.red)),
-            const SizedBox(height: 8),
-            const Text('分析データに基づき、あなたのビジョン達成に必要な最短ルートのアクションをエージェントがここに提案します。',
-              style: TextStyle(fontSize: 14, height: 1.5)),
+  
+            // 折れ線グラフ
+            if (historySpots.isNotEmpty)
+              Builder(
+                builder: (context) {
+                  final xValues = historySpots.map((s) => s.x).toList();
+                  final minX = xValues.length == 1 ? xValues.first - 86400000 : xValues.reduce((a, b) => a < b ? a : b);
+                  final maxX = xValues.length == 1 ? xValues.first + 86400000 : xValues.reduce((a, b) => a > b ? a : b);
+
+                  return SizedBox(
+                    height: 140,
+                    width: double.infinity,
+                    child: LineChart(
+                      LineChartData(
+                        minX: minX,
+                        maxX: maxX,
+                        clipData: const FlClipData.all(),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: historySpots,
+                            isCurved: true,
+                            color: Colors.tealAccent,
+                            barWidth: 3,
+                            dotData: const FlDotData(show: true),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              color: Colors.tealAccent.withOpacity(0.1),
+                            ),
+                          ),
+                        ],
+                        titlesData: FlTitlesData(
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 22,
+                              interval: (maxX - minX) / 4 > 86400000 ? (maxX - minX) / 4 : 86400000,
+                              getTitlesWidget: (value, meta) {
+                                // 記録が存在する日のみを表示する
+                                final isDataPoint = historySpots.any((s) => (s.x - value).abs() < 3600000); // 1時間以内の誤差を許容
+                                if (!isDataPoint) return const SizedBox.shrink();
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Text(
+                                    AppDateUtils.getChartLabel(value),
+                                    style: const TextStyle(fontSize: 9, color: Colors.grey),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 40,
+                              getTitlesWidget: (value, meta) => Text(_formatSeconds(value.abs()), style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                            ),
+                          ),
+                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    ),
+                    gridData: FlGridData(
+                      show: true,
+                      drawVerticalLine: false,
+                      getDrawingHorizontalLine: (value) => FlLine(color: Colors.white10, strokeWidth: 1),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        getTooltipColor: (spot) => Colors.blueGrey.withOpacity(0.8),
+                        getTooltipItems: (spots) => spots.map((s) => LineTooltipItem(_formatSeconds(s.y.abs()), const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))).toList(),
+                      ),
+                    ),
+                  ),
+                  duration: Duration.zero,
+                ),
+              );
+            },
+          )
+            else
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20.0),
+                  child: Text('この種目のデータがまだありません', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                ),
+              ),
           ],
         ),
       ),
+    );
+  }
+
+  String _formatSeconds(double seconds) {
+    if (seconds <= 0) return '0.00';
+    final int min = (seconds / 60).floor();
+    final double sec = seconds % 60;
+    if (min == 0) return sec.toStringAsFixed(2);
+    return '$min:${sec.toStringAsFixed(2).padLeft(5, '0')}';
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _LegendItem({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.circle, color: color, size: 10),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 10)),
+      ],
     );
   }
 }

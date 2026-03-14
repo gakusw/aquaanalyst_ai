@@ -1,109 +1,106 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/firestore_service.dart';
-import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
 import '../../data/models/personal_best.dart';
 import '../../data/models/goal_time.dart';
 import '../../data/models/weekly_plan.dart';
 import '../../data/models/app_user.dart';
 import '../../utils/event_utils.dart';
+import '../../utils/date_utils.dart';
+import '../../data/providers/providers.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  late final Stream<List<TrainingRecord>> _recordsStream;
-  late final Stream<List<PersonalBest>> _pbsStream;
-  late final Stream<List<GoalTime>> _goalTimesStream;
-  late final Stream<WeeklyPlan?> _latestPlanStream;
-  late final Stream<AppUser?> _userStream;
   int _bodyCompOffset = 1; // デフォルトで今月を右から2番目にするためのオフセット
   bool _showMonthlyBadges = true; // バッジ表示切替フラグ
+
+  bool _isShowingSleepDialog = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // クエリパラメータによるダイアログ自動表示のチェック
+    final uri = GoRouterState.of(context).uri;
+    final action = uri.queryParameters['action'];
+    if (action == 'add_sleep') {
+      if (!_isShowingSleepDialog) {
+        _isShowingSleepDialog = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _showAddSleepDialog(context);
+          }
+        });
+      }
+    } else {
+      // パラメータがない場合はフラグをリセットして次回の呼び出しに備える
+      _isShowingSleepDialog = false;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _recordsStream = _firestoreService.getTrainingRecordsStream(limit: 50);
-    _pbsStream = _firestoreService.getPersonalBestsStream();
-    _goalTimesStream = _firestoreService.getGoalTimesStream();
-    _latestPlanStream = _firestoreService.getLatestWeeklyPlanStream();
-    _userStream = _firestoreService.getUserProfileStream();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 栄養バランスチャート用モックデータ
-    final List<double> currentNutritionData = [7.0, 5.0, 8.0, 6.0, 9.0];
-    final List<double> targetNutritionData = [9.0, 7.0, 8.0, 9.0, 10.0];
+    // 必要なフィールドのみを select で監視し、再描画範囲を限定
+    final planAsync = ref.watch(latestWeeklyPlanProvider);
+    // user の名前やコーチ設定など、頻繁に変わらないものは個別に watch または select
+    final userAsync = ref.watch(userProfileProvider);
+    // recordsAsync は全体の変更を検知するが、リスト表示以外では select を推奨
+    final recordsAsync = ref.watch(trainingRecordsProvider);
+    final goalTimesAsync = ref.watch(goalTimesProvider);
+
+    // 読み込み中またはエラー時の表示
+    if (recordsAsync.isLoading || userAsync.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final plan = planAsync.value;
+    final user = userAsync.value;
+    final allGts = goalTimesAsync.value ?? [];
+
+    // 計算済み Provider を使用 (既にフィルタリング・メモ化されている)
+    final todayRecords = ref.watch(todayRecordsProvider);
+    final poolRecord = todayRecords.where((r) => r.type == 'pool').firstOrNull;
+    final drylandRecord = todayRecords.where((r) => r.type == 'dryland').firstOrNull;
+
+    final categorizedPbs = ref.watch(categorizedPbsProvider);
+    final latestSwimPbs = categorizedPbs['swim']!;
+    final latestDrylandPbs = categorizedPbs['dryland']!;
+
+    final pbHistory = ref.watch(pbHistoryProvider);
+    final swimPbHistory = pbHistory['swim']!;
+    final drylandPbHistory = pbHistory['dryland']!;
+
+    // 体組成データも計算済み Provider から取得
+    final bodyCompRecords = ref.watch(bodyCompositionRecordsProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('ホーム'),
       ),
-      body: StreamBuilder<WeeklyPlan?>(
-        stream: _latestPlanStream,
-        builder: (context, planSnapshot) {
-          final plan = planSnapshot.data;
-          return StreamBuilder<AppUser?>(
-            stream: _userStream,
-            builder: (context, userSnapshot) {
-              final user = userSnapshot.data;
-              return StreamBuilder<List<TrainingRecord>>(
-                stream: _recordsStream,
-                builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final allRecords = snapshot.data ?? [];
-              final now = DateTime.now();
-              // 今日の記録のみを抽出（朝4時リセットを考慮）
-              final todayRecords = allRecords.where((record) {
-                return FirestoreService.isSameEffectiveDay(now, record.date);
-              }).toList();
-
-              // 記録カテゴリ別のデータを集約
-              final poolRecord = todayRecords.where((r) => r.type == 'pool').firstOrNull;
-              final drylandRecord = todayRecords.where((r) => r.type == 'dryland').firstOrNull;
-              
-              return StreamBuilder<List<PersonalBest>>(
-                stream: _pbsStream,
-                builder: (context, pbSnapshot) {
-                  final allPbs = pbSnapshot.data ?? [];
-              
-              // 最新の自己ベストをカテゴリーと種目ごとに抽出
-              final Map<String, PersonalBest> latestSwimPbs = {};
-              final Map<String, PersonalBest> latestDrylandPbs = {};
-              final Map<String, List<PersonalBest>> swimPbHistory = {};
-              final Map<String, List<PersonalBest>> drylandPbHistory = {};
-              
-              for (var pb in allPbs.reversed) { // 古い順から処理して最新で上書き
-                if (pb.category == 'swim') {
-                  latestSwimPbs[pb.event] = pb;
-                  swimPbHistory.putIfAbsent(pb.event, () => []).add(pb);
-                } else if (pb.category == 'dryland') {
-                  latestDrylandPbs[pb.event] = pb;
-                  drylandPbHistory.putIfAbsent(pb.event, () => []).add(pb);
-                }
-              }
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                     // バッジ統計ウィジェット
                     _BadgeCountSection(
-                      records: allRecords, 
                       showMonthly: _showMonthlyBadges,
                       onToggle: (val) => setState(() => _showMonthlyBadges = val),
-                      latestPlan: plan,
                     ),
                     const SizedBox(height: 24),
 
@@ -115,13 +112,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         r.type == 'nutrition' && 
                         r.subjectiveMetrics['is_body_composition'] != true
                       ).toList(),
+                      sleepRecord: todayRecords.where((r) => r.type == 'sleep').firstOrNull,
                       user: user,
                       latestPlan: plan,
                     ),
                     const SizedBox(height: 24),
 
                     // アクティビティカレンダー
-                    _ActivityCalendar(records: allRecords, latestPlan: plan),
+                    const _ActivityCalendar(),
                     const SizedBox(height: 24),
 
             // 現在の自己ベスト
@@ -155,226 +153,234 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
 
             // 目標タイム
-            StreamBuilder<List<GoalTime>>(
-              stream: _goalTimesStream,
-              builder: (context, gtSnapshot) {
-                final allGts = gtSnapshot.data ?? [];
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('目標タイム', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        IconButton(icon: const Icon(Icons.flag, color: Colors.blueAccent), onPressed: () => _showAddGoalDialog(context)),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (allGts.isEmpty) const Text('目標タイムがまだ設定されていません。', style: TextStyle(color: Colors.grey)),
-                    ...allGts.map((gt) => _buildGoalTimeCard(context, gt)),
-                    const SizedBox(height: 24),
-                  ],
-                );
-              }
-            ),
-
-            // 現在の体組成（自己ベスト下）
-            const Text('現在の体組成', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Builder(
-              builder: (context) {
-                // 体組成データを抽出 (新種別 body_composition または 旧 nutrition の is_body_composition フラグ)
-                final bodyCompRecords = allRecords.where((r) => 
-                  r.type == 'body_composition' || 
-                  (r.type == 'nutrition' && r.subjectiveMetrics['is_body_composition'] == true)
-                ).toList();
-
-                if (bodyCompRecords.isEmpty) {
-                  return const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text('体組成の記録がまだありません。「+」ボタンから記録できます。', style: TextStyle(color: Colors.grey)),
-                    ),
-                  );
-                }
-
-                // 最新の記録
-                final latest = bodyCompRecords.first;
-                final weight = latest.subjectiveMetrics['weight']?.toDouble() ?? 0.0;
-                final muscle = latest.subjectiveMetrics['muscle_mass']?.toDouble() ?? 0.0;
-                final fat = latest.subjectiveMetrics['body_fat']?.toDouble() ?? 0.0;
-                final dateStr = "${latest.date.year}/${latest.date.month.toString().padLeft(2, '0')}/${latest.date.day.toString().padLeft(2, '0')}";
-
-                // 比較用（1つ前の記録があれば）
-                double weightDiff = 0;
-                double muscleDiff = 0;
-                if (bodyCompRecords.length > 1) {
-                  final prev = bodyCompRecords[1];
-                  final prevWeight = prev.subjectiveMetrics['weight']?.toDouble() ?? 0.0;
-                  final prevMuscle = prev.subjectiveMetrics['muscle_mass']?.toDouble() ?? 0.0;
-                  if (prevWeight > 0) weightDiff = weight - prevWeight;
-                  if (prevMuscle > 0) muscleDiff = muscle - prevMuscle;
-                }
-
-                return Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _SectionLabel(icon: Icons.monitor_weight, label: '直近の計測値 ($dateStr)', color: Colors.purpleAccent),
-                        const SizedBox(height: 12),
-                        _DetailRow(label: '体重', value: weight > 0 ? '$weight kg' : '未入力'),
-                        _DetailRow(label: '骨格筋量', value: muscle > 0 ? '$muscle kg' : '未入力'),
-                        _DetailRow(label: '体脂肪率', value: fat > 0 ? '$fat %' : '未入力'),
-                        if (weightDiff != 0 || muscleDiff != 0) ...[
-                          const SizedBox(height: 8),
-                          const Divider(),
-                          const SizedBox(height: 4),
-                          Text('前回比', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6))),
-                          const SizedBox(height: 4),
-                          Row(children: [
-                            if (weightDiff != 0) ...[
-                              Icon(weightDiff < 0 ? Icons.arrow_downward : Icons.arrow_upward, 
-                                   color: weightDiff < 0 ? Colors.greenAccent : Colors.orangeAccent, size: 14),
-                              const SizedBox(width: 4),
-                              Text('体重 ${weightDiff > 0 ? '+' : ''}${weightDiff.toStringAsFixed(1)} kg', 
-                                   style: TextStyle(fontSize: 13, color: weightDiff < 0 ? Colors.greenAccent : Colors.orangeAccent)),
-                              const SizedBox(width: 16),
-                            ],
-                            if (muscleDiff != 0) ...[
-                              Icon(muscleDiff > 0 ? Icons.arrow_upward : Icons.arrow_downward, 
-                                   color: muscleDiff > 0 ? Colors.blueAccent : Colors.redAccent, size: 14),
-                              const SizedBox(width: 4),
-                              Text('骨格筋量 ${muscleDiff > 0 ? '+' : ''}${muscleDiff.toStringAsFixed(1)} kg', 
-                                   style: TextStyle(fontSize: 13, color: muscleDiff > 0 ? Colors.blueAccent : Colors.redAccent)),
-                            ],
-                          ]),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              }
-            ),
-            /* // パフォーマンス向上のため一時非表示
-            const SizedBox(height: 32),            // レーダーチャート領域（栄養バランス）
-            const Text(
-              '最新の栄養バランス (自己評価合算)',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 250,
-              child: RadarChart(
-                RadarChartData(
-                  radarTouchData: RadarTouchData(enabled: false),
-                  titlePositionPercentageOffset: 0.2,
-                  tickCount: 5,
-                  ticksTextStyle: const TextStyle(color: Colors.transparent),
-                  gridBorderData: BorderSide(color: Colors.grey.withOpacity(0.5), width: 1.5),
-                  radarBorderData: const BorderSide(color: Colors.transparent),
-                  getTitle: (index, angle) {
-                    final titles = ['タンパク質(P)', '脂質(F)', '炭水化物(C)', 'リカバリー', '水分'];
-                    return RadarChartTitle(text: titles[index], angle: 0);
-                  },
-                  dataSets: [
-                    RadarDataSet(
-                      fillColor: Colors.blue.withOpacity(0.4),
-                      borderColor: Colors.blue,
-                      entryRadius: 3,
-                      dataEntries: targetNutritionData.map((e) => RadarEntry(value: e)).toList(),
-                      borderWidth: 2,
-                    ),
-                    RadarDataSet(
-                      fillColor: Colors.amber.withOpacity(0.4),
-                      borderColor: Colors.amber,
-                      entryRadius: 3,
-                      dataEntries: currentNutritionData.map((e) => RadarEntry(value: e)).toList(),
-                      borderWidth: 2,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // 凡例
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _LegendItem(color: Colors.amber, text: '現在'),
-                SizedBox(width: 24),
-                _LegendItem(color: Colors.blue, text: '目標'),
-              ],
-            ),
-            const SizedBox(height: 32),
-            */
-
-
-            // 折れ線グラフ (体重・筋量推移)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '体組成推移 (12ヶ月)',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: () => setState(() => _bodyCompOffset++),
-                      tooltip: '前の期間へ',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: () => setState(() {
-                        if (_bodyCompOffset > 0) _bodyCompOffset--;
-                      }),
-                      tooltip: '次の期間へ',
-                    ),
-                  ],
-                ),
+                const Text('目標タイム', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                IconButton(icon: const Icon(Icons.flag, color: Colors.blueAccent), onPressed: () => _showAddGoalDialog(context)),
               ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '※ 記録がない月は直前の値を引き継ぎます。',
-              style: TextStyle(
-                fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 220,
-              child: LineChart(
-                _buildBodyCompChartData(allRecords),
-              ),
             ),
             const SizedBox(height: 16),
-            // 折れ線グラフの凡例
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _LegendItem(color: Colors.teal, text: '体重 (kg)'),
-                SizedBox(width: 24),
-                _LegendItem(color: Colors.orange, text: '骨格筋量 (kg)'),
-              ],
+            if (allGts.isEmpty) const Text('目標タイムがまだ設定されていません。', style: TextStyle(color: Colors.grey)),
+            ...allGts.map((gt) => _buildGoalTimeCard(context, gt)),
+            const SizedBox(height: 24),
+            
+            // 重要：動的なリスト表示部分を RepaintBoundary で分離
+            RepaintBoundary(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 現在の体組成（自己ベスト下）
+                  const Text('現在の体組成', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  _buildLatestBodyCompCard(bodyCompRecords),
+                ],
+              ),
             ),
-            const SizedBox(height: 32),
+            
+            const SizedBox(height: 80), // FAB が被らないよう余白
+          ],
+        ),
+      ),
+    );
+  }
 
-                    const SizedBox(height: 80), // FAB が被らないよう余白
+  Widget _buildLatestBodyCompCard(List<TrainingRecord> bodyCompRecords) {
+    if (bodyCompRecords.isEmpty) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text('体組成の記録がまだありません。「+」ボタンから記録できます。', style: TextStyle(color: Colors.grey)),
+        ),
+      );
+    }
+
+    // 最新の記録
+    final latest = bodyCompRecords.first;
+    final weight = latest.subjectiveMetrics['weight']?.toDouble() ?? 0.0;
+    final muscle = latest.subjectiveMetrics['muscle_mass']?.toDouble() ?? 0.0;
+    final fat = latest.subjectiveMetrics['body_fat']?.toDouble() ?? 0.0;
+    final dateStr = "${latest.date.year}/${latest.date.month.toString().padLeft(2, '0')}/${latest.date.day.toString().padLeft(2, '0')}";
+
+    // 比較用（1つ前の記録があれば）
+    double weightDiff = 0;
+    double muscleDiff = 0;
+    if (bodyCompRecords.length > 1) {
+      final prev = bodyCompRecords[1];
+      final prevWeight = prev.subjectiveMetrics['weight']?.toDouble() ?? 0.0;
+      final prevMuscle = prev.subjectiveMetrics['muscle_mass']?.toDouble() ?? 0.0;
+      if (prevWeight > 0) weightDiff = weight - prevWeight;
+      if (prevMuscle > 0) muscleDiff = muscle - prevMuscle;
+    }
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _showBodyCompositionHistory(context, bodyCompRecords),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SectionLabel(icon: Icons.monitor_weight, label: '直近の計測値 ($dateStr)', color: Colors.purpleAccent),
+              const SizedBox(height: 12),
+              _DetailRow(label: '体重', value: weight > 0 ? '$weight kg' : '未入力'),
+              _DetailRow(label: '骨格筋量', value: muscle > 0 ? '$muscle kg' : '未入力'),
+              _DetailRow(label: '体脂肪率', value: fat > 0 ? '$fat %' : '未入力'),
+              if (weightDiff != 0 || muscleDiff != 0) ...[
+                const SizedBox(height: 8),
+                const Divider(),
+                const SizedBox(height: 4),
+                Text('前回比', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))),
+                const SizedBox(height: 4),
+                Row(children: [
+                  if (weightDiff != 0) ...[
+                    Icon(weightDiff < 0 ? Icons.arrow_downward : Icons.arrow_upward, 
+                         color: weightDiff < 0 ? Colors.greenAccent : Colors.orangeAccent, size: 14),
+                    const SizedBox(width: 4),
+                    Text('体重 ${weightDiff > 0 ? '+' : ''}${weightDiff.toStringAsFixed(1)} kg', 
+                         style: TextStyle(fontSize: 13, color: weightDiff < 0 ? Colors.greenAccent : Colors.orangeAccent)),
+                    const SizedBox(width: 16),
+                  ],
+                  if (muscleDiff != 0) ...[
+                    Icon(muscleDiff > 0 ? Icons.arrow_upward : Icons.arrow_downward, 
+                         color: muscleDiff > 0 ? Colors.blueAccent : Colors.redAccent, size: 14),
+                    const SizedBox(width: 4),
+                    Text('骨格筋量 ${muscleDiff > 0 ? '+' : ''}${muscleDiff.toStringAsFixed(1)} kg', 
+                         style: TextStyle(fontSize: 13, color: muscleDiff > 0 ? Colors.blueAccent : Colors.redAccent)),
+                  ],
+                ]),
+              ],
+              const SizedBox(height: 8),
+              const Center(child: Text('タップして推移を表示', style: TextStyle(fontSize: 10, color: Colors.grey))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddSleepDialog(BuildContext context) {
+    final now = DateTime.now();
+    DateTime wakeDate = now;
+    final sleepHourController = TextEditingController(text: '23');
+    final sleepMinController = TextEditingController(text: '00');
+    final wakeHourController = TextEditingController(text: '07');
+    final wakeMinController = TextEditingController(text: '00');
+    bool sleptYesterday = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.bedtime, color: Colors.pinkAccent),
+              SizedBox(width: 8),
+              Text('睡眠記録'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('就寝・起床の時刻を数値で入力してください', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(height: 16),
+                const Text('就寝時刻', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Expanded(child: TextField(controller: sleepHourController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '時'))),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: sleepMinController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '分'))),
                   ],
                 ),
-              );
-                    },
-                  );
-                },
-              );
-            },
-          );
-        },
+                CheckboxListTile(
+                  title: const Text('前日の夜に寝た', style: TextStyle(fontSize: 12)),
+                  value: sleptYesterday,
+                  onChanged: (val) => setDialogState(() => sleptYesterday = val ?? true),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                ),
+                const SizedBox(height: 12),
+                const Text('起床時刻', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Expanded(child: TextField(controller: wakeHourController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '時'))),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: wakeMinController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '分'))),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  title: const Text('起床日', style: TextStyle(fontSize: 13)),
+                  subtitle: Text('${wakeDate.month}/${wakeDate.day}'),
+                  trailing: const Icon(Icons.calendar_today, size: 18),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: wakeDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) setDialogState(() => wakeDate = picked);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                context.go('/home');
+                Navigator.pop(ctx);
+              },
+              child: const Text('キャンセル'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final sH = int.tryParse(sleepHourController.text) ?? 23;
+                final sM = int.tryParse(sleepMinController.text) ?? 0;
+                final wH = int.tryParse(wakeHourController.text) ?? 7;
+                final wM = int.tryParse(wakeMinController.text) ?? 0;
+
+                final sleepDate = sleptYesterday ? wakeDate.subtract(const Duration(days: 1)) : wakeDate;
+                final sleepStart = DateTime(sleepDate.year, sleepDate.month, sleepDate.day, sH, sM);
+                final sleepEnd = DateTime(wakeDate.year, wakeDate.month, wakeDate.day, wH, wM);
+                
+                if (sleepEnd.isBefore(sleepStart)) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('起床時刻が入眠時刻より前になっています')));
+                  return;
+                }
+
+                final duration = sleepEnd.difference(sleepStart).inMinutes;
+                
+                // 同期不備を防ぐため、date には起床日の 12:00:00 を設定して「実効的な当日」に確実に入れる
+                final recordDate = DateTime(wakeDate.year, wakeDate.month, wakeDate.day, 12, 0, 0);
+
+                final record = TrainingRecord(
+                  id: '',
+                  type: 'sleep',
+                  date: recordDate,
+                  durationMinutes: duration,
+                  subjectiveMetrics: {
+                    'sleep_start': sleepStart.toIso8601String(),
+                    'sleep_end': sleepEnd.toIso8601String(),
+                  },
+                  details: [],
+                );
+                
+                await _firestoreService.addTrainingRecord(record);
+                if (ctx.mounted) {
+                  context.go('/home'); 
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -382,109 +388,452 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showAddPbDialog(BuildContext context, String category) {
     final eventController = TextEditingController();
     final valueController = TextEditingController();
-    
+    DateTime selectedDate = DateTime.now();
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(category == 'swim' ? '水泳のPBを追加' : '陸トレのPBを追加'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: eventController, decoration: InputDecoration(labelText: category == 'swim' ? '種目 (例: 50m Fr)' : '種目 (例: ベンチプレス)')),
-            TextField(controller: valueController, decoration: InputDecoration(labelText: category == 'swim' ? 'タイム (秒)' : '重量 (kg)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(category == 'swim' ? '水泳のPBを追加' : '陸トレのPBを追加'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: eventController, decoration: InputDecoration(labelText: category == 'swim' ? '種目 (例: 50m Fr)' : '種目 (例: ベンチプレス)')),
+              TextField(controller: valueController, decoration: InputDecoration(labelText: category == 'swim' ? 'タイム (秒)' : '重量 (kg)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+              ListTile(
+                title: const Text('記録日', style: TextStyle(fontSize: 14)),
+                subtitle: Text('${selectedDate.year}/${selectedDate.month}/${selectedDate.day}'),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setDialogState(() => selectedDate = picked);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+            ElevatedButton(
+              onPressed: () async {
+                final val = double.tryParse(valueController.text);
+                if (eventController.text.isNotEmpty && val != null) {
+                  final pb = PersonalBest(
+                    id: '',
+                    category: category,
+                    event: category == 'swim' 
+                        ? EventUtils.normalizeEventName(eventController.text) 
+                        : eventController.text,
+                    value: val,
+                    date: selectedDate,
+                  );
+                  await _firestoreService.savePersonalBest(pb);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                }
+              },
+              child: const Text('保存'),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
-          ElevatedButton(
-            onPressed: () async {
-              final val = double.tryParse(valueController.text);
-              if (eventController.text.isNotEmpty && val != null) {
-                final pb = PersonalBest(
-                  id: '',
-                  category: category,
-                  event: category == 'swim' 
-                      ? EventUtils.normalizeEventName(eventController.text) 
-                      : eventController.text,
-                  value: val,
-                  date: DateTime.now(),
-                );
-                await _firestoreService.savePersonalBest(pb);
-                if (ctx.mounted) Navigator.pop(ctx);
-              }
-            },
-            child: const Text('保存'),
-          ),
-        ],
       ),
     );
   }
 
   void _showPbHistoryDialog(BuildContext context, String event, List<PersonalBest> history, {required bool isTime}) {
-    if (history.isEmpty) return;
-    
-    // Y軸設定のために最小・最大値を計算
-    final values = history.map((e) => e.value).toList();
-    final minY = values.reduce((a, b) => a < b ? a : b) * 0.95;
-    final maxY = values.reduce((a, b) => a > b ? a : b) * 1.05;
+    // 日付順にソート（グラフ用）
+    final sortedHistory = List<PersonalBest>.from(history)..sort((a, b) => a.date.compareTo(b.date));
+    if (sortedHistory.isEmpty) return;
+
+    // 自己ベスト（一番速い/重い）を特定
+    final bestPb = isTime 
+        ? history.reduce((a, b) => a.value < b.value ? a : b)
+        : history.reduce((a, b) => a.value > b.value ? a : b);
 
     showDialog(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          title: Text('$event の推移', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 300,
-            child: history.length == 1
-                ? const Center(child: Text('データが1件のみのためグラフ化できません。', style: TextStyle(color: Colors.grey, fontSize: 13)))
-                : LineChart(
-                    LineChartData(
-                      minY: minY,
-                      maxY: maxY,
-                      minX: 0,
-                      maxX: (history.length - 1).toDouble(),
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: history.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.value)).toList(),
-                          isCurved: true,
-                          color: isTime ? Colors.teal : Colors.orange,
-                          barWidth: 3,
-                          isStrokeCapRound: true,
-                          dotData: const FlDotData(show: true),
-                        ),
+        int selectedIndex = bestPb.trainingRecordId != null ? 0 : 1; // ラップがあればラップ、なければグラフ
+        TrainingRecord? bestRecord;
+        bool isLoadingRecord = bestPb.trainingRecordId != null;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            // 初回のみ記録を取得
+            if (isLoadingRecord && bestRecord == null) {
+              _firestoreService.getTrainingRecord(bestPb.trainingRecordId!).then((record) {
+                if (ctx.mounted) {
+                  setDialogState(() {
+                    bestRecord = record;
+                    isLoadingRecord = false;
+                  });
+                }
+              });
+            }
+
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Expanded(child: Text(event, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+                  if (isTime && bestPb.trainingRecordId != null)
+                    SegmentedButton<int>(
+                      segments: const [
+                        ButtonSegment(value: 0, label: Text('ラップ', style: TextStyle(fontSize: 10))),
+                        ButtonSegment(value: 1, label: Text('推移', style: TextStyle(fontSize: 10))),
                       ],
-                      titlesData: FlTitlesData(
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (value, meta) {
-                              final index = value.toInt();
-                              if (index < 0 || index >= history.length) return const SizedBox.shrink();
-                              final date = history[index].date;
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: Text('${date.month}/${date.day}', style: const TextStyle(fontSize: 10)),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      gridData: const FlGridData(show: true, drawVerticalLine: false),
-                      borderData: FlBorderData(show: false),
+                      selected: {selectedIndex},
+                      onSelectionChanged: (s) => setDialogState(() => selectedIndex = s.first),
+                      showSelectedIcon: false,
+                      style: SegmentedButton.styleFrom(visualDensity: VisualDensity.compact),
                     ),
-                  ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('閉じる'),
-            ),
-          ],
+                ],
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                height: 350,
+                child: selectedIndex == 0 && isTime
+                  ? _buildPbDetailView(bestPb, bestRecord, isLoadingRecord)
+                  : _buildPbTrendView(event, sortedHistory, isTime),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('閉じる')),
+              ],
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildPbDetailView(PersonalBest pb, TrainingRecord? record, bool isLoading) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    if (record == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.info_outline, size: 48, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text('詳細データがありません', style: TextStyle(color: Colors.grey)),
+            Text('達成日: ${pb.date.year}/${pb.date.month}/${pb.date.day}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    final lapsData = record.details.firstWhere((d) => d['type'] == 'laps', orElse: () => {})['data'] as List<dynamic>? ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.teal.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('BEST TIME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
+                  Text(_formatSeconds(pb.value), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
+                ],
+              ),
+              Text('${pb.date.year}/${pb.date.month}/${pb.date.day}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text('ラップタイム詳細', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        const Divider(),
+        Expanded(
+          child: lapsData.isEmpty 
+            ? const Center(child: Text('ラップデータがありません', style: TextStyle(fontSize: 12, color: Colors.white54)))
+            : ListView.separated(
+                itemCount: lapsData.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (ctx, i) {
+                  final lap = lapsData[i];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Row(
+                      children: [
+                        SizedBox(width: 60, child: Text(lap['section'] ?? '', style: const TextStyle(fontSize: 12, color: Colors.grey))),
+                        Expanded(child: Text(lap['cumulative'] ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold))),
+                        Text('(${lap['time'] ?? ''})', style: const TextStyle(fontSize: 12, color: Colors.tealAccent)),
+                      ],
+                    ),
+                  );
+                },
+              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPbTrendView(String event, List<PersonalBest> sortedHistory, bool isTime) {
+    final List<FlSpot> spots = sortedHistory.map((pb) {
+      final yValue = (isTime && pb.category == 'swim') ? -pb.value : pb.value;
+      return FlSpot(pb.date.millisecondsSinceEpoch.toDouble(), yValue);
+    }).toList();
+
+    final yValues = spots.map((s) => s.y).toList();
+    final xValues = spots.map((s) => s.x).toList();
+    
+    final minX = xValues.length == 1 ? xValues.first - 86400000 : xValues.reduce((a, b) => a < b ? a : b);
+    final maxX = xValues.length == 1 ? xValues.first + 86400000 : xValues.reduce((a, b) => a > b ? a : b);
+    
+    final minY = yValues.reduce((a, b) => a < b ? a : b) - 1.0;
+    final maxY = yValues.reduce((a, b) => a > b ? a : b) + 1.0;
+
+    return LineChart(
+      LineChartData(
+        minX: minX,
+        maxX: maxX,
+        minY: minY,
+        maxY: maxY,
+        clipData: const FlClipData.all(),
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: isTime ? Colors.teal : Colors.orange,
+            barWidth: 3,
+            isStrokeCapRound: true,
+            dotData: const FlDotData(show: true),
+          ),
+        ],
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text(_formatSeconds(value.abs()), style: const TextStyle(fontSize: 10));
+              },
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 30,
+              interval: (maxX - minX) / 4 > 86400000 ? (maxX - minX) / 4 : 86400000,
+              getTitlesWidget: (value, meta) {
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(AppDateUtils.getChartLabel(value), style: const TextStyle(fontSize: 10)),
+                );
+              },
+            ),
+          ),
+        ),
+        gridData: const FlGridData(show: true, drawVerticalLine: false),
+        borderData: FlBorderData(show: false),
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (_) => Colors.blueGrey,
+            getTooltipItems: (touchedSpots) {
+              return touchedSpots.map((s) {
+                return LineTooltipItem(
+                  '${_formatSeconds(s.y.abs())}${isTime ? '' : ' kg'}',
+                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                );
+              }).toList();
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showBodyCompositionHistory(BuildContext context, List<TrainingRecord> logs) {
+    // 体組成データを抽出・ソート
+    final bodyLogs = logs.where((l) => 
+      l.type == 'body_composition' || 
+      (l.type == 'nutrition' && l.subjectiveMetrics['is_body_composition'] == true)
+    ).toList()..sort((a, b) => a.date.compareTo(b.date));
+
+    if (bodyLogs.isEmpty) return;
+
+    final List<FlSpot> weightSpots = [];
+    final List<FlSpot> muscleSpots = [];
+    final List<FlSpot> fatSpots = [];
+
+    for (final log in bodyLogs) {
+      final double x = log.date.millisecondsSinceEpoch.toDouble();
+      final metrics = log.subjectiveMetrics;
+      if (metrics.containsKey('weight')) {
+        weightSpots.add(FlSpot(x, (metrics['weight'] as num).toDouble()));
+      }
+      if (metrics.containsKey('muscle_mass')) {
+        muscleSpots.add(FlSpot(x, (metrics['muscle_mass'] as num).toDouble()));
+      }
+      if (metrics.containsKey('body_fat')) {
+        fatSpots.add(FlSpot(x, (metrics['body_fat'] as num).toDouble()));
+      }
+    }
+
+    final xValues = (weightSpots + muscleSpots + fatSpots).map((s) => s.x).toList();
+    if (xValues.isEmpty) return;
+    
+    final minX = xValues.length == 1 ? xValues.first - 86400000 : xValues.reduce((a, b) => a < b ? a : b);
+    final maxX = xValues.length == 1 ? xValues.first + 86400000 : xValues.reduce((a, b) => a > b ? a : b);
+
+    // kg系（体重・筋量）のレンジ
+    final kgValues = (weightSpots + muscleSpots).map((s) => s.y).toList();
+    final double minKg = kgValues.isEmpty ? 0 : kgValues.reduce((a, b) => a < b ? a : b) - 2;
+    final double maxKg = kgValues.isEmpty ? 100 : kgValues.reduce((a, b) => a > b ? a : b) + 2;
+
+    // %系（体脂肪率）のレンジ
+    final fatValues = fatSpots.map((s) => s.y).toList();
+    final double minFat = fatValues.isEmpty ? 0 : fatValues.reduce((a, b) => a < b ? a : b) - 1;
+    final double maxFat = fatValues.isEmpty ? 30 : fatValues.reduce((a, b) => a > b ? a : b) + 1;
+
+    // 体脂肪率をkgレンジに正規化してプロット用スポットを作成
+    final normalizedFatSpots = fatSpots.map((s) {
+      double normalizedY;
+      if (maxFat == minFat) {
+        normalizedY = (maxKg + minKg) / 2;
+      } else {
+        normalizedY = (s.y - minFat) / (maxFat - minFat) * (maxKg - minKg) + minKg;
+      }
+      return FlSpot(s.x, normalizedY);
+    }).toList();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('体組成推移', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 350,
+          child: Column(
+            children: [
+              Expanded(
+                child: LineChart(
+                  LineChartData(
+                    minX: minX,
+                    maxX: maxX,
+                    minY: minKg,
+                    maxY: maxKg,
+                    clipData: const FlClipData.all(),
+                    lineBarsData: [
+                      if (weightSpots.isNotEmpty)
+                        LineChartBarData(
+                          spots: weightSpots, color: Colors.blue, barWidth: 3, dotData: const FlDotData(show: true), isCurved: true,
+                        ),
+                      if (muscleSpots.isNotEmpty)
+                        LineChartBarData(
+                          spots: muscleSpots, color: Colors.green, barWidth: 3, dotData: const FlDotData(show: true), isCurved: true,
+                        ),
+                      if (normalizedFatSpots.isNotEmpty)
+                        LineChartBarData(
+                          spots: normalizedFatSpots, color: Colors.orange, barWidth: 3, dotData: const FlDotData(show: true), isCurved: true,
+                        ),
+                    ],
+                    titlesData: FlTitlesData(
+                      rightTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 40,
+                          getTitlesWidget: (v, m) {
+                            if (maxKg == minKg) return const SizedBox.shrink();
+                            final fatVal = (v - minKg) / (maxKg - minKg) * (maxFat - minFat) + minFat;
+                            return Text(fatVal.toStringAsFixed(1), style: const TextStyle(fontSize: 10, color: Colors.orange));
+                          },
+                        ),
+                      ),
+                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 40,
+                          getTitlesWidget: (v, m) => Text(v.toStringAsFixed(1), style: const TextStyle(fontSize: 10, color: Colors.blue)),
+                        ),
+                      ),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 30,
+                          interval: (maxX - minX) / 4 > 86400000 ? (maxX - minX) / 4 : 86400000,
+                          getTitlesWidget: (v, m) {
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(AppDateUtils.getChartLabel(v), style: const TextStyle(fontSize: 9)),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    gridData: const FlGridData(show: true, drawVerticalLine: false),
+                    borderData: FlBorderData(show: false),
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        getTooltipColor: (_) => Colors.blueGrey,
+                        getTooltipItems: (touchedSpots) {
+                          return touchedSpots.map((s) {
+                            String unit = ' kg';
+                            double displayValue = s.y;
+                            if (s.bar.color == Colors.orange) {
+                              unit = ' %';
+                              // 正規化を解除して元の体脂肪率に戻す
+                              if (maxKg != minKg) {
+                                displayValue = (s.y - minKg) / (maxKg - minKg) * (maxFat - minFat) + minFat;
+                              } else {
+                                displayValue = minFat;
+                              }
+                            }
+                            return LineTooltipItem(
+                              '${displayValue.toStringAsFixed(1)}$unit',
+                              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            );
+                          }).toList();
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [
+                  _buildLegend(Colors.blue, '体重(kg)'),
+                  _buildLegend(Colors.green, '骨格筋量(kg)'),
+                  _buildLegend(Colors.orange, '体脂肪率(%)'),
+                ],
+              )
+            ],
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('閉じる'))],
+      ),
+    );
+  }
+
+  Widget _buildLegend(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 10)),
+      ],
     );
   }
 
@@ -535,7 +884,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 final updatedPb = PersonalBest(
                   id: pb.id,
                   category: pb.category,
-                  event: eventController.text,
+                  event: EventUtils.normalizeEventName(eventController.text),
                   value: newVal,
                   date: pb.date,
                 );
@@ -809,6 +1158,13 @@ class _HomeScreenState extends State<HomeScreen> {
       lineBarsData: bars,
     );
   }
+  String _formatSeconds(double seconds) {
+    if (seconds <= 0) return '0.00';
+    final int min = (seconds / 60).floor();
+    final double sec = seconds % 60;
+    if (min == 0) return sec.toStringAsFixed(2);
+    return '$min:${sec.toStringAsFixed(2).padLeft(5, '0')}';
+  }
 }
 
 class _SectionLabel extends StatelessWidget {
@@ -887,35 +1243,29 @@ class _PfcStatusRow extends StatelessWidget {
   }
 }
 
-class _BadgeCountSection extends StatelessWidget {
-  final List<TrainingRecord> records;
+class _BadgeCountSection extends ConsumerWidget {
   final bool showMonthly;
   final Function(bool) onToggle;
-  final WeeklyPlan? latestPlan;
-  const _BadgeCountSection({required this.records, required this.showMonthly, required this.onToggle, this.latestPlan});
+  const _BadgeCountSection({super.key, required this.showMonthly, required this.onToggle});
 
   @override
-  Widget build(BuildContext context) {
-    // 記録を実効日（朝4時切り替え）ごとにグルーピング
-    final Map<String, List<TrainingRecord>> recordsByEffectiveDay = {};
-    for (var r in records) {
-      final effectiveDate = r.date.hour < 4 ? r.date.subtract(const Duration(days: 1)) : r.date;
-      final key = "${effectiveDate.year}-${effectiveDate.month}-${effectiveDate.day}";
-      recordsByEffectiveDay.putIfAbsent(key, () => []).add(r);
-    }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recordsByEffectiveDay = ref.watch(recordsByEffectiveDayProvider);
+    final latestPlan = ref.watch(latestWeeklyPlanProvider).value;
+    // recordsByEffectiveDay はプロバイダーから取得済み
 
     int poolTotal = 0, poolMonth = 0;
     int drylandTotal = 0, drylandMonth = 0;
     int pTotal = 0, pMonth = 0;
     int fTotal = 0, fMonth = 0;
     int cTotal = 0, cMonth = 0;
-    final now = DateTime.now();
+    final logicalNow = AppDateUtils.logicalToday();
 
     for (var key in recordsByEffectiveDay.keys) {
       final dayRecords = recordsByEffectiveDay[key]!;
       final parts = key.split('-');
       final y = int.parse(parts[0]), m = int.parse(parts[1]), d = int.parse(parts[2]);
-      final isThisMonth = (y == now.year && m == now.month);
+      final isThisMonth = (y == logicalNow.year && m == logicalNow.month);
       
       // カテゴリ別達成判定
       bool hasPool = dayRecords.any((r) => r.type == 'pool');
@@ -944,9 +1294,9 @@ class _BadgeCountSection extends StatelessWidget {
 
       if (hasPool) { poolTotal++; if (isThisMonth) poolMonth++; }
       if (hasDryland) { drylandTotal++; if (isThisMonth) drylandMonth++; }
-      if (dP >= targetP) { pTotal++; if (isThisMonth) pMonth++; }
-      if (dF >= targetF) { fTotal++; if (isThisMonth) fMonth++; }
-      if (dC >= targetC) { cTotal++; if (isThisMonth) cMonth++; }
+      if (dP >= targetP && targetP > 0) { pTotal++; if (isThisMonth) pMonth++; }
+      if (dF >= targetF && targetF > 0) { fTotal++; if (isThisMonth) fMonth++; }
+      if (dC >= targetC && targetC > 0) { cTotal++; if (isThisMonth) cMonth++; }
     }
 
     return Card(
@@ -1055,16 +1405,20 @@ class _LegendItem extends StatelessWidget {
 class _TodaySummaryCard extends StatefulWidget {
   final TrainingRecord? poolRecord;
   final TrainingRecord? drylandRecord;
+  final TrainingRecord? sleepRecord;
   final List<TrainingRecord> nutritionRecords;
   final AppUser? user;
   final WeeklyPlan? latestPlan;
+  final VoidCallback? onAddSleepPressed;
 
   const _TodaySummaryCard({
     required this.poolRecord,
     required this.drylandRecord,
+    required this.sleepRecord,
     required this.nutritionRecords,
     this.user,
     this.latestPlan,
+    this.onAddSleepPressed,
   });
 
   @override
@@ -1072,8 +1426,7 @@ class _TodaySummaryCard extends StatefulWidget {
 }
 
 class _TodaySummaryCardState extends State<_TodaySummaryCard> {
-  String? _aiEvaluation;
-  bool _isAiLoading = false;
+  final String? _aiEvaluation = null;
 
   @override
   void initState() {
@@ -1085,39 +1438,61 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     super.didUpdateWidget(oldWidget);
   }
 
+  void _shareSummary() {
+    final poolDist = widget.poolRecord != null ? '${widget.poolRecord!.durationMinutes}分' : '未入力';
+    final poolMenu = widget.poolRecord != null && widget.poolRecord!.details.isNotEmpty
+        ? widget.poolRecord!.details.first['content'] ?? '記録あり' : '未入力';
 
-  Future<void> _generateAiEvaluation(String nutritionMenu, double p, double f, double c) async {
-    setState(() => _isAiLoading = true);
-    try {
-      final prompt = """
-以下の本日の食事内容とPFC自己評価から、栄養状態に対する1-2文の簡潔なフィードバックを行ってください。
-【食事内容（合算）】
-$nutritionMenu
-【PFC自己評価（各15点満点）】
-P: $p, F: $f, C: $c
+    String drylandMenu = '未入力';
+    if (widget.drylandRecord != null && widget.drylandRecord!.details.isNotEmpty) {
+      final menuTextItem = widget.drylandRecord!.details.where((d) => d['type'] == 'menu_text').firstOrNull;
+      if (menuTextItem != null) {
+        drylandMenu = menuTextItem['content'] as String;
+      } else {
+        final sets = widget.drylandRecord!.details.where((d) => d['type'] == 'dryland_set');
+        if (sets.isNotEmpty) {
+          final exercises = <String>{};
+          for (var s in sets) { exercises.add('${s['exercise']} ${s['weight']}kg'); }
+          drylandMenu = exercises.join(', ');
+        }
+      }
+    }
 
-評価は具体的に不足している栄養素を補うアドバイスか、よく摂れている点に対する称賛を含めてください。
+    double p = 0, f = 0, c = 0;
+    for (var r in widget.nutritionRecords) {
+      p += r.subjectiveMetrics['protein']?.toDouble() ?? 0.0;
+      f += r.subjectiveMetrics['fat']?.toDouble() ?? 0.0;
+      c += r.subjectiveMetrics['carbs']?.toDouble() ?? 0.0;
+    }
+
+    int targetP = 150, targetF = 70, targetC = 400;
+    if (widget.latestPlan != null) {
+      final logicalToday = AppDateUtils.logicalToday();
+      final weekdayStr = ['月','火','水','木','金','土','日'][logicalToday.weekday - 1];
+      final todaysPlan = widget.latestPlan!.dailyPlans.where((p) => p.dateStr.contains(weekdayStr)).firstOrNull;
+      if (todaysPlan != null) {
+        targetP = todaysPlan.targetProtein > 0 ? todaysPlan.targetProtein : targetP;
+        targetF = todaysPlan.targetFat > 0 ? todaysPlan.targetFat : targetF;
+        targetC = todaysPlan.targetCarbs > 0 ? todaysPlan.targetCarbs : targetC;
+      }
+    }
+
+    final sleepStr = widget.sleepRecord != null
+        ? '${(widget.sleepRecord!.durationMinutes / 60).floor()}時間 ${widget.sleepRecord!.durationMinutes % 60}分'
+        : '未入力';
+
+    final text = """
+🌊 今日の AquaAnalyst 成果！
+
+【水中】$poolDist ($poolMenu)
+【陸トレ】$drylandMenu
+【栄養】P: ${p.toInt()}/${targetP}g (${p >= targetP ? '達成' : '不足'}), F: ${f.toInt()}/${targetF}g, C: ${c.toInt()}/${targetC}g
+【睡眠】$sleepStr
+
+#AquaAnalyst #競泳 #アスリート
 """;
 
-      final systemInstruction = widget.user != null 
-          ? GeminiService().getCoachSystemInstruction(widget.user!)
-          : "あなたは水泳のAIコーチです。";
-
-      final result = await GeminiService().generateContent(
-        prompt, 
-        systemInstruction: systemInstruction,
-        modelId: GeminiService.modelForNutrition,
-      );
-      if (mounted) {
-        setState(() => _aiEvaluation = result);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('AI評価の取得に失敗しました: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isAiLoading = false);
-    }
+    Share.share(text);
   }
 
   @override
@@ -1163,8 +1538,8 @@ P: $p, F: $f, C: $c
     // 週間計画から今日の必要量を算出
     int targetP = 150, targetF = 70, targetC = 400; // デフォルト値
     if (widget.latestPlan != null) {
-      final now = DateTime.now();
-      final weekdayStr = ['月','火','水','木','金','土','日'][now.weekday - 1];
+      final logicalToday = AppDateUtils.logicalToday();
+      final weekdayStr = ['月','火','水','木','金','土','日'][logicalToday.weekday - 1];
       final todaysPlan = widget.latestPlan!.dailyPlans.where((p) => p.dateStr.contains(weekdayStr)).firstOrNull;
       if (todaysPlan != null) {
         targetP = todaysPlan.targetProtein > 0 ? todaysPlan.targetProtein : targetP;
@@ -1176,7 +1551,6 @@ P: $p, F: $f, C: $c
     // カロリー計算 (P*4, F*9, C*4)
     final double totalCalories = (proteinValue * 4) + (fatValue * 9) + (carbsValue * 4);
     final double targetCalories = (targetP * 4.0) + (targetF * 9.0) + (targetC * 4.0);
-    final String calorieStatus = totalCalories < targetCalories * 0.9 ? '不足' : (totalCalories > targetCalories * 1.1 ? '過剰' : '良好');
 
     return Container(
       decoration: BoxDecoration(
@@ -1193,6 +1567,15 @@ P: $p, F: $f, C: $c
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('今日のサマリー', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
+              IconButton(
+                onPressed: _shareSummary,
+                icon: const Icon(Icons.share, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                ),
+                tooltip: 'SNSに共有',
+              ),
             ],
           ),
           Divider(color: Theme.of(context).colorScheme.primaryContainer, height: 24),
@@ -1229,7 +1612,7 @@ P: $p, F: $f, C: $c
             context,
             icon: Icons.restaurant,
             label: '栄養状態',
-            color: Colors.indigoAccent,
+            color: Colors.lightGreen.shade700,
             children: [
               if (widget.nutritionRecords.isEmpty) 
                 const _DetailRow(label: '食事内容', value: '未入力'),
@@ -1261,21 +1644,21 @@ P: $p, F: $f, C: $c
                 value: proteinValue, 
                 maxValue: targetP.toDouble(), 
                 color: Colors.redAccent, 
-                status: proteinValue >= targetP ? '達成' : '不足' // タンパク質は目標を超えていれば達成
+                status: (targetP > 0 && proteinValue >= targetP) ? '達成' : '不足'
               ),
               _PfcStatusRow(
                 label: '脂質 (F)', 
                 value: fatValue, 
                 maxValue: targetF.toDouble(), 
                 color: Colors.deepOrangeAccent, 
-                status: fatValue > targetF * 1.15 ? '過多' : (fatValue >= targetF * 0.85 ? '達成' : '不足')
+                status: (targetF > 0 && fatValue >= targetF) ? '達成' : '不足'
               ),
               _PfcStatusRow(
                 label: '炭水化物 (C)', 
                 value: carbsValue, 
                 maxValue: targetC.toDouble(), 
-                color: Colors.greenAccent, 
-                status: carbsValue > targetC * 1.15 ? '過多' : (carbsValue >= targetC * 0.85 ? '達成' : '不足')
+                color: Colors.green.shade400, 
+                status: (targetC > 0 && carbsValue >= targetC) ? '達成' : '不足'
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 4.0),
@@ -1286,10 +1669,53 @@ P: $p, F: $f, C: $c
                 value: totalCalories, 
                 maxValue: targetCalories > 0 ? targetCalories : 2500, 
                 color: Colors.purpleAccent, 
-                status: targetCalories > 0 
-                    ? (totalCalories > targetCalories * 1.08 ? '過多' : (totalCalories >= targetCalories * 0.92 ? '達成' : '不足'))
-                    : calorieStatus
+                status: (targetCalories > 0 && totalCalories >= targetCalories) ? '達成' : '不足'
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // 睡眠時間
+          _buildSummarySection(
+            context,
+            icon: Icons.bedtime,
+            label: '睡眠時間',
+            color: Colors.pinkAccent,
+            children: [
+              if (widget.sleepRecord != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _DetailRow(
+                      label: '実績',
+                      value: '${(widget.sleepRecord!.durationMinutes / 60).floor()}時間 ${widget.sleepRecord!.durationMinutes % 60}分',
+                    ),
+                    Text(
+                      '時間: ${() {
+                        final start = DateTime.parse(widget.sleepRecord!.subjectiveMetrics['sleep_start'] as String);
+                        final end = DateTime.parse(widget.sleepRecord!.subjectiveMetrics['sleep_end'] as String);
+                        return '${start.month}/${start.day} ${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')} 〜 ${end.month}/${end.day} ${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+                      }()}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('未入力', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                    TextButton.icon(
+                      onPressed: widget.onAddSleepPressed,
+                      icon: const Icon(Icons.add_circle_outline, size: 16),
+                      label: const Text('睡眠記録を入力', style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        foregroundColor: Colors.pinkAccent,
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
           
@@ -1315,36 +1741,26 @@ P: $p, F: $f, C: $c
                 ],
               ),
             )
-          else
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: widget.nutritionRecords.isEmpty || _isAiLoading 
-                    ? null 
-                    : () => _generateAiEvaluation(allNutritionMenu, proteinValue, 8.0, carbsValue),
-                icon: _isAiLoading 
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.psychology, size: 18),
-                label: const Text('AIから今日の栄養評価をもらう'),
-              ),
-            ),
         ],
       ),
     );
   }
 
   Widget _buildSummarySection(BuildContext context, {required IconData icon, required String label, required Color color, required List<Widget> children}) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    final effectiveColor = isLight ? (color == Colors.blueAccent ? Colors.blue.shade900 : color == Colors.amber ? Colors.amber.shade900 : color) : color;
+    
     return Container(
       decoration: BoxDecoration(
-        color: color.withOpacity(0.03),
+        color: effectiveColor.withOpacity(isLight ? 0.08 : 0.03),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.15)),
+        border: Border.all(color: effectiveColor.withOpacity(isLight ? 0.3 : 0.15)),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionLabel(icon: icon, label: label, color: color),
+          _SectionLabel(icon: icon, label: label, color: effectiveColor),
           const SizedBox(height: 12),
           ...children,
         ],
@@ -1353,17 +1769,14 @@ P: $p, F: $f, C: $c
   }
 }
 
-class _ActivityCalendar extends StatefulWidget {
-  final List<TrainingRecord> records;
-  final WeeklyPlan? latestPlan;
-
-  const _ActivityCalendar({required this.records, this.latestPlan});
+class _ActivityCalendar extends ConsumerStatefulWidget {
+  const _ActivityCalendar({super.key});
 
   @override
-  State<_ActivityCalendar> createState() => _ActivityCalendarState();
+  ConsumerState<_ActivityCalendar> createState() => _ActivityCalendarState();
 }
 
-class _ActivityCalendarState extends State<_ActivityCalendar> {
+class _ActivityCalendarState extends ConsumerState<_ActivityCalendar> {
   DateTime _currentMonth = DateTime.now();
 
   List<DateTime> _getDaysInMonth() {
@@ -1596,6 +2009,7 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
 
   @override
   Widget build(BuildContext context) {
+    final latestPlan = ref.watch(latestWeeklyPlanProvider).value;
     final days = _getDaysInMonth();
     final today = DateTime.now();
     final weekDays = ['日', '月', '火', '水', '木', '金', '土'];
@@ -1654,11 +2068,9 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
                 final isCurrentMonth = date.month == _currentMonth.month;
                 final isToday = date.year == today.year && date.month == today.month && date.day == today.day;
                 
-                // その日が「実効日」であるレコードを取得
-                final dayRecords = widget.records.where((r) {
-                  final effectiveDate = r.date.hour < 4 ? r.date.subtract(const Duration(days: 1)) : r.date;
-                  return effectiveDate.year == date.year && effectiveDate.month == date.month && effectiveDate.day == date.day;
-                }).toList();
+                final dateKey = "${date.year}-${date.month}-${date.day}";
+                final groupedRecords = ref.watch(recordsByEffectiveDayProvider);
+                final dayRecords = groupedRecords[dateKey] ?? [];
                 
                 final hasPool = dayRecords.any((r) => r.type == 'pool');
                 final hasDryland = dayRecords.any((r) => r.type == 'dryland');
@@ -1676,8 +2088,8 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
                   // 目標値（曜日に基づく）
                   final weekdayStr = ['月','火','水','木','金','土','日'][date.weekday - 1];
                   int targetP = 150, targetF = 70, targetC = 400;
-                  if (widget.latestPlan != null) {
-                    final dp = widget.latestPlan!.dailyPlans.where((p) => p.dateStr.contains(weekdayStr)).firstOrNull;
+                  if (latestPlan != null) {
+                    final dp = latestPlan.dailyPlans.where((p) => p.dateStr.contains(weekdayStr)).firstOrNull;
                     if (dp != null) {
                       targetP = dp.targetProtein > 0 ? dp.targetProtein : targetP;
                       targetF = dp.targetFat > 0 ? dp.targetFat : targetF;

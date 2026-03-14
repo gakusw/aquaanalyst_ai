@@ -6,12 +6,14 @@ class AppUser {
   final Map<String, dynamic> baseProfile;
   final String vision;
   final DateTime createdAt;
+  final String role; // 'user' or 'admin'
 
   AppUser({
     required this.uid,
     required this.displayName,
     this.baseProfile = const {},
     this.vision = '',
+    this.role = 'user',
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -21,6 +23,7 @@ class AppUser {
       displayName: map['displayName'] ?? '',
       baseProfile: Map<String, dynamic>.from(map['baseProfile'] ?? {}),
       vision: map['vision'] ?? '',
+      role: map['role'] ?? 'user',
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -30,6 +33,7 @@ class AppUser {
       'displayName': displayName,
       'baseProfile': baseProfile,
       'vision': vision,
+      'role': role,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }

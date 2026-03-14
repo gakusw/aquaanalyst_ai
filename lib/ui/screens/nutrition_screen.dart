@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
 import '../widgets/stable_text_field.dart';
+import '../../data/providers/providers.dart';
 
-class NutritionScreen extends StatefulWidget {
+class NutritionScreen extends ConsumerStatefulWidget {
   const NutritionScreen({super.key});
 
   @override
-  State<NutritionScreen> createState() => _NutritionScreenState();
+  ConsumerState<NutritionScreen> createState() => _NutritionScreenState();
 }
 
-class _NutritionScreenState extends State<NutritionScreen> {
+class _NutritionScreenState extends ConsumerState<NutritionScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _memoController = TextEditingController();
   bool _isOcrLoading = false;
@@ -38,20 +40,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
     try {
       final bytes = await pickedFile.readAsBytes();
       final mimeType = pickedFile.mimeType ?? 'image/jpeg';
-      const prompt = """
-画像内の食事内容や料理の写真を解析し、以下の情報を正確に抽出してください。
-1. 料理名や食材
-2. 推定される分量（例: ○○g、茶碗1杯、1個など）
+      final prompt = await GeminiService().nutritionOcrInstruction;
 
-実際の料理の写真だけでなく、レシートや記録アプリのスクリーンショットなど、どのような形式の画像からでも対応してください。
-抽出した情報は、料理名と分量をセットで記載してください。
-
-出力ルール：
-1. 1行に1品目ずつ記載する（例: 白米: 200g）。
-2. 栄養バランスに対する評価やアドバイス、AIの挨拶などの不要な記述は一切含めず、抽出結果のみを出力する。
-""";
-
-      final user = await _firestoreService.getUserProfileStream().first;
+      final user = ref.read(userProfileProvider).value;
       final modelId = user?.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
 
       final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType, modelId: modelId);
@@ -92,7 +83,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
     setState(() => _isAiAnalyzing = true);
     try {
-      final user = await _firestoreService.getUserProfileStream().first;
+      final user = ref.read(userProfileProvider).value;
       final modelId = user?.baseProfile['aiModel'] as String?;
       
       final result = await GeminiService().analyzeNutrition(_memoController.text, modelId: modelId);

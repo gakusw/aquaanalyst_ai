@@ -45,7 +45,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
 4. プロンプトに対するAIの返答（挨拶や解説）や不要な装飾は一切省き、抽出したメニュー内容のみを出力してください。
 """;
 
-      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType);
+      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType, modelId: GeminiService.modelFlash);
       
       if (!mounted) return;
       if (result != null && result.isNotEmpty && !result.startsWith('AIの処理中')) {
@@ -99,7 +99,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
 1セット目 80.0kg 12回
 """;
 
-      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType);
+      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType, modelId: GeminiService.modelFlash);
       
       if (!mounted) return;
       if (result != null && result.isNotEmpty && !result.startsWith('AIの処理中')) {

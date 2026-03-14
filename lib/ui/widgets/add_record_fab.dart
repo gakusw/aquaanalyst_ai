@@ -52,6 +52,20 @@ class AddRecordFab extends StatelessWidget {
                 },
               ),
               ListTile(
+                leading: const CircleAvatar(backgroundColor: Colors.pinkAccent, child: Icon(Icons.bedtime, color: Colors.white)),
+                title: const Text('睡眠記録'),
+                subtitle: const Text('入眠・起床時間を入力'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  // HomeScreen に実装する睡眠記録ダイアログを呼び出すための通知
+                  // 現状は HomeScreen でのみ有効な想定だが、
+                  // 将来的には Global な Provider 等で管理することも可能。
+                  // ここでは GoRouter で Home に戻ってからダイアログを出す運用を想定。
+                  context.go('/home?action=add_sleep');
+                },
+              ),
+              ListTile(
                 leading: const CircleAvatar(backgroundColor: Colors.teal, child: Icon(Icons.analytics, color: Colors.white)),
                 title: const Text('自己分析シート'),
                 subtitle: const Text('レース記録・ラップを詳細入力'),

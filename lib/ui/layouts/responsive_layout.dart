@@ -19,7 +19,7 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
     if (location.startsWith('/weekly')) return 1;
     if (location.startsWith('/agent')) return 2;
     if (location.startsWith('/insight')) return 3;
-    if (location.startsWith('/settings')) return 4;
+    if (location.startsWith('/settings') || location.startsWith('/admin')) return 4;
     return 0;
   }
 

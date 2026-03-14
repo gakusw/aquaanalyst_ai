@@ -7,7 +7,11 @@ class EventUtils {
 
     String normalized = input;
 
-    // 自由形 (Fr, Freel, Free) - 数値の前後や括弧の前後でも認識するように調整
+    // 数値と略称が繋がっている場合にスペースを挿入 (例: 100Fr -> 100 Fr, Fly50 -> Fly 50)
+    normalized = normalized.replaceAllMapped(RegExp(r'(\d+)([a-zA-Z]+)', caseSensitive: false), (m) => '${m.group(1)} ${m.group(2)}');
+    normalized = normalized.replaceAllMapped(RegExp(r'([a-zA-Z]+)(\d+)', caseSensitive: false), (m) => '${m.group(1)} ${m.group(2)}');
+
+    // 自由形 (Fr, Freel, Free)
     normalized = normalized.replaceAll(RegExp(r'\b(Fr|Freel|Free)\b', caseSensitive: false), '自由形');
     
     // バタフライ (Fly, Bu)
@@ -19,7 +23,35 @@ class EventUtils {
     // 平泳ぎ (Br, Breast)
     normalized = normalized.replaceAll(RegExp(r'\b(Br|Breast)\b', caseSensitive: false), '平泳ぎ');
 
+    // 個人メドレー (IM)
+    normalized = normalized.replaceAll(RegExp(r'\b(IM)\b', caseSensitive: false), '個人メドレー');
+
+    // 距離の数値に 'm' がない場合に自動付与 (25, 50, 100, 200, 400, 800, 1500 など)
+    // 10mから5000m程度の数値を対象とする
+    normalized = normalized.replaceAllMapped(RegExp(r'\b(\d+)\b(?!\s*m)'), (match) {
+      final val = match.group(1)!;
+      final numValue = int.tryParse(val);
+      if (numValue != null && numValue >= 10 && numValue <= 5000) {
+        return '${val}m';
+      }
+      return val;
+    });
+
+    // 数値と 'm' の間のスペースを削除 (例: 100 m -> 100m)
+    normalized = normalized.replaceAllMapped(RegExp(r'(\d+)\s+m'), (m) => '${m.group(1)}m');
+
     // 複数のスペースを1つにまとめ、前後の空白を削除
-    return normalized.replaceAll(RegExp(r' {2,}'), ' ').trim();
+    normalized = normalized.replaceAll(RegExp(r' {2,}'), ' ').trim();
+
+    // フォーマット調整: "自由形 100m" -> "100m 自由形" のように数値を前に出す
+    // ※ ユーザーの好みが分かれる可能性があるが、多くの場合 "100m 自由形" が標準的
+    final match = RegExp(r'^([^\d]+)\s+(\d+m)$').firstMatch(normalized);
+    if (match != null) {
+      final style = match.group(1);
+      final dist = match.group(2);
+      return '$dist $style';
+    }
+
+    return normalized;
   }
 }

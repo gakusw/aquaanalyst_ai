@@ -1,0 +1,1429 @@
+Analyzing aquaanalyst_ai...                                     
+
+  error - The name 'TrainingInsight' isn't a type, so it can't be used as a type argument - lib\data\providers\providers.dart:146:46 - non_type_as_type_argument
+   info - The 'if' statement could be replaced by a null-aware assignment - lib\data\services\gemini_service.dart:42:5 - prefer_conditional_assignment
+warning - Unused import: 'data/services/firestore_service.dart' - lib\main.dart:24:8 - unused_import
+warning - Unused import: 'utils/date_utils.dart' - lib\main.dart:25:8 - unused_import
+   info - The import of 'package:flutter/foundation.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\main.dart:28:8 - unnecessary_import
+   info - Use 'const' with the constructor to improve performance - lib\main.dart:104:61 - prefer_const_constructors
+warning - A value for optional parameter 'isProminent' isn't ever given - lib\ui\layouts\responsive_layout.dart:162:10 - unused_element_parameter
+  error - Undefined class 'TextEditingController' - lib\ui\screens\agent_feedback_screen.dart:20:9 - undefined_class
+  error - The method 'TextEditingController' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:20:49 - undefined_method
+  error - Undefined class 'ScrollController' - lib\ui\screens\agent_feedback_screen.dart:21:9 - undefined_class
+  error - The method 'ScrollController' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:21:46 - undefined_method
+  error - Undefined class 'FocusNode' - lib\ui\screens\agent_feedback_screen.dart:23:9 - undefined_class
+  error - The method 'FocusNode' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:23:32 - undefined_method
+  error - The method 'debugPrint' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:103:7 - undefined_method
+  error - The method 'saveChatSession' isn't defined for the type 'FirestoreService' - lib\ui\screens\agent_feedback_screen.dart:138:31 - undefined_method
+  error - The class 'ChatSession' doesn't have an unnamed constructor - lib\ui\screens\agent_feedback_screen.dart:138:47 - new_with_undefined_constructor_default
+  error - The getter 'id' isn't defined for the type 'AppUser' - lib\ui\screens\agent_feedback_screen.dart:140:22 - undefined_getter
+  error - The method 'debugPrint' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:158:7 - undefined_method
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\agent_feedback_screen.dart:169:7 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\agent_feedback_screen.dart:169:56 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:169:74 - undefined_method
+warning - The declaration '_getFriendlyErrorMessage' isn't referenced - lib\ui\screens\agent_feedback_screen.dart:211:10 - unused_element
+  error - The method 'TextEditingController' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:217:24 - undefined_method
+  error - The method 'showDialog' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:218:28 - undefined_method
+  error - The method 'AlertDialog' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:220:29 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\agent_feedback_screen.dart:221:22 - creation_with_non_type
+  error - The method 'TextField' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:222:18 - undefined_method
+  error - The name 'InputDecoration' isn't a class - lib\ui\screens\agent_feedback_screen.dart:224:29 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:228:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\agent_feedback_screen.dart:228:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\agent_feedback_screen.dart:228:76 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:229:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\agent_feedback_screen.dart:229:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\agent_feedback_screen.dart:229:93 - creation_with_non_type
+  error - The method 'showDialog' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:240:27 - undefined_method
+  error - The method 'AlertDialog' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:242:29 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\agent_feedback_screen.dart:243:22 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\agent_feedback_screen.dart:244:24 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:246:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\agent_feedback_screen.dart:246:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\agent_feedback_screen.dart:246:83 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:247:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\agent_feedback_screen.dart:248:30 - undefined_identifier
+  error - Undefined name 'TextButton' - lib\ui\screens\agent_feedback_screen.dart:249:20 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\agent_feedback_screen.dart:249:58 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\agent_feedback_screen.dart:250:26 - creation_with_non_type
+  error - Undefined name 'WidgetsBinding' - lib\ui\screens\agent_feedback_screen.dart:265:5 - undefined_identifier
+  error - Undefined name 'Curves' - lib\ui\screens\agent_feedback_screen.dart:271:18 - undefined_identifier
+  error - Undefined name 'Curves' - lib\ui\screens\agent_feedback_screen.dart:279:20 - undefined_identifier
+  error - Undefined class 'Widget' - lib\ui\screens\agent_feedback_screen.dart:287:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\agent_feedback_screen.dart:287:16 - undefined_class
+  error - The method 'Scaffold' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:288:12 - undefined_method
+  error - The method 'AppBar' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:289:15 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\agent_feedback_screen.dart:290:22 - creation_with_non_type
+  error - The method 'Builder' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:291:18 - undefined_method
+  error - The method 'IconButton' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:292:33 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\agent_feedback_screen.dart:293:25 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\agent_feedback_screen.dart:293:30 - undefined_identifier
+  error - Undefined name 'Scaffold' - lib\ui\screens\agent_feedback_screen.dart:294:30 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:299:13 - undefined_method
+  error - The method 'Expanded' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:301:11 - undefined_method
+  error - Undefined name 'ListView' - lib\ui\screens\agent_feedback_screen.dart:304:19 - undefined_identifier
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\agent_feedback_screen.dart:306:36 - undefined_identifier
+  error - The name 'Align' isn't a class - lib\ui\screens\agent_feedback_screen.dart:310:38 - creation_with_non_type
+  error - Undefined name 'Alignment' - lib\ui\screens\agent_feedback_screen.dart:311:38 - undefined_identifier
+  error - The method 'Padding' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:312:34 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\agent_feedback_screen.dart:313:38 - undefined_identifier
+  error - The method 'Chip' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:314:36 - undefined_method
+  error - The method 'SizedBox' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:315:39 - undefined_method
+  error - The method 'CircularProgressIndicator' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:318:40 - undefined_method
+  error - The method 'Text' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:320:38 - undefined_method
+  error - The name 'Divider' isn't a class - lib\ui\screens\agent_feedback_screen.dart:330:17 - creation_with_non_type
+  error - Undefined class 'Widget' - lib\ui\screens\agent_feedback_screen.dart:337:3 - undefined_class
+  error - The method 'Center' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:338:12 - undefined_method
+  error - The method 'Column' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:339:14 - undefined_method
+  error - Undefined name 'MainAxisAlignment' - lib\ui\screens\agent_feedback_screen.dart:340:28 - undefined_identifier
+  error - The method 'Icon' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:342:11 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\agent_feedback_screen.dart:342:16 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:342:51 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\agent_feedback_screen.dart:343:17 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\agent_feedback_screen.dart:344:17 - creation_with_non_type
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\agent_feedback_screen.dart:345:17 - creation_with_non_type
+  error - Undefined name 'ElevatedButton' - lib\ui\screens\agent_feedback_screen.dart:346:11 - undefined_identifier
+  error - The name 'Icon' isn't a class - lib\ui\screens\agent_feedback_screen.dart:348:25 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\agent_feedback_screen.dart:348:30 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\agent_feedback_screen.dart:349:26 - creation_with_non_type
+  error - Undefined class 'Widget' - lib\ui\screens\agent_feedback_screen.dart:356:3 - undefined_class
+  error - The method 'Drawer' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:357:12 - undefined_method
+  error - The method 'Column' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:358:14 - undefined_method
+  error - The method 'DrawerHeader' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:360:11 - undefined_method
+  error - The method 'BoxDecoration' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:361:25 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:361:46 - undefined_identifier
+  error - The name 'Center' isn't a class - lib\ui\screens\agent_feedback_screen.dart:362:26 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:362:40 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:362:60 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\agent_feedback_screen.dart:362:96 - undefined_identifier
+  error - The method 'ListTile' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:364:11 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\agent_feedback_screen.dart:365:28 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\agent_feedback_screen.dart:365:33 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\agent_feedback_screen.dart:366:26 - creation_with_non_type
+  error - Undefined name 'Navigator' - lib\ui\screens\agent_feedback_screen.dart:368:15 - undefined_identifier
+  error - The name 'Divider' isn't a class - lib\ui\screens\agent_feedback_screen.dart:372:17 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:373:11 - undefined_method
+  error - The method 'StreamBuilder' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:374:20 - undefined_method
+  error - The name 'Center' isn't a class - lib\ui\screens\agent_feedback_screen.dart:377:53 - creation_with_non_type
+  error - The method 'CircularProgressIndicator' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:377:67 - undefined_method
+  error - The name 'Center' isn't a class - lib\ui\screens\agent_feedback_screen.dart:379:52 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:379:66 - undefined_method
+  error - Undefined name 'ListView' - lib\ui\screens\agent_feedback_screen.dart:381:24 - undefined_identifier
+  error - The method 'ListTile' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:386:28 - undefined_method
+  error - The method 'Icon' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:388:32 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\agent_feedback_screen.dart:388:50 - undefined_identifier
+  error - Undefined name 'Icons' - lib\ui\screens\agent_feedback_screen.dart:388:63 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:389:30 - undefined_method
+  error - The method 'Text' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:390:33 - undefined_method
+  error - The method 'Row' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:391:53 - undefined_method
+  error - Undefined name 'MainAxisSize' - lib\ui\screens\agent_feedback_screen.dart:392:39 - undefined_identifier
+  error - The method 'IconButton' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:394:27 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\agent_feedback_screen.dart:395:41 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\agent_feedback_screen.dart:395:46 - undefined_identifier
+  error - The method 'IconButton' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:398:27 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\agent_feedback_screen.dart:399:41 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\agent_feedback_screen.dart:399:46 - undefined_identifier
+  error - Undefined name 'Navigator' - lib\ui\screens\agent_feedback_screen.dart:405:25 - undefined_identifier
+  error - Undefined class 'Widget' - lib\ui\screens\agent_feedback_screen.dart:419:3 - undefined_class
+  error - The method 'Container' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:420:12 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\agent_feedback_screen.dart:421:21 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:422:14 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\agent_feedback_screen.dart:423:29 - undefined_identifier
+  error - Undefined name 'MainAxisAlignment' - lib\ui\screens\agent_feedback_screen.dart:424:43 - undefined_identifier
+  error - Undefined name 'MainAxisAlignment' - lib\ui\screens\agent_feedback_screen.dart:424:69 - undefined_identifier
+  error - The method 'Container' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:427:13 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\agent_feedback_screen.dart:428:29 - undefined_identifier
+  error - The method 'CircleAvatar' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:429:22 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:430:34 - undefined_identifier
+  error - The method 'Icon' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:431:24 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\agent_feedback_screen.dart:431:29 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:431:54 - undefined_identifier
+  error - The method 'Expanded' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:434:11 - undefined_method
+  error - The method 'Column' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:435:20 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\agent_feedback_screen.dart:436:50 - undefined_identifier
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\agent_feedback_screen.dart:436:77 - undefined_identifier
+  error - The method 'Container' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:438:17 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\agent_feedback_screen.dart:439:33 - undefined_identifier
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\agent_feedback_screen.dart:440:34 - undefined_identifier
+  error - The method 'BoxDecoration' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:441:31 - undefined_method
+  error - Undefined name 'BorderRadius' - lib\ui\screens\agent_feedback_screen.dart:444:35 - undefined_identifier
+  error - Undefined name 'Radius' - lib\ui\screens\agent_feedback_screen.dart:445:38 - undefined_identifier
+  error - Undefined name 'Radius' - lib\ui\screens\agent_feedback_screen.dart:446:39 - undefined_identifier
+  error - Undefined name 'Radius' - lib\ui\screens\agent_feedback_screen.dart:447:35 - undefined_identifier
+  error - Undefined name 'Radius' - lib\ui\screens\agent_feedback_screen.dart:448:36 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:451:26 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:453:28 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:456:29 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:457:29 - undefined_identifier
+  error - The method 'Container' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:465:13 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\agent_feedback_screen.dart:466:29 - undefined_identifier
+  error - The method 'CircleAvatar' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:467:22 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:468:34 - undefined_identifier
+  error - The method 'Icon' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:469:24 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\agent_feedback_screen.dart:469:29 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:469:50 - undefined_identifier
+  error - Undefined class 'Color' - lib\ui\screens\agent_feedback_screen.dart:477:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\agent_feedback_screen.dart:477:25 - undefined_class
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:478:31 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:480:23 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\agent_feedback_screen.dart:483:16 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:487:16 - undefined_identifier
+  error - Undefined class 'BoxBorder' - lib\ui\screens\agent_feedback_screen.dart:491:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\agent_feedback_screen.dart:491:31 - undefined_class
+  error - Undefined name 'Border' - lib\ui\screens\agent_feedback_screen.dart:495:16 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\agent_feedback_screen.dart:495:34 - undefined_identifier
+  error - Undefined name 'Border' - lib\ui\screens\agent_feedback_screen.dart:497:16 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:497:34 - undefined_identifier
+  error - Undefined name 'Border' - lib\ui\screens\agent_feedback_screen.dart:499:16 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:499:34 - undefined_identifier
+  error - Undefined class 'Widget' - lib\ui\screens\agent_feedback_screen.dart:503:3 - undefined_class
+  error - The method 'Container' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:504:12 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\agent_feedback_screen.dart:505:22 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:506:14 - undefined_identifier
+  error - The method 'SafeArea' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:507:14 - undefined_method
+  error - The method 'Row' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:508:16 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\agent_feedback_screen.dart:509:31 - undefined_identifier
+  error - The method 'Expanded' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:511:13 - undefined_method
+  error - The method 'Container' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:512:22 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\agent_feedback_screen.dart:513:32 - undefined_identifier
+  error - The method 'BoxDecoration' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:514:29 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:515:26 - undefined_identifier
+  error - Undefined name 'BorderRadius' - lib\ui\screens\agent_feedback_screen.dart:516:33 - undefined_identifier
+  error - The method 'Focus' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:518:26 - undefined_method
+  error - The name 'KeyDownEvent' isn't defined, so it can't be used in an 'is' expression - lib\ui\screens\agent_feedback_screen.dart:521:34 - type_test_with_undefined_name
+  error - Undefined name 'LogicalKeyboardKey' - lib\ui\screens\agent_feedback_screen.dart:521:70 - undefined_identifier
+  error - Undefined name 'HardwareKeyboard' - lib\ui\screens\agent_feedback_screen.dart:522:43 - undefined_identifier
+  error - Undefined name 'HardwareKeyboard' - lib\ui\screens\agent_feedback_screen.dart:523:44 - undefined_identifier
+  error - Undefined name 'KeyEventResult' - lib\ui\screens\agent_feedback_screen.dart:528:32 - undefined_identifier
+  error - Undefined name 'KeyEventResult' - lib\ui\screens\agent_feedback_screen.dart:537:32 - undefined_identifier
+  error - Undefined name 'KeyEventResult' - lib\ui\screens\agent_feedback_screen.dart:540:32 - undefined_identifier
+  error - Undefined name 'KeyEventResult' - lib\ui\screens\agent_feedback_screen.dart:543:28 - undefined_identifier
+  error - The method 'TextField' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:545:26 - undefined_method
+  error - Undefined name 'TextAlignVertical' - lib\ui\screens\agent_feedback_screen.dart:549:40 - undefined_identifier
+  error - Undefined name 'TextInputType' - lib\ui\screens\agent_feedback_screen.dart:550:37 - undefined_identifier
+  error - Undefined name 'TextInputAction' - lib\ui\screens\agent_feedback_screen.dart:551:40 - undefined_identifier
+  error - The name 'InputDecoration' isn't a class - lib\ui\screens\agent_feedback_screen.dart:552:41 - creation_with_non_type
+  error - Undefined name 'InputBorder' - lib\ui\screens\agent_feedback_screen.dart:554:33 - undefined_identifier
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\agent_feedback_screen.dart:555:41 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\agent_feedback_screen.dart:561:19 - creation_with_non_type
+  error - The method 'Container' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:562:13 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\agent_feedback_screen.dart:563:29 - undefined_identifier
+  error - The method 'BoxDecoration' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:564:27 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:565:24 - undefined_identifier
+  error - Undefined name 'BoxShape' - lib\ui\screens\agent_feedback_screen.dart:566:24 - undefined_identifier
+  error - The method 'IconButton' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:568:22 - undefined_method
+  error - The method 'Icon' isn't defined for the type '_AgentFeedbackScreenState' - lib\ui\screens\agent_feedback_screen.dart:569:23 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\agent_feedback_screen.dart:569:28 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\agent_feedback_screen.dart:569:47 - undefined_identifier
+warning - Unused import: 'dart:typed_data' - lib\ui\screens\analysis_sheet_form.dart:1:8 - unused_import
+warning - The value of the local variable 'oldLap' isn't used - lib\ui\screens\analysis_sheet_form.dart:272:19 - unused_local_variable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\analysis_sheet_form.dart:354:83 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\ui\screens\analysis_sheet_form.dart:385:23 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\analysis_sheet_form.dart:441:76 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\analysis_sheet_form.dart:487:68 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\analysis_sheet_form.dart:562:42 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\analysis_sheet_form.dart:565:21 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\analysis_sheet_form.dart:569:42 - use_build_context_synchronously
+   info - Unnecessary braces in a string interpolation - lib\ui\screens\analysis_sheet_form.dart:749:42 - unnecessary_brace_in_string_interps
+   info - Unnecessary braces in a string interpolation - lib\ui\screens\analysis_sheet_form.dart:750:42 - unnecessary_brace_in_string_interps
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\auth_screen.dart:189:39 - deprecated_member_use
+   info - Use 'const' for final variables initialized to a constant value - lib\ui\screens\body_composition_screen.dart:42:7 - prefer_const_declarations
+   info - The private field _bodyCompOffset could be 'final' - lib\ui\screens\home_screen.dart:24:7 - prefer_final_fields
+warning - The value of the local variable 'allPbs' isn't used - lib\ui\screens\home_screen.dart:49:11 - unused_local_variable
+warning - The value of the local variable 'currentNutritionData' isn't used - lib\ui\screens\home_screen.dart:69:24 - unused_local_variable
+warning - The value of the local variable 'targetNutritionData' isn't used - lib\ui\screens\home_screen.dart:70:24 - unused_local_variable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:205:119 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:447:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:818:138 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:832:141 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:950:138 - deprecated_member_use
+warning - The declaration '_buildBodyCompChartData' isn't referenced - lib\ui\screens\home_screen.dart:1018:17 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1049:152 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1059:122 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1064:110 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1099:64 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1122:64 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1123:61 - deprecated_member_use
+   info - 'surfaceVariant' is deprecated and shouldn't be used. Use surfaceContainerHighest instead. This feature was deprecated after v3.18.0-0.1.pre - lib\ui\screens\home_screen.dart:1217:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1217:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1277:41 - deprecated_member_use
+warning - The declaration '_LegendItem' isn't referenced - lib\ui\screens\home_screen.dart:1297:7 - unused_element
+warning - The value of the field '_isAiLoading' isn't used - lib\ui\screens\home_screen.dart:1339:8 - unused_field
+warning - The declaration '_generateAiEvaluation' isn't referenced - lib\ui\screens\home_screen.dart:1352:16 - unused_element
+warning - The value of the local variable 'calorieStatus' isn't used - lib\ui\screens\home_screen.dart:1442:18 - unused_local_variable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1449:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1514:133 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1562:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1587:22 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1589:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1954:107 - deprecated_member_use
+warning - A value for optional parameter 'maxLines' isn't ever given - lib\ui\screens\home_screen.dart:1987:42 - unused_element_parameter
+warning - The declaration '_mockPredictions' isn't referenced - lib\ui\screens\insight_screen.dart:29:7 - unused_element
+  error - Undefined class 'BuildContext' - lib\ui\screens\insight_screen.dart:74:5 - undefined_class
+warning - The value of the local variable 'goalTimes' isn't used - lib\ui\screens\insight_screen.dart:108:13 - unused_local_variable
+  error - The method 'jsonDecode' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:183:41 - undefined_method
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\insight_screen.dart:208:9 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\insight_screen.dart:208:58 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:208:76 - undefined_method
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\insight_screen.dart:212:9 - undefined_identifier
+  error - The method 'SnackBar' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:212:52 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:212:70 - undefined_method
+  error - Undefined class 'Widget' - lib\ui\screens\insight_screen.dart:222:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\insight_screen.dart:222:16 - undefined_class
+  error - Undefined name 'MediaQuery' - lib\ui\screens\insight_screen.dart:223:23 - undefined_identifier
+warning - The value of the local variable 'insightDataMap' isn't used - lib\ui\screens\insight_screen.dart:228:11 - unused_local_variable
+  error - The name 'Scaffold' isn't a class - lib\ui\screens\insight_screen.dart:232:20 - creation_with_non_type
+  error - The method 'Center' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:232:35 - undefined_method
+  error - The method 'CircularProgressIndicator' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:232:49 - undefined_method
+  error - The method 'Scaffold' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:240:12 - undefined_method
+  error - The method 'AppBar' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:241:31 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:242:38 - creation_with_non_type
+  error - Undefined name 'TextButton' - lib\ui\screens\insight_screen.dart:245:29 - undefined_identifier
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\insight_screen.dart:247:33 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\insight_screen.dart:247:82 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:247:100 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\insight_screen.dart:249:43 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:249:48 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:249:77 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:250:44 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:250:66 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:250:83 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:254:29 - undefined_method
+  error - The name 'Divider' isn't a class - lib\ui\screens\insight_screen.dart:257:33 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:258:27 - undefined_method
+  error - Undefined class 'Widget' - lib\ui\screens\insight_screen.dart:269:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\insight_screen.dart:269:33 - undefined_class
+  error - Undefined name 'SizedBox' - lib\ui\screens\insight_screen.dart:271:37 - undefined_identifier
+  error - The method 'Container' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:273:12 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\insight_screen.dart:274:14 - undefined_identifier
+  error - The method 'ExpansionTile' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:275:14 - undefined_method
+  error - Undefined name 'VisualDensity' - lib\ui\screens\insight_screen.dart:277:24 - undefined_identifier
+  error - The method 'Icon' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:278:18 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:278:23 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\insight_screen.dart:278:58 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:279:16 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:281:18 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:283:25 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\insight_screen.dart:284:20 - undefined_identifier
+  error - The method 'Padding' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:288:11 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:289:28 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:290:20 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:291:35 - undefined_identifier
+  error - The name 'Divider' isn't a class - lib\ui\screens\insight_screen.dart:293:23 - creation_with_non_type
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:294:23 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:295:17 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:297:32 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:300:28 - undefined_identifier
+  error - Undefined class 'Widget' - lib\ui\screens\insight_screen.dart:313:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\insight_screen.dart:313:33 - undefined_class
+  error - The method 'SingleChildScrollView' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:314:12 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:315:22 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:316:14 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:317:29 - undefined_identifier
+  error - The method 'SegmentedButton' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:319:11 - undefined_method
+  error - The method 'ButtonSegment' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:321:15 - undefined_method
+  error - The values in a const list literal must be constants - lib\ui\screens\insight_screen.dart:321:15 - non_constant_list_element
+  error - The method 'Icon' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:321:45 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:321:50 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:321:87 - undefined_method
+  error - The method 'ButtonSegment' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:322:15 - undefined_method
+  error - The values in a const list literal must be constants - lib\ui\screens\insight_screen.dart:322:15 - non_constant_list_element
+  error - The method 'Icon' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:322:45 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:322:50 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:322:90 - undefined_method
+  error - The method 'ButtonSegment' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:323:15 - undefined_method
+  error - The values in a const list literal must be constants - lib\ui\screens\insight_screen.dart:323:15 - non_constant_list_element
+  error - The method 'Icon' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:323:45 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:323:50 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:323:81 - undefined_method
+  error - Undefined name 'SegmentedButton' - lib\ui\screens\insight_screen.dart:329:20 - undefined_identifier
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:330:30 - undefined_identifier
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:331:32 - creation_with_non_type
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:334:17 - creation_with_non_type
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:340:17 - creation_with_non_type
+  error - Undefined class 'Widget' - lib\ui\screens\insight_screen.dart:347:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\insight_screen.dart:347:33 - undefined_class
+  error - The method 'SingleChildScrollView' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:348:12 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:349:22 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:350:14 - undefined_method
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:353:17 - creation_with_non_type
+  error - The method 'Row' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:354:11 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:355:33 - undefined_identifier
+  error - The method 'Expanded' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:357:15 - undefined_method
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:358:21 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:359:15 - undefined_method
+  error - Undefined class 'Widget' - lib\ui\screens\insight_screen.dart:368:3 - undefined_class
+warning - The declaration '_buildCorrelationView' isn't referenced - lib\ui\screens\insight_screen.dart:368:10 - unused_element
+  error - Undefined class 'BuildContext' - lib\ui\screens\insight_screen.dart:368:32 - undefined_class
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:373:83 - undefined_identifier
+  error - The method 'Card' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:376:12 - undefined_method
+  error - The method 'Padding' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:377:14 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:378:24 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:379:16 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:380:31 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:382:19 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:382:45 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:382:81 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:383:19 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:384:13 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:384:51 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:384:82 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:385:19 - creation_with_non_type
+  error - The method 'SizedBox' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:386:13 - undefined_method
+  error - The name 'Center' isn't a class - lib\ui\screens\insight_screen.dart:389:25 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:389:39 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:389:66 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:389:83 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:397:113 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:397:153 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:398:49 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:398:77 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:401:113 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:401:153 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:402:49 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:402:71 - undefined_method
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:411:19 - creation_with_non_type
+  error - The method 'Container' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:413:15 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:414:32 - undefined_identifier
+  error - The method 'BoxDecoration' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:415:29 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:415:50 - undefined_identifier
+  error - Undefined name 'BorderRadius' - lib\ui\screens\insight_screen.dart:415:96 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:416:24 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:417:39 - undefined_identifier
+  error - The name 'Icon' isn't a class - lib\ui\screens\insight_screen.dart:419:27 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:419:32 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:419:55 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:420:27 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:421:21 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:422:30 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:422:72 - creation_with_non_type
+  error - Undefined class 'Widget' - lib\ui\screens\insight_screen.dart:434:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\insight_screen.dart:434:34 - undefined_class
+  error - The method 'Card' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:460:12 - undefined_method
+  error - The method 'Padding' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:461:14 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:462:24 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:463:16 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:464:31 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:466:19 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:466:46 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:466:82 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:467:19 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:468:13 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:468:45 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:468:76 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:469:19 - creation_with_non_type
+  error - The method 'SizedBox' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:470:13 - undefined_method
+  error - The name 'Center' isn't a class - lib\ui\screens\insight_screen.dart:473:25 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:473:39 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:473:69 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:473:86 - undefined_identifier
+  error - The method 'Builder' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:474:19 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:505:74 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:509:74 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:513:81 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:523:58 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:523:98 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:523:128 - undefined_identifier
+  error - Undefined name 'SizedBox' - lib\ui\screens\insight_screen.dart:531:66 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:533:40 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:533:85 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:533:115 - undefined_identifier
+  error - Undefined name 'Border' - lib\ui\screens\insight_screen.dart:539:70 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:539:88 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:542:53 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:546:50 - undefined_identifier
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:554:103 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:554:120 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:564:19 - creation_with_non_type
+  error - The name 'Wrap' isn't a class - lib\ui\screens\insight_screen.dart:565:19 - creation_with_non_type
+  error - Undefined name 'WrapAlignment' - lib\ui\screens\insight_screen.dart:568:26 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:570:36 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:571:36 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:572:36 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:575:19 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:576:19 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:576:48 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:576:70 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:577:19 - creation_with_non_type
+  error - The name 'ListTile' isn't a class - lib\ui\screens\insight_screen.dart:578:19 - creation_with_non_type
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:579:31 - undefined_identifier
+  error - The method 'Icon' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:580:24 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:580:29 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:580:58 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:581:22 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:581:47 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:582:25 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:582:78 - undefined_method
+  error - Undefined class 'Widget' - lib\ui\screens\insight_screen.dart:593:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\insight_screen.dart:594:5 - undefined_class
+  error - The method 'Card' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:646:12 - undefined_method
+  error - The method 'Padding' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:647:14 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:648:24 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:649:16 - undefined_method
+  error - The method 'SingleChildScrollView' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:652:13 - undefined_method
+  error - Undefined name 'Axis' - lib\ui\screens\insight_screen.dart:653:32 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:654:22 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:656:28 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:656:64 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:656:95 - undefined_identifier
+  error - The method 'Padding' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:659:30 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:660:40 - undefined_identifier
+  error - The method 'ChoiceChip' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:661:32 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:662:34 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:662:67 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:662:111 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:662:126 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:665:42 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:666:44 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:672:19 - creation_with_non_type
+  error - The method 'Row' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:675:13 - undefined_method
+  error - Undefined name 'MainAxisAlignment' - lib\ui\screens\insight_screen.dart:676:34 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:678:17 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:679:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:681:27 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:681:49 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:681:80 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:682:21 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:683:32 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:683:68 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:684:76 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:684:91 - undefined_identifier
+  error - The method 'Expanded' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:687:17 - undefined_method
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:688:26 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:689:41 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:691:29 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:691:52 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:691:83 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:693:31 - creation_with_non_type
+  error - The method 'CircularProgressIndicator' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:696:34 - undefined_method
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:701:25 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:702:47 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:704:29 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:706:38 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:706:74 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\insight_screen.dart:706:98 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:708:29 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:712:44 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:712:75 - undefined_identifier
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:712:100 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:717:31 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:717:54 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:717:71 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:723:19 - creation_with_non_type
+  error - The method 'SizedBox' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:726:13 - undefined_method
+  error - Undefined name 'ElevatedButton' - lib\ui\screens\insight_screen.dart:728:22 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:731:29 - creation_with_non_type
+  error - The method 'CircularProgressIndicator' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:731:68 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:731:117 - undefined_identifier
+  error - The name 'Icon' isn't a class - lib\ui\screens\insight_screen.dart:732:29 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:732:34 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:733:24 - undefined_method
+  error - Undefined name 'ElevatedButton' - lib\ui\screens\insight_screen.dart:734:24 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\insight_screen.dart:735:36 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\insight_screen.dart:736:36 - undefined_identifier
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:737:34 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:741:19 - creation_with_non_type
+  error - The name 'Center' isn't a class - lib\ui\screens\insight_screen.dart:742:19 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:743:22 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:745:24 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:745:55 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:748:19 - creation_with_non_type
+  error - The method 'LinearProgressIndicator' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:749:13 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\insight_screen.dart:751:32 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:752:62 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:752:77 - undefined_identifier
+  error - Undefined name 'BorderRadius' - lib\ui\screens\insight_screen.dart:753:43 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:755:19 - creation_with_non_type
+  error - The method 'ExpansionTile' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:758:15 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:759:30 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:759:57 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:759:79 - undefined_identifier
+  error - The method 'DataTable' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:761:19 - undefined_method
+  error - The method 'DataColumn' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:763:23 - undefined_method
+  error - The values in a const list literal must be constants - lib\ui\screens\insight_screen.dart:763:23 - non_constant_list_element
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:763:41 - undefined_method
+  error - The method 'DataColumn' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:764:23 - undefined_method
+  error - The values in a const list literal must be constants - lib\ui\screens\insight_screen.dart:764:23 - non_constant_list_element
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:764:41 - undefined_method
+  error - The method 'DataColumn' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:765:23 - undefined_method
+  error - The values in a const list literal must be constants - lib\ui\screens\insight_screen.dart:765:23 - non_constant_list_element
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:765:41 - undefined_method
+  error - The method 'DataRow' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:767:56 - undefined_method
+  error - The method 'DataCell' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:768:23 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:768:32 - undefined_method
+  error - The method 'DataCell' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:769:23 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:769:32 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:769:60 - creation_with_non_type
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:769:82 - undefined_identifier
+  error - The method 'DataCell' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:770:23 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:770:32 - undefined_method
+  error - The method 'Padding' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:773:19 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:774:36 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:775:28 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:775:74 - creation_with_non_type
+  error - Undefined class 'Widget' - lib\ui\screens\insight_screen.dart:786:3 - undefined_class
+warning - The declaration '_buildVisionAlignmentView' isn't referenced - lib\ui\screens\insight_screen.dart:786:10 - unused_element
+  error - Undefined class 'BuildContext' - lib\ui\screens\insight_screen.dart:786:36 - undefined_class
+  error - The method 'Card' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:787:12 - undefined_method
+  error - The method 'Padding' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:788:14 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:789:24 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:790:16 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:791:31 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:793:19 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:793:46 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:793:82 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:794:19 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:795:19 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:795:58 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:795:89 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:796:19 - creation_with_non_type
+  error - The method 'Container' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:797:13 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:798:30 - undefined_identifier
+  error - The method 'BoxDecoration' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:800:27 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:800:48 - undefined_identifier
+  error - Undefined name 'BorderRadius' - lib\ui\screens\insight_screen.dart:800:96 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:801:22 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:802:37 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:804:26 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:804:48 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:804:84 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:804:108 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:805:26 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:806:20 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:807:38 - creation_with_non_type
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:807:74 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:811:19 - creation_with_non_type
+  error - The method 'SizedBox' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:812:13 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:819:41 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:819:58 - undefined_identifier
+  error - The method 'BorderSide' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:820:35 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:820:53 - undefined_identifier
+  error - The name 'BorderSide' isn't a class - lib\ui\screens\insight_screen.dart:821:42 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:821:60 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:828:34 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:828:77 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:833:34 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:833:78 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:841:19 - creation_with_non_type
+  error - The name 'Row' isn't a class - lib\ui\screens\insight_screen.dart:842:19 - creation_with_non_type
+  error - Undefined name 'MainAxisAlignment' - lib\ui\screens\insight_screen.dart:843:34 - undefined_identifier
+  error - The method 'Icon' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:845:17 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:845:22 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:845:43 - undefined_identifier
+  error - The method 'SizedBox' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:845:68 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:845:88 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:845:107 - undefined_method
+  error - The method 'SizedBox' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:846:17 - undefined_method
+  error - The method 'Icon' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:847:17 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:847:22 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:847:43 - undefined_identifier
+  error - The method 'SizedBox' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:847:67 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:847:87 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:847:112 - undefined_method
+  error - The name 'Divider' isn't a class - lib\ui\screens\insight_screen.dart:850:19 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:851:19 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:851:52 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:851:74 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:851:112 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:852:19 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:853:19 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:854:22 - undefined_method
+  error - Undefined class 'Widget' - lib\ui\screens\insight_screen.dart:862:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\insight_screen.dart:863:5 - undefined_class
+  error - The method 'Card' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:898:12 - undefined_method
+  error - The method 'Padding' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:899:14 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:900:24 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:901:16 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\insight_screen.dart:902:31 - undefined_identifier
+  error - The name 'Row' isn't a class - lib\ui\screens\insight_screen.dart:904:19 - creation_with_non_type
+  error - The method 'Icon' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:906:17 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:906:22 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:906:48 - undefined_identifier
+  error - The method 'SizedBox' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:907:17 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:908:17 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:908:43 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:908:79 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:911:19 - creation_with_non_type
+  error - The method 'SingleChildScrollView' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:914:13 - undefined_method
+  error - Undefined name 'Axis' - lib\ui\screens\insight_screen.dart:915:32 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:916:22 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\insight_screen.dart:918:28 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:918:64 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:918:95 - undefined_identifier
+  error - The method 'Padding' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:921:30 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:922:40 - undefined_identifier
+  error - The method 'ChoiceChip' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:923:32 - undefined_method
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:924:34 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:924:67 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:924:111 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:924:126 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:927:42 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:928:44 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:934:19 - creation_with_non_type
+  error - The method 'Builder' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:938:15 - undefined_method
+  error - The method 'SizedBox' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:944:26 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:956:36 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:961:38 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:972:40 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:974:48 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:974:78 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:983:65 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:983:112 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:983:142 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:992:74 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:997:52 - undefined_identifier
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:998:119 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:998:136 - undefined_identifier
+  error - Undefined name 'FontWeight' - lib\ui\screens\insight_screen.dart:998:162 - undefined_identifier
+  error - The name 'Center' isn't a class - lib\ui\screens\insight_screen.dart:1008:21 - creation_with_non_type
+  error - The method 'Padding' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:1009:24 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\insight_screen.dart:1010:28 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:1011:26 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_InsightScreenState' - lib\ui\screens\insight_screen.dart:1011:58 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\insight_screen.dart:1011:75 - undefined_identifier
+  error - Classes can only extend other classes - lib\ui\screens\insight_screen.dart:1029:27 - extends_non_class
+  error - Undefined class 'Color' - lib\ui\screens\insight_screen.dart:1030:9 - undefined_class
+  error - Undefined class 'Widget' - lib\ui\screens\insight_screen.dart:1035:3 - undefined_class
+warning - The method doesn't override an inherited method - lib\ui\screens\insight_screen.dart:1035:10 - override_on_non_overriding_member
+  error - Undefined class 'BuildContext' - lib\ui\screens\insight_screen.dart:1035:16 - undefined_class
+  error - The method 'Row' isn't defined for the type '_LegendItem' - lib\ui\screens\insight_screen.dart:1036:12 - undefined_method
+  error - Undefined name 'MainAxisSize' - lib\ui\screens\insight_screen.dart:1037:21 - undefined_identifier
+  error - The method 'Icon' isn't defined for the type '_LegendItem' - lib\ui\screens\insight_screen.dart:1039:9 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\insight_screen.dart:1039:14 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\insight_screen.dart:1040:15 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_LegendItem' - lib\ui\screens\insight_screen.dart:1041:9 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\insight_screen.dart:1041:34 - creation_with_non_type
+  error - Undefined class 'TextEditingController' - lib\ui\screens\nutrition_screen.dart:18:9 - undefined_class
+  error - The method 'TextEditingController' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:18:49 - undefined_method
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\nutrition_screen.dart:55:9 - undefined_identifier
+  error - The method 'SnackBar' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:56:11 - undefined_method
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:56:29 - undefined_method
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\nutrition_screen.dart:66:7 - undefined_identifier
+  error - The method 'SnackBar' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:67:9 - undefined_method
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:67:27 - undefined_method
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\nutrition_screen.dart:77:7 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\nutrition_screen.dart:78:15 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:78:33 - undefined_method
+  error - The method 'showDialog' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:93:39 - undefined_method
+  error - The method 'AlertDialog' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:95:31 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\nutrition_screen.dart:96:27 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\nutrition_screen.dart:96:32 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:96:68 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:97:28 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:98:24 - undefined_method
+  error - The method 'TextButton' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:106:17 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\nutrition_screen.dart:106:45 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:106:85 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:107:17 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\nutrition_screen.dart:107:45 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:107:84 - creation_with_non_type
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\nutrition_screen.dart:121:11 - undefined_identifier
+  error - The method 'SnackBar' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:122:14 - undefined_method
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:123:24 - undefined_method
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\nutrition_screen.dart:133:9 - undefined_identifier
+  error - The method 'SnackBar' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:134:11 - undefined_method
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:134:29 - undefined_method
+  error - Undefined class 'Widget' - lib\ui\screens\nutrition_screen.dart:143:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\nutrition_screen.dart:143:16 - undefined_class
+  error - The method 'Scaffold' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:144:12 - undefined_method
+  error - The method 'AppBar' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:145:15 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:146:22 - creation_with_non_type
+  error - The method 'ListView' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:148:13 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\nutrition_screen.dart:149:24 - undefined_identifier
+  error - The method 'Card' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:152:9 - undefined_method
+  error - The method 'Padding' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:154:18 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\nutrition_screen.dart:155:28 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:156:20 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\nutrition_screen.dart:157:35 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:159:23 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:159:55 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\nutrition_screen.dart:159:77 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:160:23 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:161:17 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\nutrition_screen.dart:163:32 - creation_with_non_type
+  error - Undefined name 'FontWeight' - lib\ui\screens\nutrition_screen.dart:163:54 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:163:78 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:165:23 - creation_with_non_type
+  error - The method 'Row' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:166:17 - undefined_method
+  error - Undefined name 'MainAxisAlignment' - lib\ui\screens\nutrition_screen.dart:167:38 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:169:27 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:170:21 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\nutrition_screen.dart:170:74 - creation_with_non_type
+  error - Undefined name 'FontWeight' - lib\ui\screens\nutrition_screen.dart:170:96 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:170:120 - undefined_identifier
+  error - The method 'Slider' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:173:17 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:177:32 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:179:17 - undefined_method
+  error - Undefined name 'MainAxisAlignment' - lib\ui\screens\nutrition_screen.dart:180:38 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:182:27 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:183:21 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\nutrition_screen.dart:183:70 - creation_with_non_type
+  error - Undefined name 'FontWeight' - lib\ui\screens\nutrition_screen.dart:183:92 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:183:116 - undefined_identifier
+  error - The method 'Slider' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:186:17 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:190:32 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:192:17 - undefined_method
+  error - Undefined name 'MainAxisAlignment' - lib\ui\screens\nutrition_screen.dart:193:38 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:195:27 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:196:21 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\nutrition_screen.dart:196:72 - creation_with_non_type
+  error - Undefined name 'FontWeight' - lib\ui\screens\nutrition_screen.dart:196:94 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:196:118 - undefined_identifier
+  error - The method 'Slider' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:199:17 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:203:32 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:209:15 - creation_with_non_type
+  error - The method 'Card' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:212:9 - undefined_method
+  error - The method 'Padding' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:214:18 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\nutrition_screen.dart:215:28 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:216:20 - undefined_method
+  error - The method 'Expanded' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:218:17 - undefined_method
+  error - The method 'Column' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:219:26 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\nutrition_screen.dart:220:41 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:222:29 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:222:60 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\nutrition_screen.dart:222:82 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:223:29 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:224:23 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:226:32 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\nutrition_screen.dart:228:34 - undefined_identifier
+  error - The name 'CircularProgressIndicator' isn't a class - lib\ui\screens\nutrition_screen.dart:235:29 - creation_with_non_type
+  error - Undefined name 'ElevatedButton' - lib\ui\screens\nutrition_screen.dart:236:27 - undefined_identifier
+  error - The name 'Icon' isn't a class - lib\ui\screens\nutrition_screen.dart:238:41 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\nutrition_screen.dart:238:46 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:239:42 - creation_with_non_type
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:245:15 - creation_with_non_type
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:247:15 - creation_with_non_type
+  error - The method 'Card' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:250:9 - undefined_method
+  error - The method 'Padding' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:252:18 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\nutrition_screen.dart:253:28 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:254:20 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\nutrition_screen.dart:255:35 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:257:23 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:257:50 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\nutrition_screen.dart:257:72 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:258:23 - creation_with_non_type
+  error - The method 'DropdownButtonFormField' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:259:17 - undefined_method
+  error - The name 'InputDecoration' isn't a class - lib\ui\screens\nutrition_screen.dart:261:37 - creation_with_non_type
+  error - The method 'OutlineInputBorder' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:263:29 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\nutrition_screen.dart:264:37 - undefined_identifier
+  error - The method 'DropdownMenuItem' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:266:69 - undefined_method
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:266:103 - undefined_method
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:279:23 - creation_with_non_type
+  error - The method 'Align' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:280:17 - undefined_method
+  error - Undefined name 'Alignment' - lib\ui\screens\nutrition_screen.dart:281:30 - undefined_identifier
+  error - Undefined name 'FilledButton' - lib\ui\screens\nutrition_screen.dart:282:26 - undefined_identifier
+  error - Undefined name 'FilledButton' - lib\ui\screens\nutrition_screen.dart:283:28 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:285:29 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\nutrition_screen.dart:286:29 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:290:33 - creation_with_non_type
+  error - The method 'CircularProgressIndicator' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:290:72 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:290:121 - undefined_identifier
+  error - The method 'Icon' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:291:27 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\nutrition_screen.dart:291:47 - undefined_identifier
+  error - Undefined name 'Icons' - lib\ui\screens\nutrition_screen.dart:291:68 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:292:28 - undefined_method
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:297:23 - creation_with_non_type
+  error - The method 'SizedBox' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:298:17 - undefined_method
+  error - Undefined name 'FilledButton' - lib\ui\screens\nutrition_screen.dart:300:26 - undefined_identifier
+  error - The method 'showDialog' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:305:53 - undefined_method
+  error - The method 'AlertDialog' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:307:45 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\nutrition_screen.dart:308:41 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\nutrition_screen.dart:308:46 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:308:82 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:309:42 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:310:44 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:314:31 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\nutrition_screen.dart:315:50 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:316:46 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:318:31 - undefined_method
+  error - Undefined name 'TextButton' - lib\ui\screens\nutrition_screen.dart:319:40 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:319:78 - undefined_identifier
+  error - Undefined name 'Navigator' - lib\ui\screens\nutrition_screen.dart:320:50 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\nutrition_screen.dart:321:46 - creation_with_non_type
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\nutrition_screen.dart:348:43 - undefined_identifier
+  error - Undefined name 'Navigator' - lib\ui\screens\nutrition_screen.dart:349:43 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\nutrition_screen.dart:355:35 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:355:53 - undefined_method
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\nutrition_screen.dart:361:28 - undefined_identifier
+  error - The method 'SnackBar' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:362:30 - undefined_method
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:362:48 - undefined_method
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:372:33 - creation_with_non_type
+  error - The method 'CircularProgressIndicator' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:372:72 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\nutrition_screen.dart:372:105 - undefined_identifier
+  error - The name 'Icon' isn't a class - lib\ui\screens\nutrition_screen.dart:373:33 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\nutrition_screen.dart:373:38 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_NutritionScreenState' - lib\ui\screens\nutrition_screen.dart:374:28 - undefined_method
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\nutrition_screen.dart:382:15 - creation_with_non_type
+  error - Undefined name 'WidgetsBinding' - lib\ui\screens\settings_screen.dart:30:5 - undefined_identifier
+  error - Undefined name 'ThemeMode' - lib\ui\screens\settings_screen.dart:35:55 - undefined_identifier
+  error - Undefined name 'ThemeMode' - lib\ui\screens\settings_screen.dart:36:56 - undefined_identifier
+  error - Undefined name 'ThemeMode' - lib\ui\screens\settings_screen.dart:37:32 - undefined_identifier
+  error - Undefined class 'BuildContext' - lib\ui\screens\settings_screen.dart:43:34 - undefined_class
+  error - The method 'TextEditingController' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:44:24 - undefined_method
+  error - The method 'showDialog' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:45:28 - undefined_method
+  error - The method 'AlertDialog' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:47:29 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:48:16 - undefined_method
+  error - The method 'SizedBox' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:49:18 - undefined_method
+  error - Undefined name 'TextInputType' - lib\ui\screens\settings_screen.dart:55:119 - undefined_identifier
+  error - Undefined name 'TextInputType' - lib\ui\screens\settings_screen.dart:55:145 - undefined_identifier
+  error - The method 'TextButton' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:59:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\settings_screen.dart:59:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:59:76 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:60:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\settings_screen.dart:60:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:60:93 - creation_with_non_type
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\settings_screen.dart:91:10 - undefined_identifier
+  error - The method 'SnackBar' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:91:53 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:91:71 - undefined_method
+  error - Undefined class 'BuildContext' - lib\ui\screens\settings_screen.dart:96:34 - undefined_class
+  error - The method 'TextEditingController' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:97:27 - undefined_method
+  error - The method 'TextEditingController' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:98:30 - undefined_method
+  error - The method 'TextEditingController' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:99:30 - undefined_method
+  error - The method 'TextEditingController' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:100:29 - undefined_method
+  error - The method 'showDialog' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:102:26 - undefined_method
+  error - The method 'AlertDialog' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:104:29 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:105:22 - creation_with_non_type
+  error - The method 'SizedBox' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:106:18 - undefined_method
+  error - The method 'SingleChildScrollView' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:108:18 - undefined_method
+  error - The method 'Column' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:109:20 - undefined_method
+  error - Undefined name 'MainAxisSize' - lib\ui\screens\settings_screen.dart:110:29 - undefined_identifier
+  error - Undefined name 'TextInputType' - lib\ui\screens\settings_screen.dart:117:33 - undefined_identifier
+  error - Undefined name 'TextInputType' - lib\ui\screens\settings_screen.dart:124:33 - undefined_identifier
+  error - Undefined name 'TextInputType' - lib\ui\screens\settings_screen.dart:131:33 - undefined_identifier
+  error - The method 'TextButton' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:144:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\settings_screen.dart:144:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:144:83 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:145:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\settings_screen.dart:145:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:145:82 - creation_with_non_type
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\settings_screen.dart:167:10 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\settings_screen.dart:167:59 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:167:77 - undefined_method
+  error - Undefined class 'BuildContext' - lib\ui\screens\settings_screen.dart:172:33 - undefined_class
+  error - The method 'TextEditingController' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:173:30 - undefined_method
+  error - The method 'TextEditingController' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:174:29 - undefined_method
+  error - The method 'TextEditingController' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:175:29 - undefined_method
+  error - The method 'TextEditingController' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:176:29 - undefined_method
+  error - The method 'showDialog' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:178:26 - undefined_method
+  error - The method 'AlertDialog' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:180:29 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:181:22 - creation_with_non_type
+  error - The method 'SizedBox' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:182:18 - undefined_method
+  error - The method 'SingleChildScrollView' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:184:18 - undefined_method
+  error - The method 'Column' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:185:20 - undefined_method
+  error - Undefined name 'MainAxisSize' - lib\ui\screens\settings_screen.dart:186:29 - undefined_identifier
+  error - Undefined name 'TextInputType' - lib\ui\screens\settings_screen.dart:193:33 - undefined_identifier
+  error - Undefined name 'TextInputType' - lib\ui\screens\settings_screen.dart:200:33 - undefined_identifier
+  error - Undefined name 'TextInputType' - lib\ui\screens\settings_screen.dart:207:33 - undefined_identifier
+  error - The method 'TextButton' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:220:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\settings_screen.dart:220:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:220:83 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:221:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\settings_screen.dart:221:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:221:82 - creation_with_non_type
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\settings_screen.dart:243:10 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\settings_screen.dart:243:59 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:243:77 - undefined_method
+  error - Undefined class 'BuildContext' - lib\ui\screens\settings_screen.dart:248:29 - undefined_class
+  error - The method 'showDialog' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:250:26 - undefined_method
+  error - The method 'StatefulBuilder' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:254:16 - undefined_method
+  error - The method 'AlertDialog' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:256:20 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:257:28 - creation_with_non_type
+  error - The method 'Column' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:258:24 - undefined_method
+  error - Undefined name 'MainAxisSize' - lib\ui\screens\settings_screen.dart:259:31 - undefined_identifier
+  error - The method 'RadioListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:261:21 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:262:36 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:263:39 - creation_with_non_type
+  error - The method 'RadioListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:268:21 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:269:36 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:270:39 - creation_with_non_type
+  error - The name 'Padding' isn't a class - lib\ui\screens\settings_screen.dart:275:27 - creation_with_non_type
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\settings_screen.dart:276:32 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:277:30 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\settings_screen.dart:278:45 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:280:27 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:282:36 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\settings_screen.dart:282:72 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:282:96 - undefined_identifier
+  error - The method 'SizedBox' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:284:27 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:285:27 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:287:36 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:287:67 - undefined_identifier
+  error - The method 'SizedBox' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:289:27 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:290:27 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:292:36 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:292:67 - undefined_identifier
+  error - Undefined name 'FontStyle' - lib\ui\screens\settings_screen.dart:292:91 - undefined_identifier
+  error - The method 'TextButton' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:300:17 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\settings_screen.dart:300:45 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:300:82 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:301:17 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\settings_screen.dart:301:45 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:301:92 - creation_with_non_type
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\settings_screen.dart:323:10 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\settings_screen.dart:323:59 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:323:77 - undefined_method
+  error - Undefined class 'BuildContext' - lib\ui\screens\settings_screen.dart:328:37 - undefined_class
+  error - The method 'TextEditingController' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:329:24 - undefined_method
+  error - The method 'showDialog' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:330:26 - undefined_method
+  error - The method 'AlertDialog' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:332:29 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:333:22 - creation_with_non_type
+  error - The method 'TextField' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:334:18 - undefined_method
+  error - The name 'InputDecoration' isn't a class - lib\ui\screens\settings_screen.dart:337:29 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:342:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\settings_screen.dart:342:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:342:83 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:343:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\settings_screen.dart:346:17 - undefined_identifier
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\settings_screen.dart:348:17 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\settings_screen.dart:348:66 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:348:84 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:351:26 - creation_with_non_type
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\settings_screen.dart:360:9 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\settings_screen.dart:360:58 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:360:76 - undefined_method
+  error - Undefined class 'Widget' - lib\ui\screens\settings_screen.dart:366:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\settings_screen.dart:366:16 - undefined_class
+  error - The method 'Scaffold' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:370:12 - undefined_method
+  error - The method 'AppBar' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:371:15 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:371:35 - creation_with_non_type
+  error - The name 'Center' isn't a class - lib\ui\screens\settings_screen.dart:373:30 - creation_with_non_type
+  error - The method 'CircularProgressIndicator' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:373:44 - undefined_method
+  error - The method 'Center' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:374:26 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:374:40 - undefined_method
+  error - Undefined name 'WidgetsBinding' - lib\ui\screens\settings_screen.dart:380:15 - undefined_identifier
+  error - The method 'ListView' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:405:18 - undefined_method
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:408:15 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:409:24 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:409:47 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\settings_screen.dart:409:69 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\settings_screen.dart:409:93 - undefined_identifier
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:411:15 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:412:32 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:412:37 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:413:30 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:414:27 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:415:33 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:415:38 - undefined_identifier
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:420:15 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:421:32 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:421:37 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:422:30 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:423:27 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:424:33 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:424:38 - undefined_identifier
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:431:15 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:432:32 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:432:37 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:433:30 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:434:27 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:435:33 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:435:38 - undefined_identifier
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:442:15 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:443:32 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:443:37 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:444:30 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:445:27 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:446:33 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:446:38 - undefined_identifier
+  error - The name 'Divider' isn't a class - lib\ui\screens\settings_screen.dart:459:21 - creation_with_non_type
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:462:15 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:463:24 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:463:46 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\settings_screen.dart:463:68 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\settings_screen.dart:463:92 - undefined_identifier
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:465:15 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:466:32 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:466:37 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:467:30 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:468:27 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:469:33 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:469:38 - undefined_identifier
+  error - The name 'Divider' isn't a class - lib\ui\screens\settings_screen.dart:476:21 - creation_with_non_type
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:479:11 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:480:20 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:480:40 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\settings_screen.dart:480:62 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\settings_screen.dart:480:86 - undefined_identifier
+  error - The method 'ValueListenableBuilder' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:482:11 - undefined_method
+  error - The name 'ThemeMode' isn't a type, so it can't be used as a type argument - lib\ui\screens\settings_screen.dart:482:34 - non_type_as_type_argument
+  error - The method 'Padding' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:485:22 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\settings_screen.dart:486:32 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:487:24 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:489:27 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:489:32 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\settings_screen.dart:490:27 - creation_with_non_type
+  error - The name 'Expanded' isn't a class - lib\ui\screens\settings_screen.dart:491:27 - creation_with_non_type
+  error - The method 'Column' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:492:30 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\settings_screen.dart:493:45 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:495:27 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:495:46 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:496:27 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:496:59 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:496:90 - undefined_identifier
+  error - The method 'SegmentedButton' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:500:21 - undefined_method
+  error - The name 'ThemeMode' isn't a type, so it can't be used as a type argument - lib\ui\screens\settings_screen.dart:500:37 - non_type_as_type_argument
+  error - The method 'ButtonSegment' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:502:25 - undefined_method
+  error - The values in a const list literal must be constants - lib\ui\screens\settings_screen.dart:502:25 - non_constant_list_element
+  error - Undefined name 'ThemeMode' - lib\ui\screens\settings_screen.dart:502:46 - undefined_identifier
+  error - The method 'Icon' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:502:68 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:502:73 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:502:98 - undefined_method
+  error - The method 'ButtonSegment' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:503:25 - undefined_method
+  error - The values in a const list literal must be constants - lib\ui\screens\settings_screen.dart:503:25 - non_constant_list_element
+  error - Undefined name 'ThemeMode' - lib\ui\screens\settings_screen.dart:503:46 - undefined_identifier
+  error - The method 'Icon' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:503:70 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:503:75 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:503:106 - undefined_method
+  error - The method 'ButtonSegment' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:504:25 - undefined_method
+  error - The values in a const list literal must be constants - lib\ui\screens\settings_screen.dart:504:25 - non_constant_list_element
+  error - Undefined name 'ThemeMode' - lib\ui\screens\settings_screen.dart:504:46 - undefined_identifier
+  error - The method 'Icon' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:504:69 - undefined_method
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:504:74 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:504:100 - undefined_method
+  error - Undefined name 'ThemeMode' - lib\ui\screens\settings_screen.dart:512:68 - undefined_identifier
+  error - Undefined name 'ThemeMode' - lib\ui\screens\settings_screen.dart:513:68 - undefined_identifier
+  error - The name 'Divider' isn't a class - lib\ui\screens\settings_screen.dart:531:17 - creation_with_non_type
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:534:11 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:535:20 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:535:43 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\settings_screen.dart:535:65 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\settings_screen.dart:535:89 - undefined_identifier
+  error - The method 'Padding' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:537:11 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\settings_screen.dart:538:28 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:539:20 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:541:23 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:541:28 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:541:53 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\settings_screen.dart:542:23 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:543:17 - undefined_method
+  error - The method 'Column' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:544:26 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\settings_screen.dart:545:41 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:547:29 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:547:53 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:548:23 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\settings_screen.dart:553:38 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:553:69 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:558:17 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\settings_screen.dart:559:34 - creation_with_non_type
+  error - Undefined name 'FontWeight' - lib\ui\screens\settings_screen.dart:559:56 - undefined_identifier
+  error - The method 'Slider' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:563:11 - undefined_method
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:588:11 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:589:28 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:589:33 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:590:26 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:591:23 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:592:29 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:592:34 - undefined_identifier
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:605:11 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:606:28 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:606:33 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:607:26 - creation_with_non_type
+  error - The name 'Divider' isn't a class - lib\ui\screens\settings_screen.dart:610:17 - creation_with_non_type
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:611:11 - undefined_method
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:612:20 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:612:41 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\settings_screen.dart:612:63 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\settings_screen.dart:612:87 - undefined_identifier
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:614:11 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:615:28 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:615:33 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:616:26 - creation_with_non_type
+  error - The name 'Divider' isn't a class - lib\ui\screens\settings_screen.dart:626:19 - creation_with_non_type
+  error - The method 'ListTile' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:627:13 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:628:28 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:628:51 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\settings_screen.dart:628:73 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:628:97 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:629:31 - creation_with_non_type
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:630:30 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:630:35 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:630:70 - undefined_identifier
+  error - The name 'Divider' isn't a class - lib\ui\screens\settings_screen.dart:636:17 - creation_with_non_type
+  error - The method 'Padding' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:638:11 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\settings_screen.dart:639:28 - undefined_identifier
+  error - Undefined name 'ElevatedButton' - lib\ui\screens\settings_screen.dart:640:20 - undefined_identifier
+  error - The name 'Icon' isn't a class - lib\ui\screens\settings_screen.dart:647:27 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\settings_screen.dart:647:32 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:648:28 - creation_with_non_type
+  error - Undefined name 'ElevatedButton' - lib\ui\screens\settings_screen.dart:649:22 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:650:34 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:651:34 - undefined_identifier
+  error - The name 'Divider' isn't a class - lib\ui\screens\settings_screen.dart:656:17 - creation_with_non_type
+  error - The method 'Padding' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:658:11 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\settings_screen.dart:659:28 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:660:20 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\settings_screen.dart:661:35 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:663:17 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:663:39 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\settings_screen.dart:663:61 - undefined_identifier
+  error - Undefined name 'Theme' - lib\ui\screens\settings_screen.dart:663:85 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\settings_screen.dart:664:23 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:666:36 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\settings_screen.dart:666:85 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:666:116 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:667:40 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:667:75 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:667:106 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:668:36 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\settings_screen.dart:668:71 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:668:102 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\settings_screen.dart:670:23 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\settings_screen.dart:671:23 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_SettingsScreenState' - lib\ui\screens\settings_screen.dart:671:65 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\settings_screen.dart:671:96 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\settings_screen.dart:675:17 - creation_with_non_type
+   info - Use 'const' for final variables initialized to a constant value - lib\ui\screens\training_screen.dart:37:7 - prefer_const_declarations
+   info - Use 'const' for final variables initialized to a constant value - lib\ui\screens\training_screen.dart:84:7 - prefer_const_declarations
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\training_screen.dart:380:44 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\training_screen.dart:383:37 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\training_screen.dart:387:44 - use_build_context_synchronously
+  error - Undefined class 'TextEditingController' - lib\ui\screens\weekly_plan_screen.dart:24:9 - undefined_class
+  error - The method 'TextEditingController' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:24:49 - undefined_method
+  error - Undefined class 'TextEditingController' - lib\ui\screens\weekly_plan_screen.dart:25:9 - undefined_class
+  error - The method 'TextEditingController' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:25:50 - undefined_method
+  error - Undefined class 'Widget' - lib\ui\screens\weekly_plan_screen.dart:50:3 - undefined_class
+  error - Undefined class 'BuildContext' - lib\ui\screens\weekly_plan_screen.dart:50:16 - undefined_class
+  error - The method 'Scaffold' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:54:12 - undefined_method
+  error - The method 'AppBar' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:55:15 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\weekly_plan_screen.dart:56:22 - creation_with_non_type
+  error - The method 'IconButton' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:59:11 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\weekly_plan_screen.dart:60:25 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\weekly_plan_screen.dart:60:30 - undefined_identifier
+  error - The name 'Padding' isn't a class - lib\ui\screens\weekly_plan_screen.dart:65:19 - creation_with_non_type
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:66:24 - undefined_identifier
+  error - The method 'Center' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:67:22 - undefined_method
+  error - The method 'SizedBox' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:67:36 - undefined_method
+  error - The method 'CircularProgressIndicator' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:67:75 - undefined_method
+  error - The method 'IconButton' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:70:13 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\weekly_plan_screen.dart:71:27 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\weekly_plan_screen.dart:71:32 - undefined_identifier
+  error - The method 'ListView' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:77:13 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:78:24 - undefined_identifier
+  error - The method 'Container' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:81:11 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:82:28 - undefined_identifier
+  error - The method 'BoxDecoration' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:83:25 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:84:22 - undefined_identifier
+  error - Undefined name 'Border' - lib\ui\screens\weekly_plan_screen.dart:85:23 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:85:41 - undefined_identifier
+  error - Undefined name 'BorderRadius' - lib\ui\screens\weekly_plan_screen.dart:86:29 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:88:20 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\weekly_plan_screen.dart:90:23 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\weekly_plan_screen.dart:90:28 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:90:53 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:91:23 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:92:17 - undefined_method
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:93:26 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:95:28 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\weekly_plan_screen.dart:98:30 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:105:17 - creation_with_non_type
+  error - The name 'Padding' isn't a class - lib\ui\screens\weekly_plan_screen.dart:110:34 - creation_with_non_type
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:111:24 - undefined_identifier
+  error - The method 'Center' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:112:22 - undefined_method
+  error - The method 'CircularProgressIndicator' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:112:36 - undefined_method
+  error - The method 'Padding' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:114:30 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:115:30 - undefined_identifier
+  error - The method 'Center' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:116:22 - undefined_method
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:116:36 - undefined_method
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:120:17 - creation_with_non_type
+  error - The method 'Container' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:123:11 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:124:28 - undefined_identifier
+  error - The method 'BoxDecoration' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:125:25 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:126:22 - undefined_identifier
+  error - Undefined name 'Border' - lib\ui\screens\weekly_plan_screen.dart:127:23 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:127:41 - undefined_identifier
+  error - Undefined name 'BorderRadius' - lib\ui\screens\weekly_plan_screen.dart:128:29 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:130:20 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\weekly_plan_screen.dart:132:23 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\weekly_plan_screen.dart:132:28 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:132:59 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:133:23 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:134:17 - undefined_method
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:135:26 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:137:28 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\weekly_plan_screen.dart:139:30 - undefined_identifier
+  error - The method 'TextButton' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:143:17 - undefined_method
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:145:25 - undefined_identifier
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:148:72 - undefined_identifier
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:153:30 - undefined_identifier
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:154:38 - undefined_identifier
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:156:33 - undefined_identifier
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:157:36 - undefined_identifier
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\weekly_plan_screen.dart:162:25 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\weekly_plan_screen.dart:163:33 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:163:51 - undefined_method
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:173:31 - creation_with_non_type
+  error - The method 'CircularProgressIndicator' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:173:70 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\weekly_plan_screen.dart:174:31 - creation_with_non_type
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:179:17 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\weekly_plan_screen.dart:183:19 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:184:20 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:189:17 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\weekly_plan_screen.dart:193:19 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:194:20 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:199:17 - creation_with_non_type
+  error - The name 'GlobalKey' isn't a type, so it can't be used as a type argument - lib\ui\screens\weekly_plan_screen.dart:206:21 - non_type_as_type_argument
+  error - Undefined class 'GlobalKey' - lib\ui\screens\weekly_plan_screen.dart:208:3 - undefined_class
+  error - The method 'GlobalKey' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:209:48 - undefined_method
+  error - Undefined class 'Widget' - lib\ui\screens\weekly_plan_screen.dart:212:3 - undefined_class
+  error - Undefined class 'IconData' - lib\ui\screens\weekly_plan_screen.dart:213:14 - undefined_class
+  error - Undefined class 'Color' - lib\ui\screens\weekly_plan_screen.dart:214:14 - undefined_class
+  error - Undefined class 'TextEditingController' - lib\ui\screens\weekly_plan_screen.dart:216:14 - undefined_class
+  error - The method 'Card' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:219:12 - undefined_method
+  error - The method 'Padding' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:221:14 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:222:24 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:223:16 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\weekly_plan_screen.dart:224:31 - undefined_identifier
+  error - The method 'CircleAvatar' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:226:13 - undefined_method
+  error - The method 'Icon' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:228:22 - undefined_method
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:230:19 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:231:13 - undefined_method
+  error - The method 'Column' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:232:22 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\weekly_plan_screen.dart:233:37 - undefined_identifier
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\weekly_plan_screen.dart:288:9 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\weekly_plan_screen.dart:288:58 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:288:76 - undefined_method
+  error - The method 'debugPrint' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:291:7 - undefined_method
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\weekly_plan_screen.dart:304:7 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\weekly_plan_screen.dart:304:56 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:304:74 - undefined_method
+  error - The method 'showDialog' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:309:27 - undefined_method
+  error - The method 'AlertDialog' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:311:29 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\weekly_plan_screen.dart:312:22 - creation_with_non_type
+  error - The name 'Text' isn't a class - lib\ui\screens\weekly_plan_screen.dart:313:24 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:315:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\weekly_plan_screen.dart:315:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\weekly_plan_screen.dart:315:83 - creation_with_non_type
+  error - The method 'TextButton' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:316:11 - undefined_method
+  error - Undefined name 'Navigator' - lib\ui\screens\weekly_plan_screen.dart:316:39 - undefined_identifier
+  error - The name 'Text' isn't a class - lib\ui\screens\weekly_plan_screen.dart:316:82 - creation_with_non_type
+  error - The method 'TextStyle' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:316:100 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:316:117 - undefined_identifier
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\weekly_plan_screen.dart:326:9 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\weekly_plan_screen.dart:326:58 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:326:76 - undefined_method
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\weekly_plan_screen.dart:331:9 - undefined_identifier
+  error - The method 'SnackBar' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:331:52 - undefined_method
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:331:70 - undefined_method
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:337:9 - undefined_identifier
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:343:23 - undefined_identifier
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:344:22 - undefined_identifier
+   info - Use interpolation to compose strings and values - lib\ui\screens\weekly_plan_screen.dart:362:23 - prefer_interpolation_to_compose_strings
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:382:31 - undefined_identifier
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:386:9 - undefined_identifier
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:451:23 - undefined_identifier
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\weekly_plan_screen.dart:476:11 - undefined_identifier
+  error - The name 'SnackBar' isn't a class - lib\ui\screens\weekly_plan_screen.dart:476:60 - creation_with_non_type
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:476:78 - undefined_method
+  error - Undefined name '_currentUser' - lib\ui\screens\weekly_plan_screen.dart:483:25 - undefined_identifier
+  error - Undefined name 'ScaffoldMessenger' - lib\ui\screens\weekly_plan_screen.dart:485:9 - undefined_identifier
+  error - The method 'SnackBar' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:485:52 - undefined_method
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:485:70 - undefined_method
+  error - Undefined class 'Widget' - lib\ui\screens\weekly_plan_screen.dart:494:3 - undefined_class
+  error - The name 'Padding' isn't a class - lib\ui\screens\weekly_plan_screen.dart:496:20 - creation_with_non_type
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:497:18 - undefined_identifier
+  error - The method 'Center' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:498:16 - undefined_method
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:498:30 - undefined_method
+  error - Undefined name 'TextAlign' - lib\ui\screens\weekly_plan_screen.dart:498:98 - undefined_identifier
+  error - The method 'TextStyle' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:498:123 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:498:140 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:526:12 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\weekly_plan_screen.dart:527:27 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:529:9 - undefined_method
+  error - Undefined name 'MainAxisAlignment' - lib\ui\screens\weekly_plan_screen.dart:530:30 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:532:13 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\weekly_plan_screen.dart:533:30 - creation_with_non_type
+  error - Undefined name 'FontWeight' - lib\ui\screens\weekly_plan_screen.dart:533:52 - undefined_identifier
+  error - The method 'Chip' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:534:13 - undefined_method
+  error - The name 'Text' isn't a class - lib\ui\screens\weekly_plan_screen.dart:535:28 - creation_with_non_type
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:536:32 - undefined_identifier
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\weekly_plan_screen.dart:537:33 - creation_with_non_type
+  error - The method 'Container' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:542:11 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:543:27 - undefined_identifier
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:544:28 - undefined_identifier
+  error - The method 'BoxDecoration' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:545:25 - undefined_method
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:546:22 - undefined_identifier
+  error - Undefined name 'BorderRadius' - lib\ui\screens\weekly_plan_screen.dart:547:29 - undefined_identifier
+  error - Undefined name 'Border' - lib\ui\screens\weekly_plan_screen.dart:548:23 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:548:41 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:550:20 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\weekly_plan_screen.dart:551:35 - undefined_identifier
+  error - The name 'Icon' isn't a class - lib\ui\screens\weekly_plan_screen.dart:553:23 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\weekly_plan_screen.dart:553:28 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:553:53 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:554:23 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:555:17 - undefined_method
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:555:33 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\weekly_plan_screen.dart:555:67 - creation_with_non_type
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:559:15 - creation_with_non_type
+  error - Undefined class 'Widget' - lib\ui\screens\weekly_plan_screen.dart:565:3 - undefined_class
+  error - Undefined class 'Color' - lib\ui\screens\weekly_plan_screen.dart:572:5 - undefined_class
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:574:34 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:575:34 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:576:35 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:577:34 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:579:37 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:580:33 - undefined_identifier
+  error - The method 'Card' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:583:12 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:584:21 - undefined_identifier
+  error - The method 'ExpansionTile' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:585:14 - undefined_method
+  error - The method 'Row' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:587:16 - undefined_method
+  error - The method 'Expanded' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:588:11 - undefined_method
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:588:27 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\weekly_plan_screen.dart:588:59 - creation_with_non_type
+  error - Undefined name 'FontWeight' - lib\ui\screens\weekly_plan_screen.dart:588:81 - undefined_identifier
+  error - The method 'Container' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:589:11 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:590:28 - undefined_identifier
+  error - The method 'BoxDecoration' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:591:25 - undefined_method
+  error - Undefined name 'BorderRadius' - lib\ui\screens\weekly_plan_screen.dart:593:29 - undefined_identifier
+  error - Undefined name 'Border' - lib\ui\screens\weekly_plan_screen.dart:594:23 - undefined_identifier
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:596:20 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:596:48 - undefined_method
+  error - Undefined name 'FontWeight' - lib\ui\screens\weekly_plan_screen.dart:596:107 - undefined_identifier
+  error - The method 'Padding' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:600:11 - undefined_method
+  error - Undefined name 'EdgeInsets' - lib\ui\screens\weekly_plan_screen.dart:601:28 - undefined_identifier
+  error - The method 'Column' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:602:20 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\weekly_plan_screen.dart:603:35 - undefined_identifier
+  error - The method 'Row' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:605:17 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\weekly_plan_screen.dart:605:41 - undefined_identifier
+  error - The name 'Icon' isn't a class - lib\ui\screens\weekly_plan_screen.dart:606:25 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\weekly_plan_screen.dart:606:30 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:606:49 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:607:25 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:608:19 - undefined_method
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:609:28 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\weekly_plan_screen.dart:611:36 - creation_with_non_type
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:615:23 - creation_with_non_type
+  error - The method 'Row' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:616:17 - undefined_method
+  error - Undefined name 'CrossAxisAlignment' - lib\ui\screens\weekly_plan_screen.dart:616:41 - undefined_identifier
+  error - The name 'Icon' isn't a class - lib\ui\screens\weekly_plan_screen.dart:617:25 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\weekly_plan_screen.dart:617:30 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:617:59 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:618:25 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:619:19 - undefined_method
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:620:28 - undefined_method
+  error - The method 'TextStyle' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:622:30 - undefined_method
+  error - Undefined name 'Theme' - lib\ui\screens\weekly_plan_screen.dart:625:32 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:630:23 - creation_with_non_type
+  error - The method 'Row' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:631:17 - undefined_method
+  error - The name 'Icon' isn't a class - lib\ui\screens\weekly_plan_screen.dart:632:26 - creation_with_non_type
+  error - Undefined name 'Icons' - lib\ui\screens\weekly_plan_screen.dart:632:31 - undefined_identifier
+  error - Undefined name 'Colors' - lib\ui\screens\weekly_plan_screen.dart:632:56 - undefined_identifier
+  error - The name 'SizedBox' isn't a class - lib\ui\screens\weekly_plan_screen.dart:633:26 - creation_with_non_type
+  error - The method 'Expanded' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:634:20 - undefined_method
+  error - The method 'Text' isn't defined for the type '_WeeklyPlanScreenState' - lib\ui\screens\weekly_plan_screen.dart:635:29 - undefined_method
+  error - The name 'TextStyle' isn't a class - lib\ui\screens\weekly_plan_screen.dart:637:37 - creation_with_non_type
+  error - Undefined name 'FontWeight' - lib\ui\screens\weekly_plan_screen.dart:637:73 - undefined_identifier
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\widgets\stable_text_field.dart:51:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\widgets\stable_text_field.dart:71:40 - deprecated_member_use
+   info - 'surfaceVariant' is deprecated and shouldn't be used. Use surfaceContainerHighest instead. This feature was deprecated after v3.18.0-0.1.pre - lib\ui\widgets\stable_text_field.dart:75:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\widgets\stable_text_field.dart:75:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\widgets\stable_text_field.dart:79:67 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\widgets\stable_text_field.dart:83:67 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\widgets\stable_text_field.dart:87:67 - deprecated_member_use
+   info - The imported package 'intl' isn't a dependency of the importing package - lib\utils\date_utils.dart:1:8 - depend_on_referenced_packages
+warning - Unused import: 'package:google_generative_ai/google_generative_ai.dart' - test\list_models.dart:1:8 - unused_import
+warning - Unused import: 'dart:io' - test\list_models.dart:3:8 - unused_import
+   info - Don't invoke 'print' in production code - test\list_models.dart:9:5 - avoid_print
+   info - Don't invoke 'print' in production code - test\list_models.dart:17:5 - avoid_print
+   info - Don't invoke 'print' in production code - test\list_models.dart:20:5 - avoid_print
+

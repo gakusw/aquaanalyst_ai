@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/models/chat_session.dart';
+import '../../data/providers/providers.dart';
 
-class AgentFeedbackScreen extends StatefulWidget {
+class AgentFeedbackScreen extends ConsumerStatefulWidget {
   const AgentFeedbackScreen({super.key});
 
   @override
-  State<AgentFeedbackScreen> createState() => _AgentFeedbackScreenState();
+  ConsumerState<AgentFeedbackScreen> createState() => _AgentFeedbackScreenState();
 }
 
 // 状態を維持するためのグローバル変数を削除し、State内で管理するように変更（またはセッションIDで切り替え）
 // ※利便性のため、現在のセッションIDのみStaticで保持する
 String? _activeSessionId;
 
-class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
+class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FirestoreService _firestoreService = FirestoreService();
@@ -50,6 +52,7 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
   }
 
   Future<void> _loadSession(String sessionId) async {
+    if (!mounted) return;
     setState(() {
       _messages.clear();
       _isTyping = true;
@@ -58,23 +61,33 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
     });
 
     try {
-      // 履歴を読み込む
-      final history = await _firestoreService.getChatMessagesStream(sessionId).first;
+      // 履歴を読み込む (これだけはセッション固有なので非同期)
+      // 非同期購読を確実に行うため .first ではなく Stream として扱うことも検討できるが、
+      // ここでは初期ロードの確実性を優先
+      final history = await _firestoreService.getChatMessagesStream(sessionId).first.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => [],
+      );
       
-      // システムプロンプトを取得するためのセッション情報を取得
-      final sessions = await _firestoreService.getChatSessionsStream().first;
-      sessions.firstWhere((s) => s.id == sessionId);
-
-      final user = await _firestoreService.getUserProfileStream().first;
+      // Provider から最新情報を即座に取得 (通信待ちなし)
+      final sysInstContext = ref.read(coachSystemContextProvider);
+      final user = ref.read(userProfileProvider).value;
       if (user == null) throw Exception('ユーザー情報が見つかりません');
       
       final modelId = user.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
       _activeModelId = modelId;
+      final medicalHistory = user.baseProfile['medicalHistory'] as String? ?? 'なし';
 
       // 共通メソッドを使用してシステム指示を生成
-      final sysInst = GeminiService().getCoachSystemInstruction(user);
+      final sysInst = await GeminiService().getCoachSystemInstruction(
+        user,
+        supplementaryContext: """
+$sysInstContext
+■ 既往歴: $medicalHistory
+""",
+      );
 
-      // トトークン節約のため、Geminiに送る履歴を直近20件に制限
+      // トークン節約のため、Geminiに送る履歴を直近20件に制限
       final List<Content> geminiHistory = history.reversed.take(20).toList().reversed.map<Content>((m) => 
         m.isAi ? Content.model([TextPart(m.text)]) : Content.text(m.text)
       ).toList();
@@ -85,15 +98,25 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
         modelId: _activeModelId,
       );
 
-      setState(() {
-        _messages.addAll(history.map((m) => CoachMessage(
-          text: m.text,
-          isAi: m.isAi,
-          type: MessageType.normal,
-        )));
-        _isTyping = false;
-      });
-      _scrollToBottom();
+      if (mounted) {
+        setState(() {
+          if (history.isEmpty) {
+            _messages.add(CoachMessage(
+              text: 'こんにちは！専属コーチです。トレーニングの振り返りや、栄養、睡眠、今後の計画など、何でも相談してくださいね。',
+              isAi: true,
+              type: MessageType.normal,
+            ));
+          } else {
+            _messages.addAll(history.map((m) => CoachMessage(
+              text: m.text,
+              isAi: m.isAi,
+              type: MessageType.normal,
+            )));
+          }
+          _isTyping = false;
+        });
+        _scrollToBottom();
+      }
     } catch (e) {
       debugPrint('Error loading session: $e');
       setState(() => _isTyping = false);
@@ -107,55 +130,52 @@ class _AgentFeedbackScreenState extends State<AgentFeedbackScreen> {
     });
 
     try {
-      final user = await _firestoreService.getUserProfileStream().first;
+      final user = ref.read(userProfileProvider).value;
       if (user == null) throw Exception('ユーザー情報が見つかりません');
       final modelId = user.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
+      _activeModelId = modelId;
 
-      // 節約のため直近5件に制限
-      final records = await _firestoreService.getTrainingRecordsStream(limit: 5).first;
-      final allPbs = await _firestoreService.getPersonalBestsStream().first;
-
-      String recordsText = records.isEmpty ? "なし" : records.map((r) => "- ${r.date.toIso8601String().substring(0,10)}: ${r.type}").join('\n');
-      String pbText = allPbs.isEmpty ? "なし" : allPbs.take(5).map((pb) => "- ${pb.event}: ${pb.value}").join('\n');
-
-      // 共通メソッドを使用してシステム指示を生成
-      final sysInst = GeminiService().getCoachSystemInstruction(
+      final sysInstContext = ref.read(coachSystemContextProvider);
+      final medicalHistory = user.baseProfile['medicalHistory'] as String? ?? 'なし';
+      
+      final sysInst = await GeminiService().getCoachSystemInstruction(
         user,
         supplementaryContext: """
-[最新のトレーニング状況]
-$recordsText
-[自己ベスト]
-$pbText
+$sysInstContext
+■ 既往歴: $medicalHistory
 """,
       );
 
-      final sessionId = await _firestoreService.createChatSession(
-        title: '${DateTime.now().month}/${DateTime.now().day} の相談',
+      _chatSession = GeminiService().startChat(
         systemInstruction: sysInst,
+        history: [],
+        modelId: _activeModelId,
       );
 
-      _currentSessionId = sessionId;
-      _activeSessionId = sessionId;
-      _activeModelId = modelId;
-      _chatSession = GeminiService().startChat(systemInstruction: sysInst, modelId: modelId);
-
-      // 初回挨拶（リクエスト回数節約のため、sendMessageではなく固定メッセージを追加）
-      const aiMsg = 'こんにちは！本日のコンディションや練習メニューについて、何でも相談してください。';
-      
-      await _firestoreService.addChatMessage(sessionId, ChatMessage(text: aiMsg, isAi: true, timestamp: DateTime.now()));
+      final sessionId = 'chat_${DateTime.now().millisecondsSinceEpoch}';
+      await _firestoreService.saveChatSession(ChatSessionModel(
+        id: sessionId,
+        title: '新規チャット',
+        lastMessageAt: DateTime.now(),
+        systemInstruction: sysInst,
+      ));
 
       setState(() {
-        _messages.add(CoachMessage(text: aiMsg, isAi: true));
+        _currentSessionId = sessionId;
+        _activeSessionId = sessionId;
+        _messages.add(CoachMessage(
+          text: 'こんにちは！コーチです。今日はどのようなことを相談したいですか？',
+          isAi: true,
+          type: MessageType.normal,
+        ));
         _isTyping = false;
       });
     } catch (e) {
-      setState(() {
-        _isTyping = false;
-        final msg = GeminiService().translateError(e, modelId: _activeModelId);
-        _messages.add(CoachMessage(text: msg, isAi: true, type: MessageType.warning));
-      });
+      debugPrint('Error creating chat: $e');
+      setState(() => _isTyping = false);
     }
   }
+
 
   void _handleSubmitted(String text) async {
     if (text.trim().isEmpty) return;
@@ -178,21 +198,38 @@ $pbText
       // ユーザーメッセージをDB保存
       await _firestoreService.addChatMessage(sessionId, ChatMessage(text: text, isAi: false, timestamp: DateTime.now()));
 
-      final response = await _chatSession!.sendMessage(Content.text(text));
-      final aiMsg = response.text ?? '応答がありませんでした。';
+      // ストリーミング応答の開始
+      final stream = _chatSession!.sendMessageStream(Content.text(text));
+      
+      String fullResponse = "";
+      bool isFirstChunk = true;
 
-      // AIメッセージをDB保存
-      await _firestoreService.addChatMessage(sessionId, ChatMessage(text: aiMsg, isAi: true, timestamp: DateTime.now()));
+      await for (final chunk in stream) {
+        final chunkText = chunk.text;
+        if (chunkText != null) {
+          fullResponse += chunkText;
+          setState(() {
+            if (isFirstChunk) {
+              _isTyping = false;
+              _messages.add(CoachMessage(text: fullResponse, isAi: true));
+              isFirstChunk = false;
+            } else {
+              // 最後のメッセージを更新されたテキストで置き換え
+              _messages[_messages.length - 1] = CoachMessage(text: fullResponse, isAi: true);
+            }
+          });
+          _scrollToBottom();
+        }
+      }
+
+      // AIメッセージをDB保存（完了後）
+      await _firestoreService.addChatMessage(sessionId, ChatMessage(text: fullResponse, isAi: true, timestamp: DateTime.now()));
 
       if (!mounted) return;
       
       // 送信成功時に利用回数をインクリメント
       _firestoreService.incrementDailyUsage();
 
-      setState(() {
-        _isTyping = false;
-        _messages.add(CoachMessage(text: aiMsg, isAi: true));
-      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -202,11 +239,6 @@ $pbText
       });
     }
     _scrollToBottom();
-  }
-
-  String _getFriendlyErrorMessage(dynamic e) {
-    // すでにGeminiService側で例外メッセージとして翻訳されたテキストが入っている想定
-    return e.toString().replaceFirst('Exception: ', '');
   }
 
   Future<void> _renameSession(String sessionId, String currentTitle) async {
@@ -281,6 +313,14 @@ $pbText
 
   @override
   Widget build(BuildContext context) {
+    if (_currentSessionId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('コーチ')),
+        drawer: _buildDrawer(),
+        body: _buildEmptyState(),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('コーチ'),
@@ -295,33 +335,63 @@ $pbText
       body: Column(
         children: [
           Expanded(
-            child: _currentSessionId == null && !_isTyping
-                ? _buildEmptyState()
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16.0),
-                    itemCount: _messages.length + (_isTyping ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == _messages.length && _isTyping) {
-                        return const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Padding(
-                            padding: EdgeInsets.only(bottom: 16.0),
-                            child: Chip(
-                              avatar: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                              label: Text('考え中...'),
+            child: StreamBuilder<List<ChatMessage>>(
+              stream: _firestoreService.getChatMessagesStream(_currentSessionId!),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                
+                final dbMessages = snapshot.data ?? [];
+                
+                // 初回読み込みでデータが空の場合の初期メッセージ
+                if (dbMessages.isEmpty && !_isTyping) {
+                   // 初回時のAIの挨拶。DBには保存しない。
+                   return ListView(
+                     padding: const EdgeInsets.all(16.0),
+                     children: [
+                       _buildMessageBubble(CoachMessage(
+                        text: 'こんにちは！専属コーチです。トレーニングの振り返りや、栄養、睡眠、今後の計画など、何でも相談してくださいね。',
+                        isAi: true,
+                       )),
+                     ],
+                   );
+                }
+
+                // スクロール制御
+                _scrollToBottom();
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16.0),
+                  itemCount: dbMessages.length + (_isTyping ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == dbMessages.length && _isTyping) {
+                      return const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: 16.0),
+                          child: Chip(
+                            avatar: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             ),
+                            label: Text('考え中...'),
                           ),
-                        );
-                      }
-                      final message = _messages[index];
-                      return _buildMessageBubble(message);
-                    },
-                  ),
+                        ),
+                      );
+                    }
+                    final m = dbMessages[index];
+                    return _buildMessageBubble(CoachMessage(
+                      text: m.text,
+                      isAi: m.isAi,
+                      type: MessageType.normal,
+                    ));
+                  },
+                );
+              },
+            ),
           ),
           const Divider(height: 1),
           _buildTextComposer(),

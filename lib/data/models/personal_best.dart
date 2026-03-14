@@ -6,6 +6,7 @@ class PersonalBest {
   final String event;    // 例: '100m Fr', 'ベンチプレス'
   final double value;    // タイム(秒) または 重量(kg)
   final DateTime date;   // 達成日
+  final String? trainingRecordId; // 紐付く詳細記録のID
 
   PersonalBest({
     required this.id,
@@ -13,6 +14,7 @@ class PersonalBest {
     required this.event,
     required this.value,
     required this.date,
+    this.trainingRecordId,
   });
 
   Map<String, dynamic> toMap() {
@@ -21,6 +23,7 @@ class PersonalBest {
       'event': event,
       'value': value,
       'date': Timestamp.fromDate(date),
+      'trainingRecordId': trainingRecordId,
     };
   }
 
@@ -31,6 +34,7 @@ class PersonalBest {
       event: map['event'] ?? '',
       value: (map['value'] as num?)?.toDouble() ?? 0.0,
       date: (map['date'] as Timestamp).toDate(),
+      trainingRecordId: map['trainingRecordId'],
     );
   }
 }
