@@ -79,7 +79,7 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
       final medicalHistory = user.baseProfile['medicalHistory'] as String? ?? 'なし';
 
       // 共通メソッドを使用してシステム指示を生成
-      final sysInst = await GeminiService().getCoachSystemInstruction(
+      final fullSysInst = await GeminiService().getCoachSystemInstruction(
         user,
         supplementaryContext: """
 $sysInstContext
@@ -93,7 +93,7 @@ $sysInstContext
       ).toList();
 
       _chatSession = GeminiService().startChat(
-        systemInstruction: sysInst,
+        systemInstruction: fullSysInst,
         history: geminiHistory,
         modelId: _activeModelId,
       );

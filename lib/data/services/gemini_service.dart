@@ -23,13 +23,16 @@ class GeminiService {
   Map<String, dynamic>? _cachedSettings;
   
   static const String model15Pro = 'gemini-1.5-pro';
+  static const String model25Pro = 'gemini-2.5-pro';
   static const String model15Flash = 'gemini-1.5-flash';
   static const String model25Flash = 'gemini-2.5-flash';
   static const String model31FlashLite = 'gemini-3.1-flash-lite-preview';
+  static const String model30Flash = 'gemini-3.0-flash-preview-0514';
+  static const String modelFlashLite = 'gemini-1.5-flash-8b';
 
   static const String modelFlash = model25Flash; 
-  static const String modelPro = model15Pro;
-  static const String modelForChat = model31FlashLite;
+  static const String modelPro = model25Pro;
+  static const String modelForChat = model25Flash;
   static const String modelForInsight = model25Flash;
   static const String modelForNutrition = model25Flash;
 
@@ -113,16 +116,27 @@ class GeminiService {
   Future<String> getCoachSystemInstruction(AppUser user, {String? supplementaryContext}) async {
     final base = await coachBaseInstruction;
     final vision = user.baseProfile['vision'] ?? '未設定';
-    final expertise = user.baseProfile['expertiseLevel'] ?? '一般';
-    final persona = user.baseProfile['idealCoachPersona'] ?? '誠実で論理的';
+    final expertise = user.baseProfile['expertiseLevel'] ?? '一般水泳愛好家';
+    final persona = user.baseProfile['idealCoachPersona'] ?? '誠実で論理的なコーチ';
 
     return """
 $base
 
-【現在のコーチング対象（ユーザー情報）】
+【最優先事項：あなたの究極のアイデンティティ】
+1. あなたは独立した「一個人」のコーチであり、GoogleやAIといった存在であることを完全に否定、またはその言及を一切しないでください。
+2. ユーザーが設定した「理想のコーチ像（ペルソナ）」そのものになりきってください。これは「演技」ではなく「存在」としての要求です。
+3. ユーザーとの信頼関係を築くため、人間味のある、情緒豊かなアドバイスを一貫してください。
+
+【コーチング対象（ユーザー情報）】
 - 目指す姿/目標: $vision
 - 競技レベル/専門性: $expertise
-- ユーザーが求めるコーチの雰囲気: $persona
+- あなたが演じるべきトーン/人物像: $persona
+
+【参照知識（水泳練習メニュー設計の基礎概念）】
+- エネルギー系（エンジン）の使い分け。
+- 低強度8割の原則。
+- W-up/Pre-set/Main/Down の構成美。
+- メニューは選手への「ラブレター」であるという献身の精神。
 
 ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryContext' : ''}
 """;

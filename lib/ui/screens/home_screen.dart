@@ -912,28 +912,88 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildBestTimeCard(BuildContext context, PersonalBest pb, List<PersonalBest> history) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8.0),
-      child: ListTile(
-        leading: const CircleAvatar(backgroundColor: Colors.blueAccent, child: Icon(Icons.timer, color: Colors.white)),
-        title: Text(pb.event, style: const TextStyle(fontWeight: FontWeight.bold)),
-        trailing: Text(pb.value.toStringAsFixed(2), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent.withOpacity(0.8))),
-        subtitle: Text('${pb.date.year}/${pb.date.month}/${pb.date.day}'),
+      margin: const EdgeInsets.only(bottom: 12.0),
+      child: InkWell(
         onTap: () => _showPbHistoryDialog(context, pb.event, history, isTime: true),
         onLongPress: () => _showPbOptionsDialog(context, pb),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.pool.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.timer_outlined, color: AppColors.pool, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(pb.event, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Best: ${pb.date.year}/${pb.date.month}/${pb.date.day}',
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                _formatSeconds(pb.value),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.pool),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildWeightBestCard(BuildContext context, PersonalBest pb, List<PersonalBest> history) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8.0),
-      child: ListTile(
-        leading: const CircleAvatar(backgroundColor: Colors.amber, child: Icon(Icons.fitness_center, color: Colors.white)),
-        title: Text(pb.event, style: const TextStyle(fontWeight: FontWeight.bold)),
-        trailing: Text('${pb.value.toStringAsFixed(1)} kg', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.amber.withOpacity(0.8))),
-        subtitle: Text('達成日: ${pb.date.year}/${pb.date.month}/${pb.date.day}'),
+      margin: const EdgeInsets.only(bottom: 12.0),
+      child: InkWell(
         onTap: () => _showPbHistoryDialog(context, pb.event, history, isTime: false),
         onLongPress: () => _showPbOptionsDialog(context, pb),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.dryland.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.fitness_center_outlined, color: AppColors.dryland, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(pb.event, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Best: ${pb.date.year}/${pb.date.month}/${pb.date.day}',
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${pb.value.toStringAsFixed(1)} kg',
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.dryland),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1702,223 +1762,272 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
       controller: _screenshotController,
       child: Container(
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          border: Border.all(color: summaryPrimaryColor.withOpacity(0.5)),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), spreadRadius: 1, blurRadius: 4)],
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: Theme.of(context).brightness == Brightness.dark
+                ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+                : [Colors.white, const Color(0xFFF1F5F9)],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+          border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white.withOpacity(0.05)
+                : Colors.blue.withOpacity(0.1),
+          ),
         ),
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('今日のサマリー', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: summaryPrimaryColor)),
-              Row(
-                children: [
-                  if (kIsWeb) ...[
-                    TextButton.icon(
-                      onPressed: _downloadSummaryWeb,
-                      icon: const Icon(Icons.download, size: 20),
-                      label: const Text('画像を保存', style: TextStyle(fontSize: 12)),
-                      style: TextButton.styleFrom(
-                        backgroundColor: summaryPrimaryColor.withOpacity(0.1),
-                        foregroundColor: summaryPrimaryColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  IconButton(
-                    onPressed: _copySummaryToClipboard,
-                    icon: const Icon(Icons.copy, size: 20),
-                    style: IconButton.styleFrom(
-                      backgroundColor: summaryPrimaryColor.withOpacity(0.1),
-                      foregroundColor: summaryPrimaryColor,
-                    ),
-                    tooltip: 'クリップボードにコピー',
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: _shareSummary,
-                    icon: const Icon(Icons.share, size: 20),
-                    style: IconButton.styleFrom(
-                      backgroundColor: summaryPrimaryColor.withOpacity(0.1),
-                      foregroundColor: summaryPrimaryColor,
-                    ),
-                    tooltip: 'SNSに共有',
-                  ),
-                ],
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned(
+              right: -20,
+              top: -20,
+              child: Icon(
+                Icons.analytics_outlined,
+                size: 120,
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
               ),
-            ],
-          ),
-          Divider(color: summaryPrimaryColor.withOpacity(0.3), height: 24),
-          
-          // 水中トレーニング
-          _buildSummarySection(
-            context,
-            icon: Icons.pool,
-            label: '水中トレーニング',
-            color: AppColors.pool,
-            children: [
-              _DetailRow(label: '時間/詳細', value: poolDistanceLabel),
-              _DetailRow(label: '内容', child: _ExpandableText(poolMenuLabel)),
-              _DetailRow(label: '主観感覚', value: '$poolSubjective / 10'),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // 陸上トレーニング
-          _buildSummarySection(
-            context,
-            icon: Icons.fitness_center,
-            label: '陸上トレーニング',
-            color: AppColors.dryland,
-            children: [
-              _DetailRow(label: '内容', child: _ExpandableText(drylandMenuLabel)),
-              _DetailRow(label: '疲労度', value: '$drylandSubjective / 10'),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // 栄養状態
-          _buildSummarySection(
-            context,
-            icon: Icons.restaurant,
-            label: '栄養状態',
-            color: AppColors.carbs,
-            children: [
-              if (widget.nutritionRecords.isEmpty) 
-                const _DetailRow(label: '食事内容', value: '未入力'),
-              ...widget.nutritionRecords.map((r) {
-                final double p = (r.subjectiveMetrics['protein'] as num?)?.toDouble() ?? 0.0;
-                final double f = (r.subjectiveMetrics['fat'] as num?)?.toDouble() ?? 0.0;
-                final double c = (r.subjectiveMetrics['carbs'] as num?)?.toDouble() ?? 0.0;
-                final kcal = (p * 4 + f * 9 + c * 4).round();
-                
-                return _DetailRow(
-                  label: r.subjectiveMetrics['meal_label'] as String? ?? '未分類', 
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'TODAY\'S SUMMARY',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.5,
+                              color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '今日のサマリー',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
                       Row(
                         children: [
-                          Expanded(child: _ExpandableText(r.details.isNotEmpty ? r.details.first['content'] : '記録あり')),
+                          _buildModernActionBtn(
+                            icon: Icons.copy_all_outlined,
+                            onTap: _copySummaryToClipboard,
+                            tooltip: 'コピー',
+                          ),
                           const SizedBox(width: 8),
-                          Text('$kcal kcal', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigoAccent.withOpacity(0.8))),
+                          _buildModernActionBtn(
+                            icon: Icons.share_outlined,
+                            onTap: _shareSummary,
+                            tooltip: '共有',
+                          ),
                         ],
                       ),
                     ],
-                  )
-                );
-              }),
-              const SizedBox(height: 12),
-              _PfcStatusRow(
-                label: 'タンパク質 (P)', 
-                value: proteinValue, 
-                maxValue: targetP.toDouble(), 
-                color: AppColors.protein, 
-                status: (targetP > 0 && proteinValue >= targetP) ? '達成' : '不足'
-              ),
-              _PfcStatusRow(
-                label: '脂質 (F)', 
-                value: fatValue, 
-                maxValue: targetF.toDouble(), 
-                color: AppColors.fat, 
-                status: (targetF > 0 && fatValue >= targetF) ? '達成' : '不足'
-              ),
-              _PfcStatusRow(
-                label: '炭水化物 (C)', 
-                value: carbsValue, 
-                maxValue: targetC.toDouble(), 
-                color: AppColors.carbs, 
-                status: (targetC > 0 && carbsValue >= targetC) ? '達成' : '不足'
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4.0),
-                child: Divider(height: 1),
-              ),
-              _PfcStatusRow(
-                label: 'エネルギー (kcal)', 
-                value: totalCalories, 
-                maxValue: targetCalories > 0 ? targetCalories : 2500, 
-                color: Colors.purpleAccent, 
-                status: (targetCalories > 0 && totalCalories >= targetCalories) ? '達成' : '不足'
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // 睡眠時間
-          _buildSummarySection(
-            context,
-            icon: Icons.bedtime,
-            label: '睡眠時間',
-            color: AppColors.sleep,
-            children: [
-              if (widget.sleepRecord != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _DetailRow(
-                      label: '実績',
-                      value: '${(widget.sleepRecord!.durationMinutes / 60).floor()}時間 ${widget.sleepRecord!.durationMinutes % 60}分',
-                    ),
-                    Text(
-                      '時間: ${() {
-                        final start = DateTime.parse(widget.sleepRecord!.subjectiveMetrics['sleep_start'] as String);
-                        final end = DateTime.parse(widget.sleepRecord!.subjectiveMetrics['sleep_end'] as String);
-                        return '${start.month}/${start.day} ${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')} 〜 ${end.month}/${end.day} ${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
-                      }()}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('未入力', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                    TextButton.icon(
-                      onPressed: widget.onAddSleepPressed,
-                      icon: const Icon(Icons.add_circle_outline, size: 16),
-                      label: const Text('睡眠記録を入力', style: TextStyle(fontSize: 12)),
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        foregroundColor: AppColors.sleep,
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // 水中トレーニング
+                  _buildSummarySection(
+                    context,
+                    icon: Icons.pool,
+                    label: '水中トレーニング',
+                    color: AppColors.pool,
+                    children: [
+                      _DetailRow(label: '時間/詳細', value: poolDistanceLabel),
+                      _DetailRow(label: '内容', child: _ExpandableText(poolMenuLabel)),
+                      _DetailRow(label: '主観感覚', value: '$poolSubjective / 10'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // 陸上トレーニング
+                  _buildSummarySection(
+                    context,
+                    icon: Icons.fitness_center,
+                    label: '陸上トレーニング',
+                    color: AppColors.dryland,
+                    children: [
+                      _DetailRow(label: '内容', child: _ExpandableText(drylandMenuLabel)),
+                      _DetailRow(label: '疲労度', value: '$drylandSubjective / 10'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // 栄養状態
+                  _buildSummarySection(
+                    context,
+                    icon: Icons.restaurant,
+                    label: '栄養状態',
+                    color: AppColors.carbs,
+                    children: [
+                      if (widget.nutritionRecords.isEmpty) 
+                        const _DetailRow(label: '食事内容', value: '未入力'),
+                      ...widget.nutritionRecords.map((r) {
+                        final double p = (r.subjectiveMetrics['protein'] as num?)?.toDouble() ?? 0.0;
+                        final double f = (r.subjectiveMetrics['fat'] as num?)?.toDouble() ?? 0.0;
+                        final double c = (r.subjectiveMetrics['carbs'] as num?)?.toDouble() ?? 0.0;
+                        final kcal = (p * 4 + f * 9 + c * 4).round();
+                        
+                        return _DetailRow(
+                          label: r.subjectiveMetrics['meal_label'] as String? ?? '未分類', 
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(child: _ExpandableText(r.details.isNotEmpty ? r.details.first['content'] : '記録あり')),
+                                  const SizedBox(width: 8),
+                                  Text('$kcal kcal', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigoAccent.withOpacity(0.8))),
+                                ],
+                              ),
+                            ],
+                          )
+                        );
+                      }),
+                      const SizedBox(height: 12),
+                      _PfcStatusRow(
+                        label: 'タンパク質 (P)', 
+                        value: proteinValue, 
+                        maxValue: targetP.toDouble(), 
+                        color: AppColors.protein, 
+                        status: (targetP > 0 && proteinValue >= targetP) ? '達成' : '不足'
+                      ),
+                      _PfcStatusRow(
+                        label: '脂質 (F)', 
+                        value: fatValue, 
+                        maxValue: targetF.toDouble(), 
+                        color: AppColors.fat, 
+                        status: (targetF > 0 && fatValue >= targetF) ? '達成' : '不足'
+                      ),
+                      _PfcStatusRow(
+                        label: '炭水化物 (C)', 
+                        value: carbsValue, 
+                        maxValue: targetC.toDouble(), 
+                        color: AppColors.carbs, 
+                        status: (targetC > 0 && carbsValue >= targetC) ? '達成' : '不足'
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 4.0),
+                        child: Divider(height: 1),
+                      ),
+                      _PfcStatusRow(
+                        label: 'エネルギー (kcal)', 
+                        value: totalCalories, 
+                        maxValue: targetCalories > 0 ? targetCalories : 2500, 
+                        color: Colors.purpleAccent, 
+                        status: (targetCalories > 0 && totalCalories >= targetCalories) ? '達成' : '不足'
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // 睡眠時間
+                  _buildSummarySection(
+                    context,
+                    icon: Icons.bedtime,
+                    label: '睡眠時間',
+                    color: AppColors.sleep,
+                    children: [
+                      if (widget.sleepRecord != null)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _DetailRow(
+                              label: '実績',
+                              value: '${(widget.sleepRecord!.durationMinutes / 60).floor()}時間 ${widget.sleepRecord!.durationMinutes % 60}分',
+                            ),
+                            Text(
+                              '時間: ${() {
+                                final start = DateTime.parse(widget.sleepRecord!.subjectiveMetrics['sleep_start'] as String);
+                                final end = DateTime.parse(widget.sleepRecord!.subjectiveMetrics['sleep_end'] as String);
+                                return '${start.month}/${start.day} ${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')} 〜 ${end.month}/${end.day} ${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+                              }()}',
+                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        )
+                      else
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('未入力', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                            TextButton.icon(
+                              onPressed: widget.onAddSleepPressed,
+                              icon: const Icon(Icons.add_circle_outline, size: 16),
+                              label: const Text('睡眠記録を入力', style: TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                foregroundColor: AppColors.sleep,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  if (_aiEvaluation != null)
+                    Container(
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: AppColors.pool.withOpacity(0.1),
+                        border: Border.all(color: AppColors.pool.withOpacity(0.5)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.wb_twilight, color: AppColors.pool, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _aiEvaluation!,
+                              style: const TextStyle(fontSize: 12, height: 1.4),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          if (_aiEvaluation != null)
-            Container(
-              padding: const EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                color: AppColors.pool.withOpacity(0.1),
-                border: Border.all(color: AppColors.pool.withOpacity(0.5)),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.wb_twilight, color: AppColors.pool, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _aiEvaluation!,
-                      style: const TextStyle(fontSize: 12, height: 1.4),
-                    ),
-                  ),
                 ],
               ),
-            )
-        ],
+            ),
+          ],
+        ),
       ),
-    ),
+    );
+  }
+
+  Widget _buildModernActionBtn({required IconData icon, required VoidCallback onTap, required String tooltip}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: IconButton(
+        icon: Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        onPressed: onTap,
+        tooltip: tooltip,
+        constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+        padding: EdgeInsets.zero,
+      ),
     );
   }
 
@@ -1929,15 +2038,35 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     return Container(
       decoration: BoxDecoration(
         color: effectiveColor.withOpacity(isLight ? 0.08 : 0.03),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: effectiveColor.withOpacity(isLight ? 0.3 : 0.15)),
       ),
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionLabel(icon: icon, label: label, color: effectiveColor),
-          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: effectiveColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: effectiveColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.9) : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           ...children,
         ],
       ),

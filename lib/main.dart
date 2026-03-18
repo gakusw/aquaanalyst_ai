@@ -134,28 +134,70 @@ class MyApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: appThemeMode,
       builder: (context, mode, _) {
+        const primaryColor = Color(0xFF0EA5E9); // Vibrant Blue
+        const secondaryColor = Color(0xFF6366F1); // Indigo
+        
         return MaterialApp.router(
           title: 'AquaAnalyst AI',
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
-              seedColor: Colors.teal, 
+              seedColor: primaryColor,
               brightness: Brightness.light,
             ).copyWith(
-              onSurface: const Color(0xFF003737), // 濃いティール
-              primary: const Color(0xFF006A6A),
-              secondary: const Color(0xFF006A6A),
+              primary: primaryColor,
+              secondary: secondaryColor,
+              surface: const Color(0xFFF8FAFC),
             ),
             useMaterial3: true,
-            // 文字色全体を濃くする
+            cardTheme: CardThemeData(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: Colors.grey.withOpacity(0.1)),
+              ),
+              color: Colors.white,
+            ),
+            appBarTheme: const AppBarTheme(
+              centerTitle: false,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              titleTextStyle: TextStyle(
+                color: Color(0xFF0F172A),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             textTheme: const TextTheme(
-              bodyLarge: TextStyle(color: Color(0xFF002222)),
-              bodyMedium: TextStyle(color: Color(0xFF002222)),
-              titleLarge: TextStyle(color: Color(0xFF002222)),
+              titleLarge: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold),
+              bodyLarge: TextStyle(color: Color(0xFF1E293B)),
+              bodyMedium: TextStyle(color: Color(0xFF334155)),
             ),
           ),
           darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal, brightness: Brightness.dark),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: primaryColor,
+              brightness: Brightness.dark,
+            ).copyWith(
+              primary: primaryColor,
+              secondary: secondaryColor,
+              surface: const Color(0xFF0F172A), // Deep Navy
+              background: const Color(0xFF020617), // Rich Black
+            ),
             useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFF020617),
+            cardTheme: CardThemeData(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: Colors.white.withOpacity(0.05)),
+              ),
+              color: const Color(0xFF1E293B).withOpacity(0.5), // Glassy effect base
+            ),
+            appBarTheme: const AppBarTheme(
+              centerTitle: false,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+            ),
           ),
           themeMode: mode,
           routerConfig: _router,

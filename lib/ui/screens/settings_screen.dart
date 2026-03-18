@@ -266,8 +266,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     RadioListTile<String>(
                       title: const Text('Gemini 3.1 Flash-Lite (Preview)'),
-                      subtitle: const Text('【最速】高レスポンスモデル。'),
+                      subtitle: const Text('【新世代・最速】瞬時の応答。'),
                       value: GeminiService.model31FlashLite,
+                      groupValue: selected,
+                      onChanged: (val) => setDialogState(() => selected = val!),
+                    ),
+                    RadioListTile<String>(
+                      title: const Text('Gemini 3.0 Flash (Preview)'),
+                      subtitle: const Text('【バランス】新世代の標準。'),
+                      value: GeminiService.model30Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
