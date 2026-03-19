@@ -546,11 +546,11 @@ $sysInstContext
     final baseColor = Theme.of(context).colorScheme.onSurface;
     switch (message.type) {
       case MessageType.warning:
-        return Colors.orange.withOpacity(0.15);
+        return Colors.orange.withValues(alpha: 0.15);
       case MessageType.bcaSequence:
-        return baseColor.withOpacity(0.08);
+        return baseColor.withValues(alpha: 0.08);
       default:
-        return Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3);
+        return Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3);
     }
   }
 
@@ -578,7 +578,7 @@ $sysInstContext
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20.0),
                 ),
                   child: Focus(

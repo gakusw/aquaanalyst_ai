@@ -48,7 +48,7 @@ class _StableTextFieldState extends State<StableTextField> {
                 widget.labelText!,
                 style: TextStyle(
                   fontSize: 12,
-                  color: colorScheme.primary.withOpacity(0.8),
+                  color: colorScheme.primary.withValues(alpha: 0.8),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -68,23 +68,23 @@ class _StableTextFieldState extends State<StableTextField> {
             decoration: InputDecoration(
               hintText: widget.hintText,
               hintStyle: TextStyle(
-                color: theme.hintColor.withOpacity(0.35),
+                color: theme.hintColor.withValues(alpha: 0.35),
                 fontSize: 14,
               ),
               filled: true,
-              fillColor: colorScheme.surfaceVariant.withOpacity(0.1),
+              fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
               // 境界線を明確にし、右端を認識させる
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.2)),
+                borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: colorScheme.outline.withOpacity(0.1)),
+                borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.1)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: colorScheme.primary.withOpacity(0.5), width: 1.5),
+                borderSide: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5), width: 1.5),
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               isDense: true,

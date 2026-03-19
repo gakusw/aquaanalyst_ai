@@ -30,7 +30,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  int _bodyCompOffset = 1; // デフォルトで今月を右から2番目にするためのオフセット
+  final int _bodyCompOffset = 1; // デフォルトで今月を右から2番目にするためのオフセット
   bool _showMonthlyBadges = true; // バッジ表示切替フラグ
 
   bool _isShowingSleepDialog = false;
@@ -545,7 +545,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.teal.withOpacity(0.1),
+            color: Colors.teal.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -924,7 +924,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.pool.withOpacity(0.1),
+                  color: AppColors.pool.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.timer_outlined, color: AppColors.pool, size: 24),
@@ -938,7 +938,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Best: ${pb.date.year}/${pb.date.month}/${pb.date.day}',
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                     ),
                   ],
                 ),
@@ -968,7 +968,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.dryland.withOpacity(0.1),
+                  color: AppColors.dryland.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.fitness_center_outlined, color: AppColors.dryland, size: 24),
@@ -982,7 +982,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Best: ${pb.date.year}/${pb.date.month}/${pb.date.day}',
-                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
                     ),
                   ],
                 ),
@@ -1108,7 +1108,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: ListTile(
         leading: const CircleAvatar(backgroundColor: Colors.blueAccent, child: Icon(Icons.flag, color: Colors.white)),
         title: Text(gt.event, style: const TextStyle(fontWeight: FontWeight.bold)),
-        trailing: Text(gt.value.toStringAsFixed(2), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent.withOpacity(0.7))),
+        trailing: Text(gt.value.toStringAsFixed(2), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent.withValues(alpha: 0.7))),
         subtitle: const Text('目標タイム'),
         onLongPress: () => _showGoalOptionsDialog(context, gt),
       ),
@@ -1176,56 +1176,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ];
   }
 
-  LineChartData _buildBodyCompChartData(List<TrainingRecord> allRecords) {
-    final now = DateTime.now();
-    final baseMonth = DateTime(now.year, now.month - _bodyCompOffset + 1, 1);
-    const months = ['', '1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
-    final monthLabels = <String>[];
-    for (int i = 11; i >= 0; i--) {
-      final d = DateTime(baseMonth.year, baseMonth.month - i, 1);
-      monthLabels.add(months[d.month]);
-    }
-
-    final bars = _buildBodyCompLineBars(allRecords);
-    double minY = 30;
-    double maxY = 80;
-    final allYValues = bars.expand((b) => b.spots.map((s) => s.y)).toList();
-    if (allYValues.isNotEmpty) {
-      final actualMin = allYValues.reduce((a, b) => a < b ? a : b);
-      final actualMax = allYValues.reduce((a, b) => a > b ? a : b);
-      minY = (actualMin - 5).clamp(0, 200).toDouble();
-      maxY = (actualMax + 5).clamp(minY + 10, 300).toDouble();
-    }
-
-    return LineChartData(
-      minX: 1, maxX: 12, minY: minY, maxY: maxY,
-      gridData: const FlGridData(show: true),
-      titlesData: FlTitlesData(
-        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 36,
-            getTitlesWidget: (val, meta) => Text(val.toInt().toString(), style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54))),
-          ),
-        ),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            interval: 1,
-            getTitlesWidget: (val, meta) {
-              final idx = val.toInt() - 1;
-              if (idx < 0 || idx >= 12) return const SizedBox.shrink();
-              return Text(monthLabels[idx], style: TextStyle(fontSize: 9, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54)));
-            },
-          ),
-        ),
-      ),
-      borderData: FlBorderData(show: true, border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.24))),
-      lineBarsData: bars,
-    );
-  }
   String _formatSeconds(double seconds) {
     if (seconds <= 0) return '0.00';
     final int min = (seconds / 60).floor();
@@ -1257,7 +1207,7 @@ class _DetailRow extends StatelessWidget {
   const _DetailRow({required this.label, this.value, this.child});
   @override
   Widget build(BuildContext context) {
-    final labelColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
+    final labelColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: Row(
@@ -1280,8 +1230,8 @@ class _PfcStatusRow extends StatelessWidget {
   const _PfcStatusRow({required this.label, required this.value, required this.maxValue, required this.color, required this.status});
   @override
   Widget build(BuildContext context) {
-    final labelColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
-    final bgColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.08);
+    final labelColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6);
+    final bgColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3.0),
       child: Row(children: [
@@ -1369,7 +1319,7 @@ class _BadgeCountSection extends ConsumerWidget {
 
     return Card(
       elevation: 0,
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -1429,7 +1379,7 @@ class _BadgeCountItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1446,26 +1396,6 @@ class _BadgeCountItem extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-class _LegendItem extends StatelessWidget {
-  final Color color;
-  final String text;
-  const _LegendItem({required this.color, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 14,
-          height: 14,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 6),
-        Text(text, style: const TextStyle(fontSize: 13)),
-      ],
     );
   }
 }
@@ -1615,30 +1545,6 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     }
   }
 
-  Future<void> _downloadSummaryWeb() async {
-    try {
-      final image = await _screenshotController.capture(
-        delay: const Duration(milliseconds: 10),
-        pixelRatio: 2.0,
-      );
-
-      if (image != null) {
-        saveFile(image, 'TodaySummary.png');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('サマリー画像をダウンロードしました')),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Error downloading summary image: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('ダウンロードに失敗しました')),
-        );
-      }
-    }
-  }
 
   void _shareSummaryText() {
     Share.share(_generateSummaryText());
@@ -1756,7 +1662,6 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     final double totalCalories = (proteinValue * 4) + (fatValue * 9) + (carbsValue * 4);
     final double targetCalories = (targetP * 4.0) + (targetF * 9.0) + (targetC * 4.0);
 
-    final summaryPrimaryColor = Theme.of(context).colorScheme.primary;
 
     return Screenshot(
       controller: _screenshotController,
@@ -1772,15 +1677,15 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
           ],
           border: Border.all(
             color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.blue.withOpacity(0.1),
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.blue.withValues(alpha: 0.1),
           ),
         ),
         clipBehavior: Clip.antiAlias,
@@ -1792,7 +1697,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
               child: Icon(
                 Icons.analytics_outlined,
                 size: 120,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
               ),
             ),
             Padding(
@@ -1812,7 +1717,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                               fontSize: 10,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 1.5,
-                              color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -1896,7 +1801,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                                 children: [
                                   Expanded(child: _ExpandableText(r.details.isNotEmpty ? r.details.first['content'] : '記録あり')),
                                   const SizedBox(width: 8),
-                                  Text('$kcal kcal', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigoAccent.withOpacity(0.8))),
+                                  Text('$kcal kcal', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigoAccent.withValues(alpha: 0.8))),
                                 ],
                               ),
                             ],
@@ -1990,7 +1895,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                       padding: const EdgeInsets.all(12.0),
                       decoration: BoxDecoration(
                         color: AppColors.pool.withOpacity(0.1),
-                        border: Border.all(color: AppColors.pool.withOpacity(0.5)),
+                        border: Border.all(color: AppColors.pool.withValues(alpha: 0.5)),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -2018,7 +1923,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
   Widget _buildModernActionBtn({required IconData icon, required VoidCallback onTap, required String tooltip}) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: IconButton(

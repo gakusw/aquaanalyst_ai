@@ -222,7 +222,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
     if (steps.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       child: ExpansionTile(
         dense: true,
         visualDensity: VisualDensity.compact,
@@ -292,7 +292,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
           if (insight?.overallInsight != null && insight!.overallInsight.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -601,7 +601,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                           selected: isSelected,
                           onSelected: (_) => setState(() => _selectedEventIndex = index),
                           selectedColor: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.teal.shade400,
-                          backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withOpacity(0.1) : Colors.white10,
+                          backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withValues(alpha: 0.1) : Colors.white10,
                         ),
                       );
                     }),
@@ -788,7 +788,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                           selected: isSelected,
                           onSelected: (_) => setState(() => _selectedEventIndex = index),
                           selectedColor: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.teal.shade400,
-                          backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withOpacity(0.1) : Colors.white10,
+                          backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withValues(alpha: 0.1) : Colors.white10,
                         ),
                       );
                     }),
@@ -829,7 +829,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                             ),
                             belowBarData: BarAreaData(
                               show: true,
-                              color: (Theme.of(context).brightness == Brightness.light ? Colors.teal : Colors.teal.shade400).withOpacity(0.1),
+                              color: (Theme.of(context).brightness == Brightness.light ? Colors.teal : Colors.teal.shade400).withValues(alpha: 0.1),
                             ),
                           ),
                         ],
@@ -872,7 +872,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                     borderData: FlBorderData(show: false),
                     lineTouchData: LineTouchData(
                       touchTooltipData: LineTouchTooltipData(
-                        getTooltipColor: (spot) => Colors.blueGrey.withOpacity(0.8),
+                        getTooltipColor: (spot) => Colors.blueGrey.withValues(alpha: 0.8),
                         getTooltipItems: (spots) => spots.map((s) => LineTooltipItem(_formatSeconds(s.y.abs()), const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))).toList(),
                       ),
                     ),

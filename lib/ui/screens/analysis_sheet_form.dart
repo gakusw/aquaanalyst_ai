@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
@@ -269,7 +268,6 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
 
           if (s >= lapStart && e <= lapEnd) {
             // この区間を分割する
-            final oldLap = _laps[i];
             _laps.removeAt(i);
 
             // 分割後の区間を作成
@@ -351,7 +349,7 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: Theme.of(context).colorScheme.primaryContainer),
                           ),
@@ -382,7 +380,7 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: DropdownButtonFormField<String>(
-                      value: _event,
+                      initialValue: _event,
                       decoration: const InputDecoration(
                         labelText: '種目',
                         border: OutlineInputBorder(),
@@ -438,7 +436,7 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
                           'レース結果記録票やスコアボードの写真からラップデータを自動入力します',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.54),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
                           ),
                         ),
                       ],
@@ -484,7 +482,7 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
                   // ヘッダー
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
                     child: const Row(
                       children: [
                         SizedBox(width: 50, child: Text('区間', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),

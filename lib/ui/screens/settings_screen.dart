@@ -611,7 +611,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               label: const Text('ログアウト'),
               style: ElevatedButton.styleFrom(
                 foregroundColor: Colors.red,
-                backgroundColor: Colors.red.withOpacity(0.1),
+                backgroundColor: Colors.red.withValues(alpha: 0.1),
                 elevation: 0,
               ),
             ),

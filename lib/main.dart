@@ -23,7 +23,6 @@ import 'ui/screens/auth_screen.dart';
 import 'ui/screens/deferred_admin_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter/foundation.dart';
 
 /// アプリ全体で共有するテーマ通知子（グローバル）
 final ValueNotifier<ThemeMode> appThemeMode = ValueNotifier(ThemeMode.dark);
@@ -108,7 +107,7 @@ final GoRouter _router = GoRouter(
         return ResponsiveLayout(child: child);
       },
       routes: [
-        GoRoute(path: '/home', builder: (context, state) => HomeScreen()),
+        GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
         GoRoute(path: '/training', builder: (context, state) => const TrainingScreen()),
         GoRoute(path: '/nutrition', builder: (context, state) => const NutritionScreen()),
         GoRoute(path: '/body_composition', builder: (context, state) => const BodyCompositionScreen()),
@@ -153,7 +152,7 @@ class MyApp extends StatelessWidget {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: Colors.grey.withOpacity(0.1)),
+                side: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
               ),
               color: Colors.white,
             ),
@@ -180,8 +179,8 @@ class MyApp extends StatelessWidget {
             ).copyWith(
               primary: primaryColor,
               secondary: secondaryColor,
-              surface: const Color(0xFF0F172A), // Deep Navy
-              background: const Color(0xFF020617), // Rich Black
+              surface: const Color(0xFF020617), // Rich Black (was background)
+              surfaceContainerHighest: const Color(0xFF0F172A), // Deep Navy (was surface)
             ),
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFF020617),
@@ -189,9 +188,9 @@ class MyApp extends StatelessWidget {
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
-                side: BorderSide(color: Colors.white.withOpacity(0.05)),
+                side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
               ),
-              color: const Color(0xFF1E293B).withOpacity(0.5), // Glassy effect base
+              color: const Color(0xFF1E293B).withValues(alpha: 0.5), // Glassy effect base
             ),
             appBarTheme: const AppBarTheme(
               centerTitle: false,
