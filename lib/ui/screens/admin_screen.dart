@@ -191,7 +191,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   items: [
                     GeminiService.model25Flash,
                     GeminiService.model31FlashLite,
-                    GeminiService.model15Flash,
+                    GeminiService.model30Flash,
                   ].map((m) => DropdownMenuItem(value: m, child: Text(m.replaceFirst('gemini-', '')))).toList(),
                   onChanged: (val) {
                     if (val != null) setState(() => _selectedModel = val);
