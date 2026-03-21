@@ -404,9 +404,9 @@ $chatContext
     }
 
     // 現在取得できたプランのIDを保持（Undo用）
-    // Widgetのビルド中に直接状態を更新するのは避けたいため、Future.microtaskを使う
+    // Widgetのビルド中に直接状態を更新するのは避けたいため、PostFrameCallbackを使う
     if (_currentPlanId != plan.id) {
-      Future.microtask(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           setState(() {
             _currentPlanId = plan.id;
@@ -421,7 +421,7 @@ $chatContext
     
     if (logicalToday.isAfter(endOfPlan) && !_isGenerating && !_isAutoCopying) {
       // 過去の計画であれば、別のタスクで自動繰越を実行
-      Future.microtask(() => _copyPlanToNextWeek(plan));
+      WidgetsBinding.instance.addPostFrameCallback((_) => _copyPlanToNextWeek(plan));
     }
 
     final startStr = '${plan.startDate.year}年${plan.startDate.month}月${plan.startDate.day}日';
