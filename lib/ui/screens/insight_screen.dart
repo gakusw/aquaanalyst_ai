@@ -190,7 +190,16 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
 
     return Scaffold(
                       appBar: AppBar(
-                        title: const Text('インサイト'),
+                        title: const Text(
+                          'AquaAnalyst AI',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                            color: AppColors.skyBlue,
+                          ),
+                        ),
+                        centerTitle: false,
                         actions: [
                           if (isDesktop)
                             TextButton.icon(
@@ -214,6 +223,53 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                         ],
                       ),
                     );
+  }
+
+  // --- 共通プレミアムカード ---
+  Widget _buildPremiumCard({required Widget child, required IconData icon}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+              : [Colors.white, const Color(0xFFF1F5F9)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.blue.withValues(alpha: 0.1),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Icon(
+              icon,
+              size: 120,
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: child,
+          ),
+        ],
+      ),
+    );
   }
 
   // --- エージェント思考ログ ---
@@ -365,162 +421,171 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
        sleepSpots.add(FlSpot(dayOffset.toDouble(), r.durationMinutes / 60.0));
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('身体・栄養・睡眠 インパクト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('体組成の変化と睡眠時間の推移', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child: weightSpots.isEmpty && muscleSpots.isEmpty && fatSpots.isEmpty && sleepSpots.isEmpty
-                ? const Center(child: Text('データがありません', style: TextStyle(color: Colors.grey)))
-                : Builder(
-                  builder: (context) {
-                    // kg系（体重・筋量）の共通レンジ：左軸
-                    final kgValues = (weightSpots + muscleSpots).map((s) => s.y).toList();
-                    final double minKg = kgValues.isEmpty ? 45 : kgValues.reduce((a, b) => a < b ? a : b) - 2;
-                    final double maxKg = kgValues.isEmpty ? 85 : kgValues.reduce((a, b) => a > b ? a : b) + 2;
+    return _buildPremiumCard(
+      icon: Icons.monitor_weight_outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('身体・栄養・睡眠 インパクト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text('体組成の変化と睡眠時間の推移', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 200,
+            child: weightSpots.isEmpty && muscleSpots.isEmpty && fatSpots.isEmpty && sleepSpots.isEmpty
+              ? const Center(child: Text('データがありません', style: TextStyle(color: Colors.grey)))
+              : Builder(
+                builder: (context) {
+                  // kg系（体重・筋量）の共通レンジ：左軸
+                  final kgValues = (weightSpots + muscleSpots).map((s) => s.y).toList();
+                  final double minKg = kgValues.isEmpty ? 45 : kgValues.reduce((a, b) => a < b ? a : b) - 2;
+                  final double maxKg = kgValues.isEmpty ? 85 : kgValues.reduce((a, b) => a > b ? a : b) + 2;
 
-                    // 数値系（体脂肪率・睡眠時間）の共通レンジ：右軸
-                    final rightValues = (fatSpots + sleepSpots).map((s) => s.y).toList();
-                    final double minRight = rightValues.isEmpty ? 0 : rightValues.reduce((a, b) => a < b ? a : b) - 1;
-                    final double maxRight = rightValues.isEmpty ? 25 : rightValues.reduce((a, b) => a > b ? a : b) + 1;
+                  // 数値系（体脂肪率・睡眠時間）の共通レンジ：右軸
+                  final rightValues = (fatSpots + sleepSpots).map((s) => s.y).toList();
+                  final double minRight = rightValues.isEmpty ? 0 : rightValues.reduce((a, b) => a < b ? a : b) - 1;
+                  final double maxRight = rightValues.isEmpty ? 25 : rightValues.reduce((a, b) => a > b ? a : b) + 1;
 
-                    // 体脂肪率をkgレンジ（描画用メインレンジ）に正規化
-                    final normalizedFatSpots = fatSpots.map((s) {
-                      double normalizedY;
-                      if (maxRight == minRight) {
-                        normalizedY = (maxKg + minKg) / 2;
-                      } else {
-                        normalizedY = (s.y - minRight) / (maxRight - minRight) * (maxKg - minKg) + minKg;
-                      }
-                      return FlSpot(s.x, normalizedY);
-                    }).toList();
+                  // 体脂肪率をkgレンジ（描画用メインレンジ）に正規化
+                  final normalizedFatSpots = fatSpots.map((s) {
+                    double normalizedY;
+                    if (maxRight == minRight) {
+                      normalizedY = (maxKg + minKg) / 2;
+                    } else {
+                      normalizedY = (s.y - minRight) / (maxRight - minRight) * (maxKg - minKg) + minKg;
+                    }
+                    return FlSpot(s.x, normalizedY);
+                  }).toList();
 
-                    // 睡眠時間をkgレンジ（描画用メインレンジ）に正規化
-                    final normalizedSleepSpots = sleepSpots.map((s) {
-                      double normalizedY;
-                      if (maxRight == minRight) {
-                        normalizedY = (maxKg + minKg) / 2;
-                      } else {
-                        normalizedY = (s.y - minRight) / (maxRight - minRight) * (maxKg - minKg) + minKg;
-                      }
-                      return FlSpot(s.x, normalizedY);
-                    }).toList();
+                  // 睡眠時間をkgレンジ（描画用メインレンジ）に正規化
+                  final normalizedSleepSpots = sleepSpots.map((s) {
+                    double normalizedY;
+                    if (maxRight == minRight) {
+                      normalizedY = (maxKg + minKg) / 2;
+                    } else {
+                      normalizedY = (s.y - minRight) / (maxRight - minRight) * (maxKg - minKg) + minKg;
+                    }
+                    return FlSpot(s.x, normalizedY);
+                  }).toList();
 
                     return LineChart(
                       LineChartData(
+                        minX: (registeredDays.isNotEmpty ? registeredDays.reduce((a, b) => a < b ? a : b).toDouble() - 1.0 : 0),
+                        maxX: (registeredDays.isNotEmpty ? registeredDays.reduce((a, b) => a > b ? a : b).toDouble() + 1.0 : 0),
                         minY: minKg,
                         maxY: maxKg,
                         clipData: const FlClipData.all(),
-                        lineBarsData: [
-                          if (weightSpots.isNotEmpty)
-                            LineChartBarData(
-                              spots: weightSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.pool) : AppColors.pool, barWidth: 4, dotData: const FlDotData(show: true),
-                            ),
-                          if (muscleSpots.isNotEmpty)
-                            LineChartBarData(
-                              spots: muscleSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.carbs) : AppColors.carbs, barWidth: 4, dotData: const FlDotData(show: true),
-                            ),
-                          if (normalizedFatSpots.isNotEmpty)
-                            LineChartBarData(
-                              spots: normalizedFatSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.fat) : AppColors.fat, barWidth: 3, dotData: const FlDotData(show: true),
-                              dashArray: [5, 5],
-                            ),
-                          if (normalizedSleepSpots.isNotEmpty)
-                            LineChartBarData(
-                              spots: normalizedSleepSpots, isCurved: true, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.sleep) : AppColors.sleep, barWidth: 4, dotData: const FlDotData(show: true),
-                            ),
-                        ],
-                        titlesData: FlTitlesData(
-                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 22,
-                              interval: 1,
-                              getTitlesWidget: (v, m) {
-                                if (!registeredDays.contains(v.toInt())) return const SizedBox.shrink();
-                                final date = minDate.add(Duration(days: v.toInt()));
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 4.0),
-                                  child: Text('${date.month}/${date.day}', style: const TextStyle(fontSize: 8, color: Colors.grey)),
-                                );
-                              },
+                      lineBarsData: [
+                        if (weightSpots.isNotEmpty)
+                          LineChartBarData(
+                            spots: weightSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.pool) : AppColors.pool, barWidth: 4, dotData: const FlDotData(show: true),
+                          ),
+                        if (muscleSpots.isNotEmpty)
+                          LineChartBarData(
+                            spots: muscleSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.carbs) : AppColors.carbs, barWidth: 4, dotData: const FlDotData(show: true),
+                          ),
+                        if (normalizedFatSpots.isNotEmpty)
+                          LineChartBarData(
+                            spots: normalizedFatSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.fat) : AppColors.fat, barWidth: 3, dotData: const FlDotData(show: true),
+                            dashArray: [5, 5],
+                          ),
+                        if (normalizedSleepSpots.isNotEmpty)
+                          LineChartBarData(
+                            spots: normalizedSleepSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.sleep) : AppColors.sleep, barWidth: 4, dotData: const FlDotData(show: true),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              color: AppColors.sleep.withValues(alpha: 0.1),
                             ),
                           ),
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 35,
-                              getTitlesWidget: (v, m) => Text(v.toStringAsFixed(0), style: const TextStyle(fontSize: 9, color: Colors.blue)),
-                            ),
-                          ),
-                          rightTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 35,
-                              getTitlesWidget: (v, m) {
-                                if (maxKg == minKg) return const SizedBox.shrink();
-                                // kgレンジから右軸レンジに逆換算
-                                final rightVal = (v - minKg) / (maxKg - minKg) * (maxRight - minRight) + minRight;
-                                return Text(rightVal.toStringAsFixed(1), style: const TextStyle(fontSize: 9, color: Colors.grey));
-                              },
-                            ),
+                      ],
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 22,
+                            interval: 1,
+                            getTitlesWidget: (v, m) {
+                              final intValue = v.round();
+                              if ((v - intValue).abs() > 0.1) return const SizedBox.shrink();
+                              if (!registeredDays.contains(intValue)) return const SizedBox.shrink();
+                              
+                              // 両端に近い場合は表示しないことで重複を避ける
+                              if (v <= m.min + 0.5 || v >= m.max - 0.5) return const SizedBox.shrink();
+
+                              final date = minDate.add(Duration(days: intValue));
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text('${date.month}/${date.day}', style: const TextStyle(fontSize: 8, color: Colors.grey)),
+                              );
+                            },
                           ),
                         ),
-                        gridData: const FlGridData(show: false),
-                        borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey.shade300)),
-                        lineTouchData: LineTouchData(
-                          touchTooltipData: LineTouchTooltipData(
-                            getTooltipColor: (_) => Colors.blueGrey,
-                            getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
-                              String unit = ' kg';
-                              double displayValue = s.y;
-                              if (s.bar.color == Colors.orange) {
-                                unit = ' %';
-                                if (maxKg != minKg) {
-                                  displayValue = (s.y - minKg) / (maxKg - minKg) * (maxRight - minRight) + minRight;
-                                } else {
-                                  displayValue = minRight;
-                                }
-                              } else if (s.bar.color == Colors.pinkAccent) {
-                                unit = ' h';
-                                if (maxKg != minKg) {
-                                  displayValue = (s.y - minKg) / (maxKg - minKg) * (maxRight - minRight) + minRight;
-                                } else {
-                                  displayValue = minRight;
-                                }
-                              }
-                              return LineTooltipItem('${displayValue.toStringAsFixed(1)}$unit', const TextStyle(color: Colors.white, fontSize: 10));
-                            }).toList(),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 35,
+                            getTitlesWidget: (v, m) => Text(v.toStringAsFixed(0), style: const TextStyle(fontSize: 9, color: Colors.blue)),
+                          ),
+                        ),
+                        rightTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 35,
+                            getTitlesWidget: (v, m) {
+                              if (maxKg == minKg) return const SizedBox.shrink();
+                              // kgレンジから右軸レンジに逆換算
+                              final rightVal = (v - minKg) / (maxKg - minKg) * (maxRight - minRight) + minRight;
+                              return Text(rightVal.toStringAsFixed(1), style: const TextStyle(fontSize: 9, color: Colors.grey));
+                            },
                           ),
                         ),
                       ),
-                      duration: Duration.zero,
+                      gridData: const FlGridData(show: false),
+                      borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey.shade300)),
+                      lineTouchData: LineTouchData(
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipColor: (_) => Colors.blueGrey,
+                          getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
+                            String unit = ' kg';
+                            double displayValue = s.y;
+                            if (s.bar.color == Colors.orange) {
+                              unit = ' %';
+                              if (maxKg != minKg) {
+                                displayValue = (s.y - minKg) / (maxKg - minKg) * (maxRight - minRight) + minRight;
+                              } else {
+                                displayValue = minRight;
+                              }
+                            } else if (s.bar.color == Colors.pinkAccent) {
+                              unit = ' h';
+                              if (maxKg != minKg) {
+                                displayValue = (s.y - minKg) / (maxKg - minKg) * (maxRight - minRight) + minRight;
+                              } else {
+                                displayValue = minRight;
+                              }
+                            }
+                            return LineTooltipItem('${displayValue.toStringAsFixed(1)}$unit', const TextStyle(color: Colors.white, fontSize: 10));
+                          }).toList(),
+                        ),
+                      ),
+                      ),
                     );
                   },
                 ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: [
-                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.pool) : AppColors.pool, label: '体重 (kg)'),
-                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.carbs) : AppColors.carbs, label: '筋肉量 (kg)'),
-                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.fat) : AppColors.fat, label: '体脂肪率 (%)'),
-                _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.sleep) : AppColors.sleep, label: '睡眠時間 (h)'),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.pool) : AppColors.pool, label: '体重 (kg)'),
+              _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.carbs) : AppColors.carbs, label: '筋肉量 (kg)'),
+              _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.fat) : AppColors.fat, label: '体脂肪率 (%)'),
+              _LegendItem(color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.sleep) : AppColors.sleep, label: '睡眠時間 (h)'),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -581,143 +646,141 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
       ),
     );
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // 種目選択（スクロール可能）
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: sortedEvents.isEmpty 
-                  ? [const Text('自己ベストを登録すると予測が表示されます', style: TextStyle(fontSize: 12, color: Colors.grey))]
-                  : List.generate(sortedEvents.length, (index) {
-                      final isSelected = _selectedEventIndex == index;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: ChoiceChip(
-                          label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? (Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black) : (Theme.of(context).brightness == Brightness.light ? Colors.black87 : Colors.white70))),
-                          selected: isSelected,
-                          onSelected: (_) => setState(() => _selectedEventIndex = index),
-                          selectedColor: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.teal.shade400,
-                          backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withValues(alpha: 0.1) : Colors.white10,
-                        ),
-                      );
-                    }),
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // 予測セクション
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return _buildPremiumCard(
+      icon: Icons.timer_outlined,
+      child: Column(
+        children: [
+                // 種目選択（スクロール可能）
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: sortedEvents.isEmpty 
+                      ? [const Text('自己ベストを登録すると予測が表示されます', style: TextStyle(fontSize: 12, color: Colors.grey))]
+                      : List.generate(sortedEvents.length, (index) {
+                          final isSelected = _selectedEventIndex == index;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: ChoiceChip(
+                              label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? (Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black) : (Theme.of(context).brightness == Brightness.light ? Colors.black87 : Colors.white70))),
+                              selected: isSelected,
+                              onSelected: (_) => setState(() => _selectedEventIndex = index),
+                              selectedColor: AppColors.pool,
+                              backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withValues(alpha: 0.1) : Colors.white10,
+                            ),
+                          );
+                        }),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // 予測セクション
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('目標達成確率', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                    Text('${((prediction?.successRate ?? 0) * 100).toInt()}%',
-                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold,
-                            color: (prediction?.successRate ?? 0) >= 0.6 ? Colors.green : Colors.orange)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('目標達成確率', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text('${((prediction?.successRate ?? 0) * 100).toInt()}%',
+                            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold,
+                                color: (prediction?.successRate ?? 0) >= 0.6 ? Colors.green : Colors.orange)),
+                      ],
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text('AI予測タイム', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                           if (_isPredicting)
+                            const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else if (prediction?.predictedTime != null && 
+                                   prediction!.predictedTime.isNotEmpty && 
+                                   prediction.predictedTime != '---')
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  _formatSeconds(double.tryParse(prediction.predictedTime) ?? 0), 
+                                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)
+                                ),
+                                Text(
+                                  prediction.confidenceInterval.isNotEmpty 
+                                    ? prediction.confidenceInterval 
+                                    : '範囲推定中...', 
+                                  style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)
+                                ),
+                              ],
+                            )
+                          else
+                            const Text('予測データなし', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text('AI予測タイム', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                       if (_isPredicting)
-                        const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      else if (prediction?.predictedTime != null && 
-                               prediction!.predictedTime.isNotEmpty && 
-                               prediction.predictedTime != '---')
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              _formatSeconds(double.tryParse(prediction.predictedTime) ?? 0), 
-                              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)
-                            ),
-                            Text(
-                              prediction.confidenceInterval.isNotEmpty 
-                                ? prediction.confidenceInterval 
-                                : '範囲推定中...', 
-                              style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)
-                            ),
-                          ],
-                        )
-                      else
-                        const Text('予測データなし', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                    ],
+                const SizedBox(height: 24),
+                
+                // 予測実行ボタン
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isPredicting ? null : () => _runAiPrediction(context, records, pbs, user),
+                    icon: _isPredicting 
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.auto_awesome),
+                    label: Text(_isPredicting ? '分析中...' : '最新データでAIタイム予測を実行'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            
-            // 予測実行ボタン
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isPredicting ? null : () => _runAiPrediction(context, records, pbs, user),
-                icon: _isPredicting 
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.auto_awesome),
-                label: Text(_isPredicting ? '分析中...' : '最新データでAIタイム予測を実行'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                const SizedBox(height: 8),
+                const Center(
+                  child: Text(
+                    '※ ボタンを押すとAIが最新の記録を分析します（数十秒かかります）',
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Center(
-              child: Text(
-                '※ ボタンを押すとAIが最新の記録を分析します（数十秒かかります）',
-                style: TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-            ),
-            const SizedBox(height: 16),
-            LinearProgressIndicator(
-              value: prediction?.successRate ?? 0.0, 
-              backgroundColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.08),
-              color: (prediction?.successRate ?? 0) >= 0.6 ? Colors.green : Colors.orange,
-              minHeight: 8, borderRadius: BorderRadius.circular(4),
-            ),
-            const SizedBox(height: 16),
+                const SizedBox(height: 16),
+                LinearProgressIndicator(
+                  value: prediction?.successRate ?? 0.0, 
+                  backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+                  color: (prediction?.successRate ?? 0) >= 0.6 ? Colors.green : Colors.orange,
+                  minHeight: 8, borderRadius: BorderRadius.circular(4),
+                ),
+                const SizedBox(height: 16),
 
-            if (prediction != null && prediction.laps.isNotEmpty)
-              ExpansionTile(
-                title: const Text('詳細な予測ラップを見る', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                children: [
-                  DataTable(
-                    columns: const [
-                      DataColumn(label: Text('区間')),
-                      DataColumn(label: Text('予想タイム')),
-                      DataColumn(label: Text('Str数')),
+                if (prediction != null && prediction.laps.isNotEmpty)
+                  ExpansionTile(
+                    title: const Text('詳細な予測ラップを見る', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    children: [
+                      DataTable(
+                        columns: const [
+                          DataColumn(label: Text('区間')),
+                          DataColumn(label: Text('予想タイム')),
+                          DataColumn(label: Text('Str数')),
+                        ],
+                        rows: prediction.laps.map((lap) => DataRow(cells: [
+                          DataCell(Text(lap.section)),
+                          DataCell(Text(lap.time, style: const TextStyle(fontWeight: FontWeight.bold))),
+                          DataCell(Text(lap.strokeCount.toString())),
+                        ])).toList(),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(prediction.specificInsight, style: const TextStyle(fontSize: 13, height: 1.5)),
+                      ),
                     ],
-                    rows: prediction.laps.map((lap) => DataRow(cells: [
-                      DataCell(Text(lap.section)),
-                      DataCell(Text(lap.time, style: const TextStyle(fontWeight: FontWeight.bold))),
-                      DataCell(Text(lap.strokeCount.toString())),
-                    ])).toList(),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(prediction.specificInsight, style: const TextStyle(fontSize: 13, height: 1.5)),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
+            ],
+          ),
+        );
   }
 
 
@@ -758,116 +821,124 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
         .map((pb) => FlSpot(pb.date.millisecondsSinceEpoch.toDouble(), -pb.value))
         .toList();
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.trending_up, color: Colors.tealAccent, size: 20),
-                SizedBox(width: 8),
-                Text('種目別自己ベスト推移', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            
-            // 種目選択（スクロール可能）
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: sortedEvents.isEmpty 
-                  ? [const Text('自己ベストを登録すると推移が表示されます', style: TextStyle(fontSize: 12, color: Colors.grey))]
-                  : List.generate(sortedEvents.length, (index) {
-                      final isSelected = _selectedEventIndex == index;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: ChoiceChip(
-                          label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? (Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black) : (Theme.of(context).brightness == Brightness.light ? Colors.black87 : Colors.white70))),
-                          selected: isSelected,
+    return _buildPremiumCard(
+      icon: Icons.trending_up,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.trending_up, color: AppColors.skyBlue, size: 20),
+              SizedBox(width: 8),
+              Text('種目別自己ベスト推移', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // 種目選択（スクロール可能）
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: sortedEvents.isEmpty 
+                ? [const Text('自己ベストを登録すると推移が表示されます', style: TextStyle(fontSize: 12, color: Colors.grey))]
+                : List.generate(sortedEvents.length, (index) {
+                    final isSelected = _selectedEventIndex == index;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ChoiceChip(
+                        label: Text(sortedEvents[index], style: TextStyle(fontSize: 12, color: isSelected ? (Theme.of(context).brightness == Brightness.light ? Colors.white : Colors.black) : (Theme.of(context).brightness == Brightness.light ? Colors.black87 : Colors.white70))),
+                        selected: isSelected,
                           onSelected: (_) => setState(() => _selectedEventIndex = index),
-                          selectedColor: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.teal.shade400,
-                          backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withValues(alpha: 0.1) : Colors.white10,
-                        ),
-                      );
-                    }),
-              ),
+                          selectedColor: const Color(0xFF00B0FF),
+                          backgroundColor: Theme.of(context).brightness == Brightness.light ? Colors.grey.withOpacity(0.1) : Colors.white10,
+                      ),
+                    );
+                  }),
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
   
-            // 折れ線グラフ
-            if (historySpots.isNotEmpty)
-              Builder(
-                builder: (context) {
-                  final xValues = historySpots.map((s) => s.x).toList();
-                  final minX = xValues.length == 1 ? xValues.first - 86400000 : xValues.reduce((a, b) => a < b ? a : b);
-                  final maxX = xValues.length == 1 ? xValues.first + 86400000 : xValues.reduce((a, b) => a > b ? a : b);
+          // 折れ線グラフ
+          if (historySpots.isNotEmpty)
+            Builder(
+              builder: (context) {
+                final xValues = historySpots.map((s) => s.x).toList();
+                // 1週間分 (604800000ms) のパディングを持たせる
+                // パディングを1ヶ月分（約30日）程度に拡張して見切れを防止
+    final buffer = 86400000.0 * 30; 
+    final minX = xValues.length == 1 ? xValues.first - buffer : xValues.reduce((a, b) => a < b ? a : b) - buffer;
+    final maxX = xValues.length == 1 ? xValues.first + buffer : xValues.reduce((a, b) => a > b ? a : b) + buffer;
 
-                  return SizedBox(
-                    height: 140,
-                    width: double.infinity,
-                    child: LineChart(
-                      LineChartData(
-                        minX: minX,
-                        maxX: maxX,
-                        clipData: const FlClipData.all(),
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: historySpots,
-                            isCurved: true,
-                            color: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade700 : Colors.teal.shade300,
-                            barWidth: 4,
-                            dotData: FlDotData(
-                              show: true,
-                              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                                radius: 4,
-                                color: Theme.of(context).brightness == Brightness.light ? Colors.teal.shade900 : Colors.teal.shade400,
-                                strokeWidth: 1,
-                                strokeColor: Colors.white,
-                              ),
-                            ),
-                            belowBarData: BarAreaData(
-                              show: true,
-                              color: (Theme.of(context).brightness == Brightness.light ? Colors.teal : Colors.teal.shade400).withValues(alpha: 0.1),
+                return SizedBox(
+                  height: 140,
+                  width: double.infinity,
+                  child: LineChart(
+                    LineChartData(
+                      minX: minX,
+                      maxX: maxX,
+                      clipData: const FlClipData.all(),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: historySpots,
+                          isCurved: false,
+                          color: const Color(0xFF00B0FF), // Updated to vibrant blue
+                          barWidth: 4,
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                              radius: 5,
+                              color: const Color(0xFF00B0FF), // Updated to vibrant blue
+                              strokeWidth: 2,
+                              strokeColor: Colors.white,
                             ),
                           ),
-                        ],
-                        titlesData: FlTitlesData(
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 22,
-                              interval: (maxX - minX) / 4 > 86400000 ? (maxX - minX) / 4 : 86400000,
-                              getTitlesWidget: (value, meta) {
-                                // 記録が存在する日のみを表示する
-                                final isDataPoint = historySpots.any((s) => (s.x - value).abs() < 3600000); // 1時間以内の誤差を許容
-                                if (!isDataPoint) return const SizedBox.shrink();
+                          belowBarData: BarAreaData(
+                            show: true,
+                            color: AppColors.pool.withValues(alpha: 0.1),
+                          ),
+                        ),
+                      ],
+                      titlesData: FlTitlesData(
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 22,
+                            interval: (maxX - minX) / 4 > 86400000 ? (maxX - minX) / 4 : 86400000,
+                            getTitlesWidget: (value, meta) {
+                              // 両端に近い場合は表示しない
+                              if (value <= meta.min + (meta.max - meta.min) * 0.05 || 
+                                  value >= meta.max - (meta.max - meta.min) * 0.05) {
+                                return const SizedBox.shrink();
+                              }
 
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
-                                  child: Text(
-                                    AppDateUtils.getChartLabel(value),
-                                    style: const TextStyle(fontSize: 9, color: Colors.grey),
-                                  ),
-                                );
-                              },
-                            ),
+                              // 記録が存在する日のみを表示する
+                              final isDataPoint = historySpots.any((s) => (s.x - value).abs() < 43200000); // 12時間以内の誤差を許容
+                              if (!isDataPoint) return const SizedBox.shrink();
+
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(
+                                  AppDateUtils.getChartLabel(value),
+                                  style: const TextStyle(fontSize: 8, color: Colors.grey),
+                                ),
+                              );
+                            },
                           ),
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 40,
-                              getTitlesWidget: (value, meta) => Text(_formatSeconds(value.abs()), style: const TextStyle(fontSize: 9, color: Colors.grey)),
-                            ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 40,
+                            getTitlesWidget: (value, meta) => Text(_formatSeconds(value.abs()), style: const TextStyle(fontSize: 9, color: Colors.grey)),
                           ),
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    ),
+                        ),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      ),
                     gridData: FlGridData(
                       show: true,
                       drawVerticalLine: false,
-                      getDrawingHorizontalLine: (value) => FlLine(color: Colors.white10, strokeWidth: 1),
+                      getDrawingHorizontalLine: (value) => const FlLine(color: Colors.white10, strokeWidth: 1),
                     ),
                     borderData: FlBorderData(show: false),
                     lineTouchData: LineTouchData(
@@ -877,20 +948,18 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                       ),
                     ),
                   ),
-                  duration: Duration.zero,
                 ),
               );
             },
           )
-            else
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20.0),
-                  child: Text('この種目のデータがまだありません', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                ),
+          else
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 20.0),
+                child: Text('この種目のデータがまだありません', style: TextStyle(color: Colors.grey, fontSize: 13)),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -901,6 +970,15 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
     final double sec = seconds % 60;
     if (min == 0) return sec.toStringAsFixed(2);
     return '$min:${sec.toStringAsFixed(2).padLeft(5, '0')}';
+  }
+
+  static FlDotPainter _getDotPainter(FlSpot spot, double xPercentage, LineChartBarData bar, int index) {
+    return FlDotCirclePainter(
+      radius: 4,
+      color: bar.color ?? Colors.blue,
+      strokeWidth: 2,
+      strokeColor: Colors.white,
+    );
   }
 }
 

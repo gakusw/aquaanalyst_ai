@@ -9,6 +9,8 @@ import '../../data/models/personal_best.dart';
 import '../widgets/stable_text_field.dart';
 import '../../utils/date_utils.dart';
 import '../../data/providers/providers.dart';
+import '../widgets/premium_card.dart';
+import '../../utils/app_colors.dart';
 
 /// 週間トレーニング計画画面
 /// コーチとの対話で生成された計画を見やすく表示する
@@ -54,7 +56,16 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('週間トレーニング計画'),
+        title: const Text(
+          'AquaAnalyst AI',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+            color: AppColors.skyBlue,
+          ),
+        ),
+        centerTitle: false,
         actions: [
           // 元に戻す (Undo) ボタン
           IconButton(
@@ -78,32 +89,6 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          // 説明カード
-          Container(
-            padding: const EdgeInsets.all(12.0),
-            decoration: BoxDecoration(
-              color: Colors.teal.withOpacity(0.1),
-              border: Border.all(color: Colors.teal.withOpacity(0.4)),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.psychology, color: Colors.teal, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'コーチ画面でのAIとの対話に基づき生成されました．\n「週間目標」の設定値もコーチの計画立案に参照されます．',
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.5,
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
 
           // 期間表示と各曜日の計画
           ref.watch(latestWeeklyPlanProvider).when(
@@ -141,33 +126,25 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
     required TextEditingController controller,
     required String hint,
   }) {
-    return Card(
-      key: _getFieldKey(title),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              backgroundColor: color.withOpacity(0.2),
-              child: Icon(icon, color: color, size: 20),
+    return PremiumCard(
+      icon: icon,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            backgroundColor: color.withValues(alpha: 0.2),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: StableTextField(
+              controller: controller,
+              lines: 10,
+              hintText: hint,
+              labelText: title,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  StableTextField(
-                    controller: controller,
-                    lines: 10,
-                    hintText: hint,
-                    labelText: title,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -182,10 +159,10 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
       final now = AppDateUtils.now;
       final logicalToday = AppDateUtils.logicalToday();
       
-      // 次の月曜日を計算（論理的な今日を基準にする）
-      final diff = DateTime.monday - logicalToday.weekday;
-      final nextMonday = now.add(Duration(days: diff <= 0 ? 7 + diff : diff));
-      final nextSunday = nextMonday.add(const Duration(days: 6));
+      // 論理的な今日が含まれる週の月曜日を計算
+      final currentMonday = logicalToday.subtract(Duration(days: logicalToday.weekday - 1));
+      final startDate = DateTime(currentMonday.year, currentMonday.month, currentMonday.day);
+      final nextSunday = startDate.add(const Duration(days: 6));
 
       // 前回のデイリープランの `dateStr` から日付部分(例: "(3/2)")を取り除き、曜日だけの状態に正規化する
       final cleanDailyPlans = oldPlan.dailyPlans.map((d) {
@@ -200,8 +177,8 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
       }).toList();
 
       final newPlan = WeeklyPlan(
-        id: '${nextMonday.toIso8601String().split('T').first}_${AppDateUtils.now.millisecondsSinceEpoch}',
-        startDate: nextMonday,
+        id: '${startDate.toIso8601String().split('T').first}_${AppDateUtils.now.millisecondsSinceEpoch}',
+        startDate: startDate,
         endDate: nextSunday,
         dailyPlans: cleanDailyPlans,
         aiMessage: '【システム自動更新】\n新しい週が始まったため、先週のメニューを自動で繰り越しました。\n新しいメニューを組みたい場合は右上の更新ボタンを押してください。',
@@ -384,14 +361,14 @@ $chatContext
         // 先頭や末尾にマークダウンの```があった場合は取り除く
         final cleanJson = response.replaceAll(RegExp(r'^```(json)?\n'), '').replaceAll(RegExp(r'\n```$'), '').trim();
         final jsonMap = jsonDecode(cleanJson);
-        final now = DateTime.now();
-        final diff = DateTime.monday - now.weekday;
-        final nextMonday = now.add(Duration(days: diff <= 0 ? 7 + diff : diff));
-        final nextSunday = nextMonday.add(const Duration(days: 6));
+        final logicalToday = AppDateUtils.logicalToday();
+        final currentMonday = logicalToday.subtract(Duration(days: logicalToday.weekday - 1));
+        final startDate = DateTime(currentMonday.year, currentMonday.month, currentMonday.day);
+        final nextSunday = startDate.add(const Duration(days: 6));
 
         final plan = WeeklyPlan(
-          id: '${nextMonday.toIso8601String().split('T').first}_${AppDateUtils.now.millisecondsSinceEpoch}',
-          startDate: nextMonday,
+          id: '${startDate.toIso8601String().split('T').first}_${AppDateUtils.now.millisecondsSinceEpoch}',
+          startDate: startDate,
           endDate: nextSunday,
           dailyPlans: (jsonMap['dailyPlans'] as List).map((e) => DailyPlan.fromMap(e as Map<String, dynamic>)).toList(),
           aiMessage: jsonMap['aiMessage'] ?? 'AIコーチからの新しい週間計画です。',
@@ -460,26 +437,32 @@ $chatContext
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             Chip(
               label: const Text('生成された計画'),
-              backgroundColor: Colors.teal.withOpacity(0.3),
+              backgroundColor: AppColors.skyBlue.withValues(alpha: 0.3),
               labelStyle: const TextStyle(fontSize: 10),
             ),
           ],
         ),
         if (plan.aiMessage.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blueAccent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blueAccent.withOpacity(0.3)),
-            ),
+          PremiumCard(
+            icon: Icons.chat_bubble_outline,
+            gradientColors: Theme.of(context).brightness == Brightness.dark
+              ? [Colors.indigo.withValues(alpha: 0.2), Colors.black26]
+              : [Colors.indigo.shade50, Colors.white],
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.psychology, color: Colors.blueAccent, size: 20),
-                const SizedBox(width: 8),
-                Expanded(child: Text(plan.aiMessage, style: const TextStyle(fontSize: 13, height: 1.4))),
+                const Icon(Icons.psychology, color: Colors.blueAccent, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    plan.aiMessage, 
+                    style: const TextStyle(
+                      fontSize: 14, 
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                    )
+                  )
+                ),
               ],
             ),
           ),
@@ -507,31 +490,35 @@ $chatContext
       default: intensityColor = Colors.blue;
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+    return PremiumCard(
+      icon: Icons.calendar_today_outlined,
+      padding: EdgeInsets.zero,
       child: ExpansionTile(
         initiallyExpanded: isToday,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+        shape: const RoundedRectangleBorder(side: BorderSide.none),
+        collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
         title: Row(children: [
           Expanded(child: Text(plan.dateStr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
-              color: intensityColor.withOpacity(0.2),
+              color: intensityColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: intensityColor),
+              border: Border.all(color: intensityColor.withValues(alpha: 0.5)),
             ),
             child: Text(plan.intensity, style: TextStyle(fontSize: 11, color: intensityColor, fontWeight: FontWeight.bold)),
           ),
         ]),
         children: [
           Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Icon(Icons.pool, color: Colors.blueAccent, size: 16),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       plan.waterMenu.isNotEmpty ? plan.waterMenu : 'なし',
@@ -539,25 +526,25 @@ $chatContext
                     ),
                   ),
                 ]),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Icon(Icons.fitness_center, color: Colors.greenAccent, size: 16),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       plan.dryland.isNotEmpty ? plan.dryland : 'なし',
                       style: TextStyle(
                         fontSize: 13,
                         height: 1.5,
-                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
                       ),
                     ),
                   ),
                 ]),
-                const SizedBox(height: 8),
+                const Divider(height: 24),
                 Row(children: [
                    const Icon(Icons.restaurant, color: Colors.orangeAccent, size: 16),
-                   const SizedBox(width: 6),
+                   const SizedBox(width: 8),
                    Expanded(
                      child: Text(
                        '目標: ${plan.targetCalories} kcal (P:${plan.targetProtein}g / F:${plan.targetFat}g / C:${plan.targetCarbs}g)',

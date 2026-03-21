@@ -6,6 +6,8 @@ import '../../data/services/gemini_service.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/models/chat_session.dart';
 import '../../data/providers/providers.dart';
+import '../widgets/premium_card.dart';
+import '../../utils/app_colors.dart';
 
 class AgentFeedbackScreen extends ConsumerStatefulWidget {
   const AgentFeedbackScreen({super.key});
@@ -290,32 +292,25 @@ $sysInstContext
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (_scrollController.hasClients) {
-        // 初回のスクロール
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-        // ListViewのレンダリングが完全に終わるのを待つためにわずかに遅延させて再実行
-        await Future.delayed(const Duration(milliseconds: 100));
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 100),
-            curve: Curves.easeOut,
-          );
-        }
-      }
-    });
+    // reverse: true の場合は、スクロール位置の調整は基本不要
   }
 
   @override
   Widget build(BuildContext context) {
     if (_currentSessionId == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('コーチ')),
+        appBar: AppBar(
+          title: Text(
+            'AquaAnalyst AI',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+              color: AppColors.skyBlue,
+            ),
+          ),
+          centerTitle: false,
+        ),
         drawer: _buildDrawer(),
         body: _buildEmptyState(),
       );
@@ -323,7 +318,16 @@ $sysInstContext
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('コーチ'),
+        title: Text(
+          'AquaAnalyst AI',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+            color: AppColors.skyBlue,
+          ),
+        ),
+        centerTitle: false,
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
@@ -358,15 +362,16 @@ $sysInstContext
                    );
                 }
 
-                // スクロール制御
-                _scrollToBottom();
+                // reverse: true を使用して最新メッセージを下にする
+                final displayMessages = dbMessages.reversed.toList();
 
                 return ListView.builder(
                   controller: _scrollController,
+                  reverse: true,
                   padding: const EdgeInsets.all(16.0),
-                  itemCount: dbMessages.length + (_isTyping ? 1 : 0),
+                  itemCount: displayMessages.length + (_isTyping ? 1 : 0),
                   itemBuilder: (context, index) {
-                    if (index == dbMessages.length && _isTyping) {
+                    if (_isTyping && index == 0) {
                       return const Align(
                         alignment: Alignment.centerLeft,
                         child: Padding(
@@ -382,7 +387,9 @@ $sysInstContext
                         ),
                       );
                     }
-                    final m = dbMessages[index];
+                    
+                    final mIndex = _isTyping ? index - 1 : index;
+                    final m = displayMessages[mIndex];
                     return _buildMessageBubble(CoachMessage(
                       text: m.text,
                       isAi: m.isAi,
@@ -402,19 +409,38 @@ $sysInstContext
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.psychology, size: 64, color: Theme.of(context).colorScheme.outlineVariant),
-          const SizedBox(height: 16),
-          const Text('相談を始めましょう'),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: _createNewChat,
-            icon: const Icon(Icons.add),
-            label: const Text('新しい相談を開始'),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: PremiumCard(
+          icon: Icons.psychology,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.psychology, size: 64, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
+              const SizedBox(height: 24),
+              const Text(
+                'コーチに相談しましょう',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'トレーニングの悩みや栄養について、いつでも相談に乗ります。',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: _createNewChat,
+                icon: const Icon(Icons.add),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                label: const Text('新しい相談を開始'),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -506,21 +532,30 @@ $sysInstContext
                   padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
                     color: _getBubbleColor(context, message),
+                    gradient: _getBubbleGradient(context, message),
                     border: _getBubbleBorder(context, message),
                     borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(16),
-                      topRight: const Radius.circular(16),
-                      bottomLeft: Radius.circular(message.isAi ? 0 : 16),
-                      bottomRight: Radius.circular(message.isAi ? 16 : 0),
+                      topLeft: const Radius.circular(20),
+                      topRight: const Radius.circular(20),
+                      bottomLeft: Radius.circular(message.isAi ? 4 : 20),
+                      bottomRight: Radius.circular(message.isAi ? 20 : 4),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Text(
                     message.text,
                     style: TextStyle(
                       height: 1.5,
+                      fontSize: 15,
                       color: message.isAi
                           ? Theme.of(context).colorScheme.onSurface
-                          : Theme.of(context).colorScheme.onPrimary,
+                          : Colors.white,
                     ),
                   ),
                 ),
@@ -550,7 +585,8 @@ $sysInstContext
       case MessageType.bcaSequence:
         return baseColor.withValues(alpha: 0.08);
       default:
-        return Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3);
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        return Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: isDark ? 0.3 : 0.5);
     }
   }
 
@@ -564,6 +600,15 @@ $sysInstContext
       default:
         return Border.all(color: Theme.of(context).colorScheme.primaryContainer);
     }
+  }
+
+  Gradient? _getBubbleGradient(BuildContext context, CoachMessage message) {
+    if (message.isAi) return null;
+    return const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFF4A90E2), Color(0xFF357ABD)],
+    );
   }
 
   Widget _buildTextComposer() {
@@ -610,8 +655,8 @@ $sysInstContext
                   },
                   child: TextField(
                     controller: _textController,
-                    minLines: 2,
-                    maxLines: 2,
+                    minLines: 1,
+                    maxLines: 5, // 5行まで自動で伸びるように変更。1だと使いにくい可能性があるため
                     textAlignVertical: TextAlignVertical.top,
                       keyboardType: TextInputType.multiline,
                       textInputAction: TextInputAction.newline, // モバイルでも改行を優先

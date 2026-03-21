@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/services/prompt_defaults.dart';
+import '../../utils/app_colors.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -236,7 +237,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.teal)),
+      child: Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.skyBlue)),
     );
   }
 }

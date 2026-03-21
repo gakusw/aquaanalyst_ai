@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../utils/app_colors.dart';
 import 'admin_screen.dart' deferred as admin;
 
 class DeferredAdminScreen extends StatefulWidget {
@@ -35,8 +37,19 @@ class _DeferredAdminScreenState extends State<DeferredAdminScreen> {
   Widget build(BuildContext context) {
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('エラー')),
-        body: Center(child: Text('管理者モジュールの読み込みに失敗しました: $_error')),
+        appBar: AppBar(
+        title: Text(
+          'AquaAnalyst AI',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+            color: AppColors.skyBlue,
+          ),
+        ),
+        centerTitle: false,
+      ),
+  body: Center(child: Text('管理者モジュールの読み込みに失敗しました: $_error')),
       );
     }
 

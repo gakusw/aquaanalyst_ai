@@ -4,10 +4,13 @@ import 'package:go_router/go_router.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/models/training_record.dart';
 import '../../utils/event_utils.dart';
+import '../../utils/app_colors.dart';
 
 /// 自己分析シート入力フォーム（モーダル表示用）
 class AnalysisSheetForm extends StatefulWidget {
-  const AnalysisSheetForm({super.key});
+  final bool isDialog;
+  final VoidCallback? onSaveSuccess;
+  const AnalysisSheetForm({super.key, this.isDialog = false, this.onSaveSuccess});
 
   @override
   State<AnalysisSheetForm> createState() => _AnalysisSheetFormState();
@@ -24,6 +27,7 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
 
   final List<_LapEntry> _laps = [];
   final TextEditingController _totalTimeController = TextEditingController();
+  final ScrollController _horizontalScrollController = ScrollController();
 
   final List<String> _eventOptions = [
     '50m 自由形',
@@ -51,6 +55,12 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
     _generateLaps();
   }
 
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _runOcr() async {
     final picker = ImagePicker();
     final image = await picker.pickImage(source: ImageSource.gallery);
@@ -70,7 +80,6 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
           if (_eventOptions.contains(rawEvent)) {
             _event = rawEvent;
           } else if (rawEvent.isNotEmpty) {
-            // 見つからない場合はアラートを表示し、選択は維持する
             if (mounted) {
               showDialog(
                 context: context,
@@ -103,12 +112,7 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
               lap.underwaterController.text = lapData['underwater']?.toString() ?? '';
               _laps.add(lap);
             }
-            // 累計タイムを再計算
-            for (int i = 0; i < _laps.length; i++) {
-              double prevCum = i > 0 ? _parseTime(_laps[i-1].cumulativeController.text) : 0;
-              double currentLap = _parseTime(_laps[i].timeController.text);
-              _laps[i].cumulativeController.text = _formatTime(prevCum + currentLap);
-            }
+            _calculateTimesFromCumulative(0);
             if (_laps.isNotEmpty) {
               _totalTimeController.text = _laps.last.cumulativeController.text;
             }
@@ -153,21 +157,6 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
   }
 
   void _calculateTimesFromLap(int index) {
-    double cumulative = 0;
-    if (index > 0) {
-      cumulative = _parseTime(_laps[index - 1].cumulativeController.text);
-    }
-    double lap = _parseTime(_laps[index].timeController.text);
-    _laps[index].cumulativeController.text = _formatTime(cumulative + lap);
-
-    // 以降の全てのラップを再計算
-    for (int i = index + 1; i < _laps.length; i++) {
-      double prevCum = _parseTime(_laps[i - 1].cumulativeController.text);
-      double currentLap = _parseTime(_laps[i].timeController.text);
-      _laps[i].cumulativeController.text = _formatTime(prevCum + currentLap);
-    }
-    
-    // トータルタイムも更新
     if (_laps.isNotEmpty) {
       _totalTimeController.text = _laps.last.cumulativeController.text;
     }
@@ -181,7 +170,6 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
     double currentCum = _parseTime(_laps[index].cumulativeController.text);
     _laps[index].timeController.text = _formatTime(currentCum - prevCum);
 
-    // 以降の全てのラップを再計算
     for (int i = index + 1; i < _laps.length; i++) {
       double pc = _parseTime(_laps[i - 1].cumulativeController.text);
       double lap = _parseTime(_laps[i].timeController.text);
@@ -211,91 +199,37 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
 
     final result = await showDialog<Map<String, int>>(
       context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('ラップ区間を分割・追加'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('既存の区間を分割して新しいラップを挿入します。', style: TextStyle(fontSize: 12, color: Colors.grey)),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: TextField(
-                    controller: startController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: '開始 (m)', border: OutlineInputBorder()),
-                  )),
-                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('-')),
-                  Expanded(child: TextField(
-                    controller: endController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: '終了 (m)', border: OutlineInputBorder()),
-                  )),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
-            FilledButton(
-              onPressed: () {
-                final s = int.tryParse(startController.text);
-                final e = int.tryParse(endController.text);
-                if (s != null && e != null && e > s) {
-                  Navigator.pop(ctx, {'start': s, 'end': e});
-                }
-              }, 
-              child: const Text('分割・挿入'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('ラップ区間を追加'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(child: TextField(controller: startController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: '開始 (m)'))),
+                const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text('-')),
+                Expanded(child: TextField(controller: endController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: '終了 (m)'))),
+              ],
             ),
           ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          TextButton(
+            onPressed: () {
+              final s = int.tryParse(startController.text);
+              final e = int.tryParse(endController.text);
+              if (s != null && e != null && e > s) Navigator.pop(ctx, {'start': s, 'end': e});
+            }, 
+            child: const Text('追加'),
+          ),
+        ],
+      ),
     );
 
     if (result != null) {
-      final s = result['start']!;
-      final e = result['end']!;
-
       setState(() {
-        // 既存のリストから、新しい区間が含まれるべき位置を探す
-        int insertIndex = -1;
-        for (int i = 0; i < _laps.length; i++) {
-          final parts = _laps[i].sectionController.text.replaceAll('m', '').split('-');
-          if (parts.length != 2) continue;
-          final lapStart = int.tryParse(parts[0]) ?? -1;
-          final lapEnd = int.tryParse(parts[1]) ?? -1;
-
-          if (s >= lapStart && e <= lapEnd) {
-            // この区間を分割する
-            _laps.removeAt(i);
-
-            // 分割後の区間を作成
-            // 1. 開始がずれている場合 (例: 0-25 を 10-25 にする場合、0-10 を作る)
-            if (s > lapStart) {
-              _laps.insert(i++, _LapEntry(section: '$lapStart-${s}m'));
-            }
-            
-            // 2. 指定された新しい区間
-            final newLap = _LapEntry(section: '$s-${e}m');
-            _laps.insert(i++, newLap);
-
-            // 3. 終了が余っている場合 (例: 0-25 を 0-10 にする場合、10-25 を作る)
-            if (e < lapEnd) {
-              _laps.insert(i, _LapEntry(section: '$e-${lapEnd}m'));
-            }
-            
-            insertIndex = i; // 計算開始位置
-            break;
-          }
-        }
-
-        // どこにも当てはまらない場合は末尾に追加
-        if (insertIndex == -1) {
-          _laps.add(_LapEntry(section: '$s-${e}m'));
-        }
-        
-        // 全体の計算をやり直す
+        _laps.add(_LapEntry(section: '${result['start']}-${result['end']}m'));
         _calculateTimesFromCumulative(0);
       });
     }
@@ -313,282 +247,219 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('自己分析シート'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
+    final content = SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ---- 基本情報 ----
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('基本情報', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 16),
-                  Row(
+          Row(
+            children: [
+              Icon(Icons.calendar_today_outlined, color: AppColors.skyBlue, size: 20),
+              const SizedBox(width: 8),
+              if (_isOcrLoading)
+                const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              else
+                TextButton.icon(
+                  onPressed: _runOcr,
+                  icon: const Icon(Icons.camera_alt, size: 16),
+                  label: const Text('写真解析', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => _selectDate(context),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 日付
-                      Expanded(
-                        child: ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.calendar_today, color: Colors.tealAccent),
-                          title: const Text('記録日', style: TextStyle(fontSize: 14)),
-                          subtitle: Text(
-                            '${_selectedDate.year}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.day.toString().padLeft(2, '0')}',
-                            style: const TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold),
-                          ),
-                          onTap: () => _selectDate(context),
-                        ),
-                      ),
-                      // トータルタイム (強調)
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Theme.of(context).colorScheme.primaryContainer),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('TOTAL TIME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.tealAccent)),
-                              TextField(
-                                controller: _totalTimeController,
-                                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.tealAccent),
-                                decoration: const InputDecoration(
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  border: InputBorder.none,
-                                  hintText: '0:00.00',
-                                  hintStyle: TextStyle(fontSize: 20, color: Colors.white24),
-                                ),
-                                keyboardType: TextInputType.datetime,
-                              ),
-                            ],
-                          ),
-                        ),
+                      const Text('記録日', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_selectedDate.year}/${_selectedDate.month}/${_selectedDate.day}',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.skyBlue),
                       ),
                     ],
                   ),
-                  const Divider(),
-                  // 種目
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _event,
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('TOTAL TIME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    TextField(
+                      controller: _totalTimeController,
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.skyBlue),
                       decoration: const InputDecoration(
-                        labelText: '種目',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.pool),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(vertical: 4),
+                        hintText: '',
                       ),
-                      items: _eventOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                      onChanged: (val) {
-                        if (val == null) return;
-                        setState(() {
-                          _event = val;
-                          // 種目名から距離を自動抽出
-                          final match = RegExp(r'(\d+)m').firstMatch(val);
-                          if (match != null) {
-                            _totalDistance = int.tryParse(match.group(1) ?? '100') ?? 100;
-                            _generateLaps();
-                          }
-                        });
-                      },
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  // 水路
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(value: '短水路 (25m)', label: Text('短水路 (25m)')),
-                      ButtonSegment(value: '長水路 (50m)', label: Text('長水路 (50m)')),
-                    ],
-                    selected: {_course},
-                    onSelectionChanged: (s) => setState(() {
-                      _course = s.first;
-                      _generateLaps();
-                    }),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
           const SizedBox(height: 16),
 
-          // 写真から取り込み
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('タイムペーパー・スコアボード写真から取り込み', style: TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Text(
-                          'レース結果記録票やスコアボードの写真からラップデータを自動入力します',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.54),
-                          ),
-                        ),
-                      ],
-                    ),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: DropdownButtonFormField<String>(
+                  value: _event,
+                  decoration: const InputDecoration(
+                    labelText: '種目',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 8),
                   ),
-                  _isOcrLoading
-                      ? const CircularProgressIndicator()
-                      : ElevatedButton.icon(
-                          onPressed: _runOcr,
-                          icon: const Icon(Icons.document_scanner),
-                          label: const Text('写真から取り込む'),
-                        ),
+                  items: _eventOptions.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
+                  onChanged: (val) {
+                    if (val == null) return;
+                    setState(() {
+                      _event = val;
+                      final match = RegExp(r'(\d+)m').firstMatch(val);
+                      if (match != null) {
+                        _totalDistance = int.tryParse(match.group(1) ?? '100') ?? 100;
+                        _generateLaps();
+                      }
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('水路', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    DropdownButton<String>(
+                      value: _course,
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      items: ['短水路 (25m)', '長水路 (50m)'].map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 12)))).toList(),
+                      onChanged: (val) => setState(() {
+                        _course = val!;
+                        _generateLaps();
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Padding(padding: EdgeInsets.symmetric(vertical: 12.0), child: Divider(height: 1)),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('ラップ詳細', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  IconButton(onPressed: _generateLaps, icon: const Icon(Icons.refresh, size: 18), visualDensity: VisualDensity.compact),
+                  IconButton(onPressed: _addCustomLap, icon: const Icon(Icons.add_circle_outline, size: 18), visualDensity: VisualDensity.compact),
                 ],
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
 
-          // ---- ラップ入力テーブル ----
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Scrollbar(
+            controller: _horizontalScrollController,
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              controller: _horizontalScrollController,
+              scrollDirection: Axis.horizontal,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12.0), // Scrollbar padding
+                child: SizedBox(
+                  width: 600,
+                  child: Column(
                     children: [
-                      const Text('ラップ詳細', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      TextButton.icon(
-                        onPressed: _generateLaps,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('リセット'),
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                        decoration: BoxDecoration(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(4)),
+                        child: const Row(
+                          children: [
+                            SizedBox(width: 50, child: Text('区分', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
+                            SizedBox(width: 4),
+                            SizedBox(width: 80, child: Text('Rap', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
+                            SizedBox(width: 4),
+                            SizedBox(width: 80, child: Text('Sprit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
+                            SizedBox(width: 4),
+                            SizedBox(width: 50, child: Text('Str', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
+                            SizedBox(width: 4),
+                            SizedBox(width: 50, child: Text('UW', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
+                            SizedBox(width: 4),
+                            Expanded(child: Text('備考', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
+                            SizedBox(width: 40),
+                          ],
+                        ),
                       ),
-                      TextButton.icon(
-                        onPressed: _addCustomLap,
-                        icon: const Icon(Icons.add),
-                        label: const Text('末尾に追加'),
-                      ),
+                      const SizedBox(height: 4),
+                      ...List.generate(_laps.length, (i) => _buildLapRow(i)),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  // ヘッダー
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                    child: const Row(
-                      children: [
-                        SizedBox(width: 50, child: Text('区間', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
-                        SizedBox(width: 4),
-                        Expanded(flex: 3, child: Text('累計', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
-                        SizedBox(width: 4),
-                        Expanded(flex: 3, child: Text('ラップ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
-                        SizedBox(width: 4),
-                        Expanded(flex: 2, child: Text('Str', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
-                        SizedBox(width: 4),
-                        Expanded(flex: 2, child: Text('水中(m)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
-                        SizedBox(width: 4),
-                        Expanded(flex: 4, child: Text('備考', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10))),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  // 各ラップ行
-                  ...List.generate(_laps.length, (i) => _buildLapRow(i)),
-                ],
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 32),
-
-          // 登録ボタン
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: FilledButton.icon(
-              onPressed: _isSaving ? null : () async {
-                setState(() => _isSaving = true);
-                try {
-                  // 保存前に累計ベースで計算を再同期 (累計優先)
-                  _calculateTimesFromCumulative(0);
-                  
-                  final record = TrainingRecord(
-                    id: '',
-                    date: _selectedDate,
-                    type: 'analysis',
-                    durationMinutes: 0,
-                    details: [
-                      {
-                        'type': 'event_info', 
-                        'event': EventUtils.normalizeEventName(_event), 
-                        'course': _course, 
-                        'distance': _totalDistance,
-                        'total_time': _totalTimeController.text,
-                      },
-                      {'type': 'laps', 'data': _laps.map((l) => {
-                        'section': l.sectionController.text,
-                        'cumulative': l.cumulativeController.text,
-                        'time': l.timeController.text,
-                        'stroke': l.strokeController.text,
-                        'underwater': l.underwaterController.text,
-                        'memo': l.memoController.text,
-                      }).toList()}
-                    ],
-                    subjectiveMetrics: {},
-                  );
-                  final recordId = await _firestoreService.addTrainingRecord(record);
-
-                  // 自己ベストの更新を試みる
-                  final totalSeconds = _parseTime(_totalTimeController.text);
-                  if (totalSeconds > 0) {
-                    await _firestoreService.updatePersonalBestIfFaster(
-                      event: EventUtils.normalizeEventName(_event),
-                      value: totalSeconds,
-                      date: _selectedDate,
-                      trainingRecordId: recordId,
-                    );
-                  }
-
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('自己分析シートを登録しました。記録は自己ベストにも反映されます。')),
-                    );
-                    context.pop();
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('登録に失敗しました: $e')),
-                    );
-                  }
-                } finally {
-                  if (mounted) {
-                    setState(() => _isSaving = false);
-                  }
-                }
-              },
-              icon: _isSaving 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.check_circle),
-              label: const Text('この内容で登録する', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.tealAccent,
-                foregroundColor: Colors.black87,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 24),
         ],
       ),
     );
+
+    if (widget.isDialog) return content;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'AquaAnalyst AI',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+            color: AppColors.skyBlue,
+          ),
+        ),
+        centerTitle: false,
+      ),
+      body: content,
+    );
+  }
+
+  Future<void> saveRecord() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+    try {
+      _calculateTimesFromCumulative(0);
+      final record = TrainingRecord(
+        id: '', date: _selectedDate, type: 'analysis', durationMinutes: 0,
+        details: [
+          {'type': 'event_info', 'event': EventUtils.normalizeEventName(_event), 'course': _course, 'distance': _totalDistance, 'total_time': _totalTimeController.text},
+          {'type': 'laps', 'data': _laps.map((l) => {'section': l.sectionController.text, 'cumulative': l.cumulativeController.text, 'time': l.timeController.text, 'stroke': l.strokeController.text, 'underwater': l.underwaterController.text, 'memo': l.memoController.text}).toList()}
+        ],
+        subjectiveMetrics: {},
+      );
+      final recordId = await _firestoreService.addTrainingRecord(record);
+      final totalSeconds = _parseTime(_totalTimeController.text);
+      if (totalSeconds > 0) {
+        await _firestoreService.updatePersonalBestIfFaster(event: EventUtils.normalizeEventName(_event), value: totalSeconds, date: _selectedDate, trainingRecordId: recordId);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('登録しました')));
+        if (widget.onSaveSuccess != null) widget.onSaveSuccess!(); else context.pop();
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('登録失敗: $e')));
+    } finally { if (mounted) setState(() => _isSaving = false); }
   }
 
   Widget _buildLapRow(int index) {
@@ -596,102 +467,19 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 50,
-            child: TextField(
-              controller: lap.sectionController,
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.zero,
-                border: InputBorder.none,
-              ),
-            ),
-          ),
+          SizedBox(width: 50, child: TextField(controller: lap.sectionController, style: const TextStyle(fontSize: 10, color: Colors.grey), decoration: const InputDecoration(isDense: true, border: InputBorder.none))),
           const SizedBox(width: 4),
-          // 累計
-          Expanded(
-            flex: 3,
-            child: TextField(
-              controller: lap.cumulativeController,
-              onChanged: (_) => _calculateTimesFromCumulative(index),
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.tealAccent),
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
+          SizedBox(width: 80, child: TextField(controller: lap.cumulativeController, onChanged: (_) => _calculateTimesFromCumulative(index), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.skyBlue), decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.all(4), border: OutlineInputBorder()))),
           const SizedBox(width: 4),
-          // ラップ
-          Expanded(
-            flex: 3,
-            child: TextField(
-              controller: lap.timeController,
-              onChanged: (_) => _calculateTimesFromLap(index),
-              style: const TextStyle(fontSize: 12),
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                border: OutlineInputBorder(),
-                hintText: '0:00.00',
-              ),
-            ),
-          ),
+          SizedBox(width: 80, child: TextField(controller: lap.timeController, onChanged: (_) => _calculateTimesFromLap(index), style: const TextStyle(fontSize: 12), decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.all(4), border: OutlineInputBorder(), hintText: ''))),
           const SizedBox(width: 4),
-          // Str
-          Expanded(
-            flex: 2,
-            child: TextField(
-              controller: lap.strokeController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(fontSize: 12),
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
+          SizedBox(width: 50, child: TextField(controller: lap.strokeController, keyboardType: TextInputType.number, style: const TextStyle(fontSize: 12), decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.all(4), border: OutlineInputBorder()))),
           const SizedBox(width: 4),
-          // 水中
-          Expanded(
-            flex: 2,
-            child: TextField(
-              controller: lap.underwaterController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: const TextStyle(fontSize: 12),
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
+          SizedBox(width: 50, child: TextField(controller: lap.underwaterController, keyboardType: const TextInputType.numberWithOptions(decimal: true), style: const TextStyle(fontSize: 12), decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.all(4), border: OutlineInputBorder()))),
           const SizedBox(width: 4),
-          // 備考
-          Expanded(
-            flex: 4,
-            child: TextField(
-              controller: lap.memoController,
-              style: const TextStyle(fontSize: 11),
-              decoration: const InputDecoration(
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.splitscreen, size: 16, color: Colors.blueAccent),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            onPressed: () => _showSplitDialog(index),
-            tooltip: 'この区間を分割',
-          ),
+          Expanded(child: TextField(controller: lap.memoController, style: const TextStyle(fontSize: 11), decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.all(4), border: OutlineInputBorder()))),
+          SizedBox(width: 40, child: IconButton(icon: const Icon(Icons.splitscreen, size: 16, color: Colors.blueAccent), padding: EdgeInsets.zero, constraints: const BoxConstraints(), onPressed: () => _showSplitDialog(index))),
         ],
       ),
     );
@@ -703,57 +491,22 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
     if (parts.length != 2) return;
     final lapStart = double.tryParse(parts[0]) ?? 0.0;
     final lapEnd = double.tryParse(parts[1]) ?? 0.0;
-
     final splitController = TextEditingController(text: ((lapStart + lapEnd) / 2).toString());
-
     final result = await showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('${lap.sectionController.text} を分割'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('分割する地点（m）を入力してください', style: TextStyle(fontSize: 12)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: splitController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: '分割地点 (m)',
-                suffixText: 'm',
-                hintText: '$lapStart 〜 $lapEnd の間',
-                border: const OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
-          FilledButton(
-            onPressed: () {
-              final val = double.tryParse(splitController.text);
-              if (val != null && val > lapStart && val < lapEnd) {
-                Navigator.pop(ctx, val);
-              }
-            },
-            child: const Text('分割'),
-          ),
-        ],
+        content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: splitController, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '分割地点 (m)', suffixText: 'm', border: OutlineInputBorder()))]),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')), TextButton(onPressed: () { final val = double.tryParse(splitController.text); if (val != null && val > lapStart && val < lapEnd) Navigator.pop(ctx, val); }, child: const Text('分割'))],
       ),
     );
-
     if (result != null) {
       setState(() {
         final lap1 = _LapEntry(section: '${lapStart}-${result}m');
         final lap2 = _LapEntry(section: '${result}-${lapEnd}m');
-        
-        // 元のデータの属性を引き継ぐ（オプション）
-        lap1.cumulativeController.text = ""; // 再計算させる
-        
         _laps.removeAt(index);
         _laps.insert(index, lap1);
         _laps.insert(index + 1, lap2);
-        
         _calculateTimesFromCumulative(0);
       });
     }
@@ -761,12 +514,11 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
 }
 
 class _LapEntry {
-  final TextEditingController sectionController; // 区間名 (編集可能)
-  final TextEditingController cumulativeController = TextEditingController(); // 累計タイム
-  final TextEditingController timeController = TextEditingController();       // 区間ラップ
+  final TextEditingController sectionController;
+  final TextEditingController cumulativeController = TextEditingController();
+  final TextEditingController timeController = TextEditingController();
   final TextEditingController strokeController = TextEditingController();
   final TextEditingController underwaterController = TextEditingController();
   final TextEditingController memoController = TextEditingController();
-
   _LapEntry({required String section}) : sectionController = TextEditingController(text: section);
 }

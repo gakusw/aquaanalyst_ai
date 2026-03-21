@@ -211,7 +211,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     margin: const EdgeInsets.only(bottom: 16),
-                    color: Colors.red.withOpacity(0.1),
+                    color: Colors.red.withValues(alpha: 0.1),
                     child: Text(
                       _errorMessage!,
                       style: const TextStyle(color: Colors.red, fontSize: 13),

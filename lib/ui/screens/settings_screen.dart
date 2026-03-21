@@ -8,6 +8,7 @@ import '../../data/services/gemini_service.dart';
 import '../../data/models/app_user.dart';
 import '../widgets/stable_text_field.dart';
 import '../../data/providers/providers.dart';
+import '../../utils/app_colors.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -338,7 +339,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final dailyUsageAsync = ref.watch(dailyUsageProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('設定')),
+      appBar: AppBar(
+        title: Text(
+          'AquaAnalyst AI',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+            color: AppColors.skyBlue,
+          ),
+        ),
+        centerTitle: false,
+      ),
       body: userAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, s) => Center(child: Text('読み込みエラー: $e')),
@@ -453,45 +465,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             valueListenable: appThemeMode,
             builder: (context, mode, _) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                child: Row(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.palette_outlined),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('テーマ', style: TextStyle(fontSize: 16)),
-                          Text('アプリの表示テーマを切り替えます', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                    SegmentedButton<ThemeMode>(
-                      segments: const [
-                        ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode), label: Text('ダーク')),
-                        ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto), label: Text('自動')),
-                        ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode), label: Text('ライト')),
+                    Row(
+                      children: [
+                        Icon(Icons.palette_outlined, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 12),
+                        const Text('テーマ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ],
-                      selected: {mode},
-                      onSelectionChanged: (s) async {
-                        final newMode = s.first;
-                        appThemeMode.value = newMode;
-                        if (user != null) {
-                          Map<String, dynamic> updatedProfile = Map.from(user.baseProfile);
-                          updatedProfile['themeMode'] = newMode == ThemeMode.dark ? 'dark' 
-                                                      : newMode == ThemeMode.light ? 'light' 
-                                                      : 'system';
-                          final updatedUser = AppUser(
-                            uid: user.uid,
-                            displayName: user.displayName,
-                            vision: user.vision,
-                            baseProfile: updatedProfile,
-                            createdAt: user.createdAt,
-                          );
-                          await _firestoreService.saveUserProfile(updatedUser);
-                        }
-                      },
+                    ),
+                    const SizedBox(height: 4),
+                    const Text('アプリの表示テーマを切り替えます', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<ThemeMode>(
+                        segments: const [
+                          ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode), label: Text('ダーク')),
+                          ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto), label: Text('自動')),
+                          ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode), label: Text('ライト')),
+                        ],
+                        selected: {mode},
+                        onSelectionChanged: (s) async {
+                          final newMode = s.first;
+                          appThemeMode.value = newMode;
+                          if (user != null) {
+                            Map<String, dynamic> updatedProfile = Map.from(user.baseProfile);
+                            updatedProfile['themeMode'] = newMode == ThemeMode.dark ? 'dark' 
+                                                        : newMode == ThemeMode.light ? 'light' 
+                                                        : 'system';
+                            final updatedUser = AppUser(
+                              uid: user.uid,
+                              displayName: user.displayName,
+                              vision: user.vision,
+                              baseProfile: updatedProfile,
+                              createdAt: user.createdAt,
+                            );
+                            await _firestoreService.saveUserProfile(updatedUser);
+                          }
+                        },
+                      ),
                     ),
                   ],
                 ),

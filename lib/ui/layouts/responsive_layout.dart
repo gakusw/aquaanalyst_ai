@@ -41,7 +41,7 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
     final destinations = <NavigationDestinationData>[
       NavigationDestinationData(icon: Icons.home_outlined, selectedIcon: Icons.home, label: 'ホーム'),
       NavigationDestinationData(icon: Icons.calendar_month_outlined, selectedIcon: Icons.calendar_month, label: '週間計画'),
-      NavigationDestinationData(icon: Icons.psychology_outlined, selectedIcon: Icons.psychology, label: 'コーチ'),
+      NavigationDestinationData(icon: Icons.psychology_outlined, selectedIcon: Icons.psychology, label: 'コーチに相談'),
       NavigationDestinationData(icon: Icons.insights_outlined, selectedIcon: Icons.insights, label: 'インサイト'),
       NavigationDestinationData(icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: '設定'),
     ];
@@ -112,7 +112,7 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
                   Expanded(
                     child: _BottomAppBarItem(
                       icon: selectedIndex == 2 ? Icons.psychology : Icons.psychology_outlined,
-                      label: 'コーチ',
+                      label: 'コーチに相談',
                       selected: selectedIndex == 2,
                       onTap: () => _onItemTapped(2, context),
                     ),

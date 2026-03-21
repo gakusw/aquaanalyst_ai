@@ -1,9 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../utils/app_colors.dart';
+import 'training_form.dart';
+import 'nutrition_form.dart';
+import 'body_composition_form.dart';
+import '../screens/analysis_sheet_form.dart';
 
 class AddRecordFab extends StatelessWidget {
   const AddRecordFab({super.key});
+
+  void _showFormDialog({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required Color color,
+    required Widget Function(GlobalKey<dynamic> key) formBuilder,
+  }) {
+    final GlobalKey<dynamic> formKey = GlobalKey();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(width: 8),
+            Text(title),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: formBuilder(formKey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // 各Stateの公開メソッドを安全に呼び出す
+              final state = formKey.currentState;
+              if (state != null && state is dynamic) {
+                try {
+                  // ignore: avoid_dynamic_calls
+                  state.saveRecord();
+                } catch (e) {
+                  // メソッドが存在しない場合のフォールバック（通常は起こらないはず）
+                  debugPrint('Save method not found: $e');
+                }
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showAddMenu(BuildContext context) {
     showModalBottomSheet(
@@ -29,7 +82,13 @@ class AddRecordFab extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.push('/training');
+                  _showFormDialog(
+                    context: context,
+                    title: 'トレーニング記録',
+                    icon: Icons.pool,
+                    color: AppColors.pool,
+                    formBuilder: (key) => TrainingForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(ctx)),
+                  );
                 },
               ),
               ListTile(
@@ -39,7 +98,13 @@ class AddRecordFab extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.push('/nutrition');
+                  _showFormDialog(
+                    context: context,
+                    title: '食事記録',
+                    icon: Icons.restaurant,
+                    color: AppColors.fat,
+                    formBuilder: (key) => NutritionForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(ctx)),
+                  );
                 },
               ),
               ListTile(
@@ -49,7 +114,13 @@ class AddRecordFab extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.push('/body_composition');
+                  _showFormDialog(
+                    context: context,
+                    title: '体組成記録',
+                    icon: Icons.monitor_weight,
+                    color: Colors.blueGrey,
+                    formBuilder: (key) => BodyCompositionForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(ctx)),
+                  );
                 },
               ),
               ListTile(
@@ -59,21 +130,23 @@ class AddRecordFab extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.pop(ctx);
-                  // HomeScreen に実装する睡眠記録ダイアログを呼び出すための通知
-                  // 現状は HomeScreen でのみ有効な想定だが、
-                  // 将来的には Global な Provider 等で管理することも可能。
-                  // ここでは GoRouter で Home に戻ってからダイアログを出す運用を想定。
                   context.go('/home?action=add_sleep');
                 },
               ),
               ListTile(
-                leading: const CircleAvatar(backgroundColor: Colors.teal, child: Icon(Icons.analytics, color: Colors.white)),
+                leading: const CircleAvatar(backgroundColor: AppColors.skyBlue, child: Icon(Icons.analytics, color: Colors.white)),
                 title: const Text('自己分析シート'),
                 subtitle: const Text('レース記録・ラップを詳細入力'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.pop(ctx);
-                  context.push('/analysis');
+                  _showFormDialog(
+                    context: context,
+                    title: '自己分析シート',
+                    icon: Icons.analytics,
+                    color: AppColors.skyBlue,
+                    formBuilder: (key) => AnalysisSheetForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(ctx)),
+                  );
                 },
               ),
               const SizedBox(height: 8),
@@ -87,7 +160,7 @@ class AddRecordFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
-      heroTag: null, // Avoid hero tag exception when multiple screen scaffolds exist
+      heroTag: null,
       onPressed: () => _showAddMenu(context),
       child: const Icon(Icons.add),
     );

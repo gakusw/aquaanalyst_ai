@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/app_colors.dart';
 
 class AnalysisSheetScreen extends StatefulWidget {
   const AnalysisSheetScreen({super.key});
@@ -59,7 +60,16 @@ class _AnalysisSheetScreenState extends State<AnalysisSheetScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('自己分析シート'),
+        title: Text( // Removed const from Text widget
+          'AquaAnalyst AI',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+            color: AppColors.skyBlue,
+          ),
+        ),
+        centerTitle: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

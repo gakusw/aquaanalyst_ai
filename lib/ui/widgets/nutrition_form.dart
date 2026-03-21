@@ -1,0 +1,288 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../data/services/firestore_service.dart';
+import '../../data/services/gemini_service.dart';
+import '../../data/models/training_record.dart';
+import '../widgets/stable_text_field.dart';
+import '../../data/providers/providers.dart';
+import '../../utils/app_colors.dart';
+
+class NutritionForm extends ConsumerStatefulWidget {
+  final bool isDialog;
+  final VoidCallback? onSaveSuccess;
+  const NutritionForm({super.key, this.onSaveSuccess, this.isDialog = false});
+
+  @override
+  ConsumerState<NutritionForm> createState() => _NutritionFormState();
+}
+
+class _NutritionFormState extends ConsumerState<NutritionForm> {
+  final FirestoreService _firestoreService = FirestoreService();
+  final TextEditingController _memoController = TextEditingController();
+  bool _isOcrLoading = false;
+  bool _isSaving = false;
+  bool _hasAnalyzed = false;
+  double _subjectiveProtein = 0;
+  double _subjectiveFat = 0;
+  double _subjectiveCarbs = 0;
+  String _selectedMealLabel = '朝食';
+
+  @override
+  void dispose() {
+    _memoController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _runOcr(String type) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    setState(() => _isOcrLoading = true);
+    try {
+      final bytes = await pickedFile.readAsBytes();
+      final mimeType = pickedFile.mimeType ?? 'image/jpeg';
+      final prompt = await GeminiService().nutritionOcrInstruction;
+
+      final user = ref.read(userProfileProvider).value;
+      final modelId = user?.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
+
+      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType, modelId: modelId);
+      
+      if (!mounted) return;
+      if (result != null && result.isNotEmpty && !result.startsWith('AIの処理中')) {
+        setState(() {
+          final current = _memoController.text;
+          _memoController.text = current.isEmpty ? "【自動解析: $type】\n$result" : "$current\n\n【自動解析: $type】\n$result";
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$typeの画像解析が完了しました')),
+        );
+        _runAiAnalysis();
+      } else {
+        throw Exception(result ?? '解析失敗');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final errMsg = e.toString().replaceFirst('Exception: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errMsg)),
+      );
+    } finally {
+      if (mounted) setState(() => _isOcrLoading = false);
+    }
+  }
+
+  bool _isAiAnalyzing = false;
+  Future<void> _runAiAnalysis() async {
+    if (_memoController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('食事内容を入力してください')),
+      );
+      return;
+    }
+
+    setState(() => _isAiAnalyzing = true);
+    try {
+      final user = ref.read(userProfileProvider).value;
+      final modelId = user?.baseProfile['aiModel'] as String?;
+      
+      final result = await GeminiService().analyzeNutrition(_memoController.text, modelId: modelId);
+      if (result != null) {
+        if (result.protein > 250 || result.fat > 150 || result.carbs > 400) {
+          if (!mounted) return;
+          final bool? proceed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              icon: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 48),
+              title: const Text('異常な推定値を検出'),
+              content: Text(
+                'AIの推定結果に異常な数値が含まれています：\n\n'
+                '・タンパク質: ${result.protein.round()}g (上限250)\n'
+                '・脂質: ${result.fat.round()}g (上限150)\n'
+                '・炭水化物: ${result.carbs.round()}g (上限400)\n\n'
+                'このまま上限値に丸めて反映しますか？'
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('キャンセル')),
+                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('反映')),
+              ],
+            ),
+          );
+          if (proceed != true) return;
+        }
+
+        setState(() {
+          _subjectiveProtein = result.protein.clamp(0.0, 250.0);
+          _subjectiveFat = result.fat.clamp(0.0, 150.0);
+          _subjectiveCarbs = result.carbs.clamp(0.0, 400.0);
+          _hasAnalyzed = true;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text('AI解析完了: ${result.reason}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('AI解析失敗: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isAiAnalyzing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final totalKcal = (_subjectiveProtein * 4 + _subjectiveFat * 9 + _subjectiveCarbs * 4).round();
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // A. 栄養量入力
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('栄養量 (g)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              Text('$totalKcal kcal', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigoAccent)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          Row(
+            children: [
+              _buildNutritionInput('タンパク質', _subjectiveProtein, (v) => setState(() => _subjectiveProtein = v), color: Colors.blueAccent),
+              const SizedBox(width: 12),
+              _buildNutritionInput('脂質', _subjectiveFat, (v) => setState(() => _subjectiveFat = v), color: Colors.redAccent),
+              const SizedBox(width: 12),
+              _buildNutritionInput('炭水化物', _subjectiveCarbs, (v) => setState(() => _subjectiveCarbs = v), color: Colors.orangeAccent),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // B. 写真解析・メモ
+          Row(
+            children: [
+              Icon(Icons.restaurant, color: AppColors.skyBlue, size: 20),
+              const SizedBox(width: 8),
+              const Text('食事内容・メモ', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              if (_isOcrLoading)
+                const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              else
+                TextButton.icon(
+                  onPressed: () => _runOcr('食事'),
+                  icon: const Icon(Icons.camera_alt, size: 16),
+                  label: const Text('写真解析', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Row(
+            children: [
+              const Text('ラベル: ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: DropdownButton<String>(
+                  value: _selectedMealLabel,
+                  isExpanded: true,
+                  underline: const SizedBox(),
+                  style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface),
+                  items: ['朝食', '昼食', '夕食', '間食', '未分類'].map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
+                  onChanged: (val) { if (val != null) setState(() => _selectedMealLabel = val); },
+                ),
+              ),
+            ],
+          ),
+          const Divider(),
+          const SizedBox(height: 8),
+
+          StableTextField(
+            controller: _memoController,
+            lines: 6,
+            hintText: '例: カップヌードル 1個、サラダチキン 110g...',
+          ),
+          const SizedBox(height: 12),
+          
+          Align(
+            alignment: Alignment.centerRight,
+            child: _isAiAnalyzing 
+              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+              : TextButton.icon(
+                  onPressed: _runAiAnalysis,
+                  icon: Icon(_hasAnalyzed ? Icons.check_circle : Icons.auto_awesome, size: 18),
+                  label: const Text('PFCをAI推定', style: TextStyle(fontSize: 13)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: _hasAnalyzed ? Colors.greenAccent : AppColors.skyBlue,
+                  ),
+                ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNutritionInput(String label, double value, ValueChanged<double> onChanged, {required Color color}) {
+    final controller = TextEditingController(text: value == 0 ? '' : value.round().toString());
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+          TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+            decoration: const InputDecoration(
+              suffixText: 'g',
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 4),
+            ),
+            onChanged: (val) {
+              final d = double.tryParse(val) ?? 0.0;
+              onChanged(d);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> saveRecord() async {
+    if (_isSaving) return;
+    if (_memoController.text.isNotEmpty && !_hasAnalyzed) {
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('PFC自動推定が未実行です'),
+            content: const Text('このまま保存しますか？'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('戻る')),
+              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('保存')),
+            ],
+          ),
+        );
+        if (proceed != true) return;
+    }
+    setState(() => _isSaving = true);
+    try {
+      final record = TrainingRecord(
+        id: '', date: DateTime.now(), type: 'nutrition',
+        details: [if (_memoController.text.isNotEmpty) {'type': 'memo', 'content': _memoController.text}],
+        subjectiveMetrics: {'protein': _subjectiveProtein, 'fat': _subjectiveFat, 'carbs': _subjectiveCarbs, 'meal_label': _selectedMealLabel},
+      );
+      await _firestoreService.addTrainingRecord(record);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存しました')));
+        if (widget.onSaveSuccess != null) widget.onSaveSuccess!(); else Navigator.pop(context);
+      }
+    } finally { if (mounted) setState(() => _isSaving = false); }
+  }
+}
