@@ -9,6 +9,7 @@ class AppColors {
   static const Color carbs = Color(0xFF4ADE80);   // Green
   static const Color sleep = Color(0xFFA78BFA);   // Violet/Lavender (User favorite)
   static const Color skyBlue = Color(0xFF3ABEF9); // Sky Blue (AI Thinking Log style)
+  static const Color bodyComp = Colors.purpleAccent; // Purplish Pink for Body Composition
 
   // Helper to get color with higher contrast for light mode if needed
   static Color getEffectiveColor(BuildContext context, Color color) {

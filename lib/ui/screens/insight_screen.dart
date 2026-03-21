@@ -402,24 +402,29 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
     final List<FlSpot> fatSpots = [];
     
     for (var r in bodyCompRecords) {
-      final dayOffset = r.date.difference(minDate).inDays;
-      registeredDays.add(dayOffset);
+      final double x = r.date.millisecondsSinceEpoch.toDouble();
       final w = r.subjectiveMetrics['weight']?.toDouble();
       final m = r.subjectiveMetrics['muscle_mass']?.toDouble();
       final f = r.subjectiveMetrics['body_fat']?.toDouble();
-      if (w != null) weightSpots.add(FlSpot(dayOffset.toDouble(), w));
-      if (m != null) muscleSpots.add(FlSpot(dayOffset.toDouble(), m));
-      if (f != null) fatSpots.add(FlSpot(dayOffset.toDouble(), f));
+      if (w != null) weightSpots.add(FlSpot(x, w));
+      if (m != null) muscleSpots.add(FlSpot(x, m));
+      if (f != null) fatSpots.add(FlSpot(x, f));
     }
 
     // 睡眠データを抽出
     final List<FlSpot> sleepSpots = [];
     final sleepRecords = records.where((r) => r.type == 'sleep').toList()..sort((a, b) => a.date.compareTo(b.date));
     for (var r in sleepRecords) {
-       final dayOffset = r.date.difference(minDate).inDays;
-       registeredDays.add(dayOffset);
-       sleepSpots.add(FlSpot(dayOffset.toDouble(), r.durationMinutes / 60.0));
+       final double x = r.date.millisecondsSinceEpoch.toDouble();
+       sleepSpots.add(FlSpot(x, r.durationMinutes / 60.0));
     }
+
+    final xValues = (weightSpots + muscleSpots + fatSpots + sleepSpots).map((s) => s.x).toList();
+    if (xValues.isEmpty) return const SizedBox.shrink();
+    
+    final buffer = 86400000.0 * 30; // 30日分のパディング
+    final minX = xValues.length == 1 ? xValues.first - buffer : xValues.reduce((a, b) => a < b ? a : b) - buffer;
+    final maxX = xValues.length == 1 ? xValues.first + buffer : xValues.reduce((a, b) => a > b ? a : b) + buffer;
 
     return _buildPremiumCard(
       icon: Icons.monitor_weight_outlined,
@@ -470,28 +475,32 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
 
                     return LineChart(
                       LineChartData(
-                        minX: (registeredDays.isNotEmpty ? registeredDays.reduce((a, b) => a < b ? a : b).toDouble() - 1.0 : 0),
-                        maxX: (registeredDays.isNotEmpty ? registeredDays.reduce((a, b) => a > b ? a : b).toDouble() + 1.0 : 0),
+                        minX: minX,
+                        maxX: maxX,
                         minY: minKg,
                         maxY: maxKg,
                         clipData: const FlClipData.all(),
                       lineBarsData: [
                         if (weightSpots.isNotEmpty)
                           LineChartBarData(
-                            spots: weightSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.pool) : AppColors.pool, barWidth: 4, dotData: const FlDotData(show: true),
+                            spots: weightSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.pool) : AppColors.pool, barWidth: 3, 
+                            dotData: FlDotData(show: true, getDotPainter: (spot, p, bar, i) => FlDotCirclePainter(radius: 3, color: bar.color ?? Colors.blue, strokeWidth: 1.5, strokeColor: Colors.white)),
                           ),
                         if (muscleSpots.isNotEmpty)
                           LineChartBarData(
-                            spots: muscleSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.carbs) : AppColors.carbs, barWidth: 4, dotData: const FlDotData(show: true),
+                            spots: muscleSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.carbs) : AppColors.carbs, barWidth: 3, 
+                            dotData: FlDotData(show: true, getDotPainter: (spot, p, bar, i) => FlDotCirclePainter(radius: 3, color: bar.color ?? Colors.green, strokeWidth: 1.5, strokeColor: Colors.white)),
                           ),
                         if (normalizedFatSpots.isNotEmpty)
                           LineChartBarData(
-                            spots: normalizedFatSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.fat) : AppColors.fat, barWidth: 3, dotData: const FlDotData(show: true),
+                            spots: normalizedFatSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.fat) : AppColors.fat, barWidth: 3, 
+                            dotData: FlDotData(show: true, getDotPainter: (spot, p, bar, i) => FlDotCirclePainter(radius: 3, color: bar.color ?? Colors.orange, strokeWidth: 1.5, strokeColor: Colors.white)),
                             dashArray: [5, 5],
                           ),
                         if (normalizedSleepSpots.isNotEmpty)
                           LineChartBarData(
-                            spots: normalizedSleepSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.sleep) : AppColors.sleep, barWidth: 4, dotData: const FlDotData(show: true),
+                            spots: normalizedSleepSpots, isCurved: false, color: Theme.of(context).brightness == Brightness.light ? AppColors.getEffectiveColor(context, AppColors.sleep) : AppColors.sleep, barWidth: 3, 
+                            dotData: FlDotData(show: true, getDotPainter: (spot, p, bar, i) => FlDotCirclePainter(radius: 3, color: bar.color ?? Colors.deepPurple, strokeWidth: 1.5, strokeColor: Colors.white)),
                             belowBarData: BarAreaData(
                               show: true,
                               color: AppColors.sleep.withValues(alpha: 0.1),
@@ -503,20 +512,18 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
-                            reservedSize: 22,
-                            interval: 1,
+                            reservedSize: 30,
+                            interval: (maxX - minX) / 4 > 86400000 ? (maxX - minX) / 4 : 86400000,
                             getTitlesWidget: (v, m) {
-                              final intValue = v.round();
-                              if ((v - intValue).abs() > 0.1) return const SizedBox.shrink();
-                              if (!registeredDays.contains(intValue)) return const SizedBox.shrink();
-                              
-                              // 両端に近い場合は表示しないことで重複を避ける
-                              if (v <= m.min + 0.5 || v >= m.max - 0.5) return const SizedBox.shrink();
-
-                              final date = minDate.add(Duration(days: intValue));
+                              if (v % m.appliedInterval != 0 && v != m.max && v != m.min) {
+                                 return const SizedBox.shrink();
+                              }
                               return Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
-                                child: Text('${date.month}/${date.day}', style: const TextStyle(fontSize: 8, color: Colors.grey)),
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(
+                                  AppDateUtils.getMonthlyChartLabel(v, previousValue: m.min == v ? null : v - m.appliedInterval),
+                                  style: const TextStyle(fontSize: 8, color: Colors.grey),
+                                ),
                               );
                             },
                           ),
@@ -869,13 +876,23 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
     final minX = xValues.length == 1 ? xValues.first - buffer : xValues.reduce((a, b) => a < b ? a : b) - buffer;
     final maxX = xValues.length == 1 ? xValues.first + buffer : xValues.reduce((a, b) => a > b ? a : b) + buffer;
 
+                // Y軸の範囲に上下バッファを持たせる
+                final yValues = historySpots.map((s) => s.y).toList();
+                final minYData = yValues.reduce((a, b) => a < b ? a : b);
+                final maxYData = yValues.reduce((a, b) => a > b ? a : b);
+                final yBuffer = (maxYData - minYData).abs() * 0.15 + 1.0;
+                final minY = minYData - yBuffer;
+                final maxY = maxYData + yBuffer;
+
                 return SizedBox(
-                  height: 140,
+                  height: 160,
                   width: double.infinity,
                   child: LineChart(
                     LineChartData(
                       minX: minX,
                       maxX: maxX,
+                      minY: minY,
+                      maxY: maxY,
                       clipData: const FlClipData.all(),
                       lineBarsData: [
                         LineChartBarData(
@@ -886,9 +903,9 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                           dotData: FlDotData(
                             show: true,
                             getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                              radius: 5,
-                              color: const Color(0xFF00B0FF), // Updated to vibrant blue
-                              strokeWidth: 2,
+                              radius: 3,
+                              color: const Color(0xFF00B0FF),
+                              strokeWidth: 1.5,
                               strokeColor: Colors.white,
                             ),
                           ),
@@ -902,23 +919,16 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
-                            reservedSize: 22,
+                            reservedSize: 30,
                             interval: (maxX - minX) / 4 > 86400000 ? (maxX - minX) / 4 : 86400000,
                             getTitlesWidget: (value, meta) {
-                              // 両端に近い場合は表示しない
-                              if (value <= meta.min + (meta.max - meta.min) * 0.05 || 
-                                  value >= meta.max - (meta.max - meta.min) * 0.05) {
-                                return const SizedBox.shrink();
+                              if (value % meta.appliedInterval != 0 && value != meta.max && value != meta.min) {
+                                 return const SizedBox.shrink();
                               }
-
-                              // 記録が存在する日のみを表示する
-                              final isDataPoint = historySpots.any((s) => (s.x - value).abs() < 43200000); // 12時間以内の誤差を許容
-                              if (!isDataPoint) return const SizedBox.shrink();
-
                               return Padding(
                                 padding: const EdgeInsets.only(top: 8.0),
                                 child: Text(
-                                  AppDateUtils.getChartLabel(value),
+                                  AppDateUtils.getMonthlyChartLabel(value, previousValue: meta.min == value ? null : value - meta.appliedInterval),
                                   style: const TextStyle(fontSize: 8, color: Colors.grey),
                                 ),
                               );
@@ -935,11 +945,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                         rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       ),
-                    gridData: FlGridData(
-                      show: true,
-                      drawVerticalLine: false,
-                      getDrawingHorizontalLine: (value) => const FlLine(color: Colors.white10, strokeWidth: 1),
-                    ),
+                    gridData: const FlGridData(show: false),
                     borderData: FlBorderData(show: false),
                     lineTouchData: LineTouchData(
                       touchTooltipData: LineTouchTooltipData(

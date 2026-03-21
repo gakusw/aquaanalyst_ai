@@ -141,8 +141,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 24),
 
                     // 今日のサマリー
-                    const Text('今日のサマリー', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
                     _TodaySummaryCard(
                       poolRecord: poolRecord,
                       drylandRecord: drylandRecord,
@@ -260,23 +258,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.purpleAccent.withValues(alpha: 0.1),
+                  color: AppColors.bodyComp.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.monitor_weight, color: Colors.purpleAccent, size: 24),
+                child: const Icon(Icons.monitor_weight, color: AppColors.bodyComp, size: 32),
               ),
-              Text(dateStr, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('最新の測定データ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        Text(dateStr, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _DetailRow(label: '体重', value: weight > 0 ? '$weight kg' : '未入力'),
+                    _DetailRow(label: '筋量', value: muscle > 0 ? '$muscle kg' : '未入力'),
+                    _DetailRow(label: '脂肪率', value: fat > 0 ? '$fat %' : '未入力'),
+                  ],
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          _DetailRow(label: '体重', value: weight > 0 ? '$weight kg' : '未入力'),
-          _DetailRow(label: '骨格筋量', value: muscle > 0 ? '$muscle kg' : '未入力'),
-          _DetailRow(label: '体脂肪率', value: fat > 0 ? '$fat %' : '未入力'),
           if (weightDiff != 0 || muscleDiff != 0) ...[
             const SizedBox(height: 8),
             const Divider(),
@@ -321,7 +332,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         builder: (ctx, setDialogState) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.bedtime, color: Colors.pinkAccent),
+              Icon(Icons.bedtime, color: AppColors.sleep),
               SizedBox(width: 8),
               Text('睡眠記録'),
             ],
@@ -637,8 +648,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final yValues = spots.map((s) => s.y).toList();
     final xValues = spots.map((s) => s.x).toList();
     
-    final minX = xValues.length == 1 ? xValues.first - 86400000 : xValues.reduce((a, b) => a < b ? a : b) - 43200000;
-    final maxX = xValues.length == 1 ? xValues.first + 86400000 : xValues.reduce((a, b) => a > b ? a : b) + 43200000;
+    final buffer = 86400000.0 * 30; // 30日分のパディング
+    final minX = xValues.length == 1 ? xValues.first - buffer : xValues.reduce((a, b) => a < b ? a : b) - buffer;
+    final maxX = xValues.length == 1 ? xValues.first + buffer : xValues.reduce((a, b) => a > b ? a : b) + buffer;
     
     final minY = yValues.reduce((a, b) => a < b ? a : b) - 1.0;
     final maxY = yValues.reduce((a, b) => a > b ? a : b) + 1.0;
@@ -647,17 +659,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       LineChartData(
         minX: minX,
         maxX: maxX,
-        minY: minY,
-        maxY: maxY,
+        minY: minY - (maxY - minY).abs() * 0.1,
+        maxY: maxY + (maxY - minY).abs() * 0.1,
         clipData: const FlClipData.all(),
         lineBarsData: [
           LineChartBarData(
             spots: spots,
             isCurved: false,
-            color: isTime ? Colors.teal : Colors.orange,
+            color: isTime ? const Color(0xFF00B0FF) : AppColors.dryland,
             barWidth: 3,
             isStrokeCapRound: true,
-            dotData: const FlDotData(show: true),
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                radius: 3,
+                color: isTime ? const Color(0xFF00B0FF) : AppColors.dryland,
+                strokeWidth: 1.5,
+                strokeColor: Colors.white,
+              ),
+            ),
           ),
         ],
         titlesData: FlTitlesData(
@@ -678,15 +698,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               reservedSize: 30,
               interval: (maxX - minX) / 4 > 86400000 ? (maxX - minX) / 4 : 86400000,
               getTitlesWidget: (value, meta) {
+                // ラベルの間隔を調整して重なりを防ぐ
+                if (value % meta.appliedInterval != 0 && value != meta.max && value != meta.min) {
+                   return const SizedBox.shrink();
+                }
+                
                 return Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(AppDateUtils.getChartLabel(value), style: const TextStyle(fontSize: 10)),
+                  child: Text(
+                    AppDateUtils.getMonthlyChartLabel(value, previousValue: meta.min == value ? null : value - meta.appliedInterval),
+                    style: const TextStyle(fontSize: 8, color: Colors.grey),
+                  ),
                 );
               },
             ),
           ),
         ),
-        gridData: const FlGridData(show: true, drawVerticalLine: false),
+        gridData: const FlGridData(show: false),
         borderData: FlBorderData(show: false),
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
@@ -779,15 +807,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     lineBarsData: [
                       if (weightSpots.isNotEmpty)
                         LineChartBarData(
-                          spots: weightSpots, color: Colors.blue, barWidth: 3, dotData: const FlDotData(show: true), isCurved: false,
+                          spots: weightSpots,
+                          color: Colors.blue,
+                          barWidth: 3,
+                          isCurved: false,
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                              radius: 3,
+                              color: Colors.blue,
+                              strokeWidth: 1.5,
+                              strokeColor: Colors.white,
+                            ),
+                          ),
                         ),
                       if (muscleSpots.isNotEmpty)
                         LineChartBarData(
-                          spots: muscleSpots, color: Colors.green, barWidth: 3, dotData: const FlDotData(show: true), isCurved: false,
+                          spots: muscleSpots,
+                          color: Colors.green,
+                          barWidth: 3,
+                          isCurved: false,
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                              radius: 3,
+                              color: Colors.green,
+                              strokeWidth: 1.5,
+                              strokeColor: Colors.white,
+                            ),
+                          ),
                         ),
                       if (normalizedFatSpots.isNotEmpty)
                         LineChartBarData(
-                          spots: normalizedFatSpots, color: Colors.orange, barWidth: 3, dotData: const FlDotData(show: true), isCurved: false,
+                          spots: normalizedFatSpots,
+                          color: Colors.orange,
+                          barWidth: 3,
+                          isCurved: false,
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                              radius: 3,
+                              color: Colors.orange,
+                              strokeWidth: 1.5,
+                              strokeColor: Colors.white,
+                            ),
+                          ),
                         ),
                     ],
                     titlesData: FlTitlesData(
@@ -816,15 +880,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           reservedSize: 30,
                           interval: (maxX - minX) / 4 > 86400000 ? (maxX - minX) / 4 : 86400000,
                           getTitlesWidget: (v, m) {
+                            if (v % m.appliedInterval != 0 && v != m.max && v != m.min) {
+                               return const SizedBox.shrink();
+                            }
                             return Padding(
                               padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(AppDateUtils.getChartLabel(v), style: const TextStyle(fontSize: 9)),
+                              child: Text(
+                                AppDateUtils.getMonthlyChartLabel(v, previousValue: m.min == v ? null : v - m.appliedInterval),
+                                style: const TextStyle(fontSize: 8, color: Colors.grey),
+                              ),
                             );
                           },
                         ),
                       ),
                     ),
-                    gridData: const FlGridData(show: true, drawVerticalLine: false),
+                    gridData: const FlGridData(show: false),
                     borderData: FlBorderData(show: false),
                     lineTouchData: LineTouchData(
                       touchTooltipData: LineTouchTooltipData(
@@ -1690,18 +1760,23 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     return Column(
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildModernActionBtn(
-              icon: Icons.copy_all_outlined,
-              onTap: _copySummaryToClipboard,
-              tooltip: 'コピー',
-            ),
-            const SizedBox(width: 8),
-            _buildModernActionBtn(
-              icon: Icons.share_outlined,
-              onTap: _shareSummary,
-              tooltip: '共有',
+            const Text('今日のサマリー', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                _buildModernActionBtn(
+                  icon: Icons.copy_all_outlined,
+                  onTap: _copySummaryToClipboard,
+                  tooltip: 'コピー',
+                ),
+                const SizedBox(width: 8),
+                _buildModernActionBtn(
+                  icon: Icons.share_outlined,
+                  onTap: _shareSummary,
+                  tooltip: '共有',
+                ),
+              ],
             ),
           ],
         ),

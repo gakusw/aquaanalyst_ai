@@ -253,9 +253,8 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Icon(Icons.calendar_today_outlined, color: AppColors.skyBlue, size: 20),
-              const SizedBox(width: 8),
               if (_isOcrLoading)
                 const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
               else

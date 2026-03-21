@@ -108,7 +108,7 @@ class AddRecordFab extends StatelessWidget {
                 },
               ),
               ListTile(
-                leading: CircleAvatar(backgroundColor: Colors.blueGrey, child: const Icon(Icons.monitor_weight, color: Colors.white)),
+                leading: CircleAvatar(backgroundColor: AppColors.bodyComp, child: const Icon(Icons.monitor_weight, color: Colors.white)),
                 title: const Text('体組成記録'),
                 subtitle: const Text('体重・筋肉量・体脂肪率を入力'),
                 trailing: const Icon(Icons.chevron_right),
@@ -118,7 +118,7 @@ class AddRecordFab extends StatelessWidget {
                     context: context,
                     title: '体組成記録',
                     icon: Icons.monitor_weight,
-                    color: Colors.blueGrey,
+                    color: AppColors.bodyComp,
                     formBuilder: (key) => BodyCompositionForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(ctx)),
                   );
                 },

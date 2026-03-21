@@ -53,4 +53,29 @@ class AppDateUtils {
     
     return DateFormat('MM/dd').format(date);
   }
+
+  /// グラフ用の月別ラベルを生成します (例: 10月, 2024年 01月)
+  static String getMonthlyChartLabel(double value, {double? previousValue}) {
+    final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
+    
+    // 未来の月は非表示
+    final now = DateTime.now();
+    if (date.year > now.year || (date.year == now.year && date.month > now.month)) {
+      return '';
+    }
+    
+    // 前回表示した月と同じ月なら表示しない (重複回避)
+    if (previousValue != null) {
+      final prevDate = DateTime.fromMillisecondsSinceEpoch(previousValue.toInt());
+      if (date.year == prevDate.year && date.month == prevDate.month) {
+        return '';
+      }
+    }
+
+    // 1月の場合だけ年を表示する
+    if (date.month == 1) {
+      return DateFormat('yyyy年 MM月').format(date);
+    }
+    return DateFormat('MM月').format(date);
+  }
 }

@@ -131,11 +131,9 @@ class _BodyCompositionFormState extends State<BodyCompositionForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_isOcrLoading || true) // Row is preserved but modified
           Row(
             children: [
-              const Icon(Icons.monitor_weight, color: Colors.purpleAccent, size: 20),
-              const SizedBox(width: 8),
-              const Text('体組成計測', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               const Spacer(),
               if (_isOcrLoading)
                 const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
