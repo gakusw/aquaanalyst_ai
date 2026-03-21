@@ -51,6 +51,22 @@ class GeminiService {
     _cachedSettings = settings;
   }
 
+  /// JSON文字列からMarkdownのコードブロックタグを除去するサニタイズ関数
+  String _sanitizeJson(String raw) {
+    var text = raw.trim();
+    if (text.startsWith('```')) {
+      final lines = text.split('\n');
+      if (lines.first.startsWith('```')) {
+        lines.removeAt(0);
+      }
+      if (lines.isNotEmpty && lines.last.startsWith('```')) {
+        lines.removeLast();
+      }
+      text = lines.join('\n').trim();
+    }
+    return text;
+  }
+
   Future<String> _getPrompt(String key, String defaultValue) async {
     // ここで明示的にロードを待たず、既存のキャッシュがあれば使う方式にする。
     // 管理者画面等で事前に ensureSettingsLoaded(isAdmin: true) を呼んでおく運用。
@@ -156,7 +172,8 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
       );
 
       if (response != null) {
-        final data = json.decode(response);
+        final sanitizedOutput = _sanitizeJson(response);
+        final data = json.decode(sanitizedOutput);
         return NutritionResult(
           protein: (data['protein'] as num).toDouble(),
           fat: (data['fat'] as num).toDouble(),
@@ -181,7 +198,10 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
         modelId: modelForInsight,
         responseMimeType: 'application/json',
       );
-      if (response != null) return json.decode(response);
+      if (response != null) {
+        final sanitizedOutput = _sanitizeJson(response);
+        return json.decode(sanitizedOutput);
+      }
     } catch (e) {
       debugPrint('Swimming Analysis Error: $e');
     }

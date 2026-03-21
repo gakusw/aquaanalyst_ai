@@ -458,14 +458,22 @@ class FirestoreService {
     final uid = currentUserId;
     if (uid == null) throw Exception('ログインしていません');
 
-    // サブコレクション（messages）の削除は本来バッチ処理が必要だが、
-    // ここでは簡易的にセッションドキュメントのみ削除（Firestoreは空のドキュメントを残さない運用が一般的）
-    await _db
+    final sessionRef = _db
         .collection('users')
         .doc(uid)
         .collection('chat_sessions')
-        .doc(sessionId)
-        .delete();
+        .doc(sessionId);
+
+    // サブコレクション（messages）もバッチ処理で完全に削除する
+    final messagesSnapshot = await sessionRef.collection('messages').get();
+    final batch = _db.batch();
+
+    for (var doc in messagesSnapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    batch.delete(sessionRef);
+
+    await batch.commit();
   }
 
   /// ホームチャット（ID: home_chat）の存在を確認し、なければ作成する
