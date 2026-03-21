@@ -12,7 +12,13 @@ import '../../data/models/my_product.dart';
 class NutritionForm extends ConsumerStatefulWidget {
   final bool isDialog;
   final VoidCallback? onSaveSuccess;
-  const NutritionForm({super.key, this.onSaveSuccess, this.isDialog = false});
+  final TrainingRecord? initialRecord;
+  const NutritionForm({
+    super.key, 
+    this.onSaveSuccess, 
+    this.isDialog = false,
+    this.initialRecord,
+  });
 
   @override
   ConsumerState<NutritionForm> createState() => _NutritionFormState();
@@ -28,6 +34,20 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
   double _subjectiveFat = 0;
   double _subjectiveCarbs = 0;
   String _selectedMealLabel = '朝食';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialRecord != null) {
+      final r = widget.initialRecord!;
+      _memoController.text = r.details.isNotEmpty ? (r.details.first['content'] ?? '') : '';
+      _subjectiveProtein = r.subjectiveMetrics['protein']?.toDouble() ?? 0.0;
+      _subjectiveFat = r.subjectiveMetrics['fat']?.toDouble() ?? 0.0;
+      _subjectiveCarbs = r.subjectiveMetrics['carbs']?.toDouble() ?? 0.0;
+      _selectedMealLabel = r.subjectiveMetrics['meal_label'] ?? '朝食';
+      _hasAnalyzed = true; // 既存記録がある場合は解析済みとみなす（編集可能）
+    }
+  }
 
   @override
   void dispose() {
@@ -184,7 +204,7 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
           // B. 写真解析・メモ
           Row(
             children: [
-              Icon(Icons.restaurant, color: AppColors.skyBlue, size: 20),
+              const Icon(Icons.fitness_center, color: Colors.white, size: 20),
               const SizedBox(width: 8),
               const Text('食事内容・メモ', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               const Spacer(),
@@ -297,15 +317,37 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
     }
     setState(() => _isSaving = true);
     try {
-      final record = TrainingRecord(
-        id: '', date: DateTime.now(), type: 'nutrition',
-        details: [if (_memoController.text.isNotEmpty) {'type': 'memo', 'content': _memoController.text}],
-        subjectiveMetrics: {'protein': _subjectiveProtein, 'fat': _subjectiveFat, 'carbs': _subjectiveCarbs, 'meal_label': _selectedMealLabel},
-      );
-      await _firestoreService.addTrainingRecord(record);
+      final recordData = {
+        'type': 'nutrition',
+        'details': [if (_memoController.text.isNotEmpty) {'type': 'memo', 'content': _memoController.text}],
+        'subjectiveMetrics': {
+          'protein': _subjectiveProtein, 
+          'fat': _subjectiveFat, 
+          'carbs': _subjectiveCarbs, 
+          'meal_label': _selectedMealLabel
+        },
+      };
+
+      if (widget.initialRecord != null) {
+        await _firestoreService.updateTrainingRecord(widget.initialRecord!.id, recordData);
+      } else {
+        final record = TrainingRecord(
+          id: '', 
+          date: DateTime.now(), 
+          type: 'nutrition',
+          details: recordData['details'] as List<Map<String, dynamic>>,
+          subjectiveMetrics: recordData['subjectiveMetrics'] as Map<String, dynamic>,
+        );
+        await _firestoreService.addTrainingRecord(record);
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存しました')));
-        if (widget.onSaveSuccess != null) widget.onSaveSuccess!(); else Navigator.pop(context);
+        if (widget.onSaveSuccess != null) {
+          widget.onSaveSuccess!();
+        } else {
+          Navigator.pop(context);
+        }
       }
     } finally { if (mounted) setState(() => _isSaving = false); }
   }
@@ -354,7 +396,7 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
                         title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('基準量: ${p.baseAmount}${p.unit} - P:${p.protein}g F:${p.fat}g C:${p.carbs}g / ${p.calories}kcal', style: const TextStyle(fontSize: 12)),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
+                          icon: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
                           onPressed: () => _firestoreService.deleteMyProduct(p.id),
                         ),
                         onTap: () {
@@ -439,7 +481,7 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
               await _firestoreService.saveMyProduct(MyProduct(
                 id: '', name: name, baseAmount: amount, unit: unit, protein: p, fat: f, carbs: c, calories: kcal
               ));
-              if (mounted) Navigator.pop(ctx);
+              if (ctx.mounted) Navigator.pop(ctx);
             }, 
             child: const Text('登録')
           ),

@@ -10,7 +10,13 @@ import '../../utils/app_colors.dart';
 class TrainingForm extends StatefulWidget {
   final bool isDialog;
   final VoidCallback? onSaveSuccess;
-  const TrainingForm({super.key, this.onSaveSuccess, this.isDialog = false});
+  final TrainingRecord? initialRecord;
+  const TrainingForm({
+    super.key, 
+    this.onSaveSuccess, 
+    this.isDialog = false,
+    this.initialRecord,
+  });
 
   @override
   State<TrainingForm> createState() => _TrainingFormState();
@@ -27,6 +33,23 @@ class _TrainingFormState extends State<TrainingForm> {
   bool _isOcrLoading = false;
   bool _isDrylLandOcrLoading = false;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialRecord != null) {
+      final r = widget.initialRecord!;
+      if (r.type == 'pool') {
+        _menuController.text = r.details.where((d) => d['type'] == 'menu_text').firstOrNull?['content'] ?? '';
+        _timeController.text = r.details.where((d) => d['type'] == 'main_set_time').firstOrNull?['content'] ?? '';
+        _durationController.text = r.durationMinutes > 0 ? r.durationMinutes.toString() : '';
+        _subjectiveFeeling = r.subjectiveMetrics['feeling']?.toDouble() ?? 5.0;
+      } else if (r.type == 'dryland') {
+        _drylLandController.text = r.details.where((d) => d['type'] == 'menu_text').firstOrNull?['content'] ?? '';
+        _drylLandFeeling = r.subjectiveMetrics['feeling']?.toDouble() ?? 5.0;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -238,7 +261,7 @@ class _TrainingFormState extends State<TrainingForm> {
           // 陸上トレーニングセクション
           Row(
             children: [
-              const Icon(Icons.fitness_center, color: Colors.orangeAccent, size: 20),
+              const Icon(Icons.fitness_center, color: Colors.white, size: 20),
               const SizedBox(width: 8),
               const Text('陸上トレーニング', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               const Spacer(),
@@ -300,15 +323,26 @@ class _TrainingFormState extends State<TrainingForm> {
       final poolTime = int.tryParse(_durationController.text) ?? 0;
       
       if (poolDetails.isNotEmpty || poolTime > 0) {
-        final poolRecord = TrainingRecord(
-          id: '', 
-          date: DateTime.now(),
-          type: 'pool',
-          durationMinutes: poolTime,
-          details: poolDetails,
-          subjectiveMetrics: {'feeling': _subjectiveFeeling},
-        );
-        await _firestoreService.addTrainingRecord(poolRecord);
+        final recordData = {
+          'type': 'pool',
+          'durationMinutes': poolTime,
+          'details': poolDetails,
+          'subjectiveMetrics': {'feeling': _subjectiveFeeling},
+        };
+
+        if (widget.initialRecord != null && widget.initialRecord!.type == 'pool') {
+          await _firestoreService.updateTrainingRecord(widget.initialRecord!.id, recordData);
+        } else {
+          final poolRecord = TrainingRecord(
+            id: '', 
+            date: DateTime.now(),
+            type: 'pool',
+            durationMinutes: poolTime,
+            details: poolDetails,
+            subjectiveMetrics: {'feeling': _subjectiveFeeling},
+          );
+          await _firestoreService.addTrainingRecord(poolRecord);
+        }
       }
 
       final drylandText = _drylLandController.text.trim();
@@ -353,14 +387,24 @@ class _TrainingFormState extends State<TrainingForm> {
         
         drylandDetails.add({'type': 'menu_text', 'content': drylandText});
 
-        final drylandRecord = TrainingRecord(
-          id: '',
-          date: DateTime.now(),
-          type: 'dryland',
-          details: drylandDetails,
-          subjectiveMetrics: {'feeling': _drylLandFeeling},
-        );
-        await _firestoreService.addTrainingRecord(drylandRecord);
+        final recordData = {
+          'type': 'dryland',
+          'details': drylandDetails,
+          'subjectiveMetrics': {'feeling': _drylLandFeeling},
+        };
+
+        if (widget.initialRecord != null && widget.initialRecord!.type == 'dryland') {
+          await _firestoreService.updateTrainingRecord(widget.initialRecord!.id, recordData);
+        } else {
+          final drylandRecord = TrainingRecord(
+            id: '',
+            date: DateTime.now(),
+            type: 'dryland',
+            details: drylandDetails,
+            subjectiveMetrics: {'feeling': _drylLandFeeling},
+          );
+          await _firestoreService.addTrainingRecord(drylandRecord);
+        }
         await _firestoreService.generateInitialDrylandPbs();
       }
 
