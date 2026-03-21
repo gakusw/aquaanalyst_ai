@@ -35,6 +35,7 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
   final List<CoachMessage> _messages = [];
   ChatSession? _chatSession;
   bool _isTyping = false;
+  String? _streamingResponse;
   String? _currentSessionId = _activeSessionId;
   String? _activeModelId;
 
@@ -190,42 +191,48 @@ $sysInstContext
 
     _textController.clear();
     setState(() {
-      _messages.add(CoachMessage(text: text, isAi: false));
       _isTyping = true;
+      _streamingResponse = null;
     });
     
     _scrollToBottom();
 
     try {
-      // ユーザーメッセージをDB保存
-      await _firestoreService.addChatMessage(sessionId, ChatMessage(text: text, isAi: false, timestamp: DateTime.now()));
+      // ユーザーメッセージをDB保存（awaitを外してストリーム開始のラグを解消）
+      _firestoreService.addChatMessage(sessionId, ChatMessage(text: text, isAi: false, timestamp: DateTime.now()));
 
       // ストリーミング応答の開始
       final stream = _chatSession!.sendMessageStream(Content.text(text));
       
       String fullResponse = "";
-      bool isFirstChunk = true;
 
       await for (final chunk in stream) {
         final chunkText = chunk.text;
         if (chunkText != null) {
           fullResponse += chunkText;
-          setState(() {
-            if (isFirstChunk) {
+          if (mounted) {
+            setState(() {
               _isTyping = false;
-              _messages.add(CoachMessage(text: fullResponse, isAi: true));
-              isFirstChunk = false;
-            } else {
-              // 最後のメッセージを更新されたテキストで置き換え
-              _messages[_messages.length - 1] = CoachMessage(text: fullResponse, isAi: true);
-            }
-          });
-          _scrollToBottom();
+              _streamingResponse = fullResponse;
+            });
+            _scrollToBottom();
+          }
         }
       }
 
-      // AIメッセージをDB保存（完了後）
-      await _firestoreService.addChatMessage(sessionId, ChatMessage(text: fullResponse, isAi: true, timestamp: DateTime.now()));
+      // AIメッセージをDB保存（待機せずに即時反映）
+      _firestoreService.addChatMessage(sessionId, ChatMessage(text: fullResponse, isAi: true, timestamp: DateTime.now()));
+
+      if (mounted) {
+        // DBからStreamBuilderに反映されるまでのフリッカーを防ぐため、少し遅延させてプレビューを消す
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            setState(() {
+              _streamingResponse = null;
+            });
+          }
+        });
+      }
 
       if (!mounted) return;
       
@@ -233,12 +240,22 @@ $sysInstContext
       _firestoreService.incrementDailyUsage();
 
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isTyping = false;
-        final msg = GeminiService().translateError(e, modelId: _activeModelId);
-        _messages.add(CoachMessage(text: msg, isAi: true, type: MessageType.warning));
-      });
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _streamingResponse = null;
+          final msg = GeminiService().translateError(e, modelId: _activeModelId);
+          _messages.add(CoachMessage(text: msg, isAi: true, type: MessageType.warning));
+        });
+      }
+    } finally {
+      if (mounted) {
+        // 万が一漏れた場合のためにリセット
+        setState(() {
+          _isTyping = false;
+          _streamingResponse = null;
+        });
+      }
     }
     _scrollToBottom();
   }
@@ -369,26 +386,34 @@ $sysInstContext
                   controller: _scrollController,
                   reverse: true,
                   padding: const EdgeInsets.all(16.0),
-                  itemCount: displayMessages.length + (_isTyping ? 1 : 0),
+                  itemCount: displayMessages.length + (_isTyping || _streamingResponse != null ? 1 : 0),
                   itemBuilder: (context, index) {
-                    if (_isTyping && index == 0) {
-                      return const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Padding(
-                          padding: EdgeInsets.only(bottom: 16.0),
-                          child: Chip(
-                            avatar: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                    if ((_isTyping || _streamingResponse != null) && index == 0) {
+                      if (_isTyping) {
+                        return const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Padding(
+                            padding: EdgeInsets.only(bottom: 16.0),
+                            child: Chip(
+                              avatar: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                              label: Text('考え中...'),
                             ),
-                            label: Text('考え中...'),
                           ),
-                        ),
-                      );
+                        );
+                      } else {
+                        return _buildMessageBubble(CoachMessage(
+                          text: _streamingResponse!,
+                          isAi: true,
+                          type: MessageType.normal,
+                        ));
+                      }
                     }
                     
-                    final mIndex = _isTyping ? index - 1 : index;
+                    final mIndex = (_isTyping || _streamingResponse != null) ? index - 1 : index;
                     final m = displayMessages[mIndex];
                     return _buildMessageBubble(CoachMessage(
                       text: m.text,
