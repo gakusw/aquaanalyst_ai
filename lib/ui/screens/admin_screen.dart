@@ -198,6 +198,22 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                   },
                 ),
               ),
+              const Divider(height: 1),
+              ListTile(
+                title: const Text('個人機能のデバッグ'),
+                subtitle: const Text('本日のAI推論クォータ管理を強制リセットします。'),
+                trailing: ElevatedButton.icon(
+                  onPressed: () async {
+                    await _firestoreService.clearDailyUsage();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('利用回数をリセットしました')));
+                    }
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('利用回数リセット'),
+                  style: ElevatedButton.styleFrom(foregroundColor: Colors.red),
+                ),
+              ),
             ],
           ),
         ),

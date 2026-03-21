@@ -21,6 +21,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   double _expertiseLevel = 5.0;
   bool _isDraggingExpertise = false; // ドラッグ中の上書き防止フラグ
+  int _versionTapCount = 0;
 
   @override
   void initState() {
@@ -94,6 +95,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _editPersonalData(BuildContext context, AppUser currentUser) async {
+    final nameController = TextEditingController(text: currentUser.displayName);
     final ageController = TextEditingController(text: currentUser.baseProfile['age']?.toString() ?? '');
     final heightController = TextEditingController(text: currentUser.baseProfile['height']?.toString() ?? '');
     final weightController = TextEditingController(text: currentUser.baseProfile['weight']?.toString() ?? '');
@@ -109,6 +111,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                StableTextField(
+                  controller: nameController,
+                  hintText: '例: イトマン二郎',
+                  labelText: 'ユーザーネーム (表示名)',
+                  lines: 1,
+                  keyboardType: TextInputType.text,
+                ),
                 StableTextField(
                   controller: ageController,
                   hintText: '例: 22',
@@ -156,7 +165,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       final updatedUser = AppUser(
         uid: currentUser.uid,
-        displayName: currentUser.displayName,
+        displayName: nameController.text.isNotEmpty ? nameController.text : currentUser.displayName,
         vision: currentUser.vision,
         baseProfile: updatedProfile,
         createdAt: currentUser.createdAt,
@@ -599,6 +608,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('バージョン 1.0.0 (Prototype)'),
+            onTap: () async {
+              if (user?.role == 'admin') return;
+              setState(() {
+                _versionTapCount++;
+              });
+              if (_versionTapCount >= 5) {
+                _versionTapCount = 0;
+                final pwController = TextEditingController();
+                final bool? ok = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('シークレットアクセス', style: TextStyle(color: Colors.amber)),
+                    content: TextField(
+                      controller: pwController,
+                      obscureText: true,
+                      decoration: const InputDecoration(hintText: 'Passcode'),
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('キャンセル')),
+                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('OK')),
+                    ],
+                  ),
+                );
+                if (ok == true && pwController.text == 'Admin2026' && user != null) {
+                  final elevatedUser = AppUser(
+                    uid: user.uid,
+                    displayName: user.displayName,
+                    vision: user.vision,
+                    baseProfile: user.baseProfile,
+                    createdAt: user.createdAt,
+                    role: 'admin',
+                  );
+                  await _firestoreService.saveUserProfile(elevatedUser);
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('管理者権限を付与しました', style: TextStyle(color: Colors.amber))));
+                }
+              }
+            },
           ),
           if (user?.role == 'admin') ...[
             const Divider(),

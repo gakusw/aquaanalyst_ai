@@ -7,6 +7,7 @@ import '../models/training_insight.dart';
 import '../models/personal_best.dart';
 import '../models/chat_session.dart';
 import '../models/goal_time.dart';
+import '../models/my_product.dart';
 
 import '../services/gemini_service.dart';
 import 'dart:typed_data';
@@ -352,6 +353,64 @@ class FirestoreService {
         .delete();
   }
 
+  // --- My製品関連 ---
+
+  /// My製品のリストを取得するStream
+  Stream<List<MyProduct>> getMyProductsStream() {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
+
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('my_products')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MyProduct.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// 一度だけMy製品のリストを取得する
+  Future<List<MyProduct>> getMyProducts() async {
+    final uid = currentUserId;
+    if (uid == null) return [];
+
+    final snapshot = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('my_products')
+        .orderBy('createdAt', descending: true)
+        .get();
+        
+    return snapshot.docs.map((doc) => MyProduct.fromMap(doc.data(), doc.id)).toList();
+  }
+
+  /// My製品を保存・追加する
+  Future<void> saveMyProduct(MyProduct product) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    final docRef = product.id.isEmpty 
+        ? _db.collection('users').doc(uid).collection('my_products').doc()
+        : _db.collection('users').doc(uid).collection('my_products').doc(product.id);
+
+    await docRef.set(product.toMap(), SetOptions(merge: true));
+  }
+
+  /// My製品の削除
+  Future<void> deleteMyProduct(String productId) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('my_products')
+        .doc(productId)
+        .delete();
+  }
+
   // --- チャットセッション関連 ---
 
   /// チャットセッション一覧を取得するStream
@@ -507,6 +566,14 @@ class FirestoreService {
       'count': FieldValue.increment(1),
       'lastUpdatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  /// 本日の利用回数をクリアする (管理者用リセット)
+  Future<void> clearDailyUsage() async {
+    final uid = currentUserId;
+    if (uid == null) return;
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    await _db.collection('users').doc(uid).collection('usage').doc(today).delete();
   }
 
   /// 本日の利用回数を取得する

@@ -7,6 +7,7 @@ import '../../data/models/training_record.dart';
 import '../widgets/stable_text_field.dart';
 import '../../data/providers/providers.dart';
 import '../../utils/app_colors.dart';
+import '../../data/models/my_product.dart';
 
 class NutritionForm extends ConsumerStatefulWidget {
   final bool isDialog;
@@ -72,6 +73,21 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
     } finally {
       if (mounted) setState(() => _isOcrLoading = false);
     }
+  }
+
+  void _showMyProductSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => _MyProductsSheet(
+        onSelect: (product) {
+          setState(() {
+            final current = _memoController.text;
+            _memoController.text = current.isEmpty ? product.name : "$current\n${product.name}";
+          });
+        },
+      ),
+    );
   }
 
   bool _isAiAnalyzing = false;
@@ -173,13 +189,20 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
               const Spacer(),
               if (_isOcrLoading)
                 const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              else
+              else ...[
+                TextButton.icon(
+                  onPressed: _showMyProductSheet,
+                  icon: const Icon(Icons.bookmark, size: 16, color: Colors.orange),
+                  label: const Text('My製品', style: TextStyle(fontSize: 12, color: Colors.orange)),
+                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                ),
                 TextButton.icon(
                   onPressed: () => _runOcr('食事'),
                   icon: const Icon(Icons.camera_alt, size: 16),
                   label: const Text('写真解析', style: TextStyle(fontSize: 12)),
                   style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
                 ),
+              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -284,5 +307,123 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
         if (widget.onSaveSuccess != null) widget.onSaveSuccess!(); else Navigator.pop(context);
       }
     } finally { if (mounted) setState(() => _isSaving = false); }
+  }
+}
+
+class _MyProductsSheet extends StatefulWidget {
+  final Function(MyProduct) onSelect;
+  const _MyProductsSheet({required this.onSelect});
+
+  @override
+  State<_MyProductsSheet> createState() => _MyProductsSheetState();
+}
+
+class _MyProductsSheetState extends State<_MyProductsSheet> {
+  final FirestoreService _firestoreService = FirestoreService();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Column(
+          children: [
+            AppBar(
+              title: const Text('My製品リスト', style: TextStyle(fontSize: 16)),
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+            Expanded(
+              child: StreamBuilder<List<MyProduct>>(
+                stream: _firestoreService.getMyProductsStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                  final products = snapshot.data ?? [];
+                  if (products.isEmpty) {
+                    return const Center(child: Text('登録されたMy製品はありません'));
+                  }
+                  return ListView.builder(
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final p = products[index];
+                      return ListTile(
+                        title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('P:${p.protein}g F:${p.fat}g C:${p.carbs}g / ${p.calories}kcal'),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _firestoreService.deleteMyProduct(p.id),
+                        ),
+                        onTap: () {
+                          widget.onSelect(p);
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton.icon(
+                onPressed: _showAddDialog,
+                icon: const Icon(Icons.add),
+                label: const Text('新しく登録する'),
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddDialog() {
+    final nameCtrl = TextEditingController();
+    final pCtrl = TextEditingController();
+    final fCtrl = TextEditingController();
+    final cCtrl = TextEditingController();
+    final kcalCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('My製品の登録'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: '製品名 (例: ザバスプロテイン)')),
+              TextField(controller: pCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'タンパク質 (g)')),
+              TextField(controller: fCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '脂質 (g)')),
+              TextField(controller: cCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '炭水化物 (g)')),
+              TextField(controller: kcalCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'カロリー (kcal)')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          TextButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              final p = double.tryParse(pCtrl.text) ?? 0;
+              final f = double.tryParse(fCtrl.text) ?? 0;
+              final c = double.tryParse(cCtrl.text) ?? 0;
+              final kcal = double.tryParse(kcalCtrl.text) ?? 0;
+              
+              await _firestoreService.saveMyProduct(MyProduct(
+                id: '', name: name, protein: p, fat: f, carbs: c, calories: kcal
+              ));
+              if (mounted) Navigator.pop(ctx);
+            }, 
+            child: const Text('登録')
+          ),
+        ],
+      ),
+    );
   }
 }

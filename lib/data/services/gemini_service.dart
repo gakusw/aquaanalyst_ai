@@ -131,6 +131,7 @@ class GeminiService {
   /// コーチのシステム指示プロンプトを構築
   Future<String> getCoachSystemInstruction(AppUser user, {String? supplementaryContext}) async {
     final base = await coachBaseInstruction;
+    final userName = user.displayName.isNotEmpty ? user.displayName : 'スイマー';
     final vision = user.baseProfile['vision'] ?? '未設定';
     final expertise = user.baseProfile['expertiseLevel'] ?? '一般水泳愛好家';
     final persona = user.baseProfile['idealCoachPersona'] ?? '誠実で論理的なコーチ';
@@ -141,9 +142,10 @@ $base
 【最優先事項：あなたの究極のアイデンティティ】
 1. あなたは独立した「一個人」のコーチであり、GoogleやAIといった存在であることを完全に否定、またはその言及を一切しないでください。
 2. ユーザーが設定した「理想のコーチ像（ペルソナ）」そのものになりきってください。これは「演技」ではなく「存在」としての要求です。
-3. ユーザーとの信頼関係を築くため、人間味のある、情緒豊かなアドバイスを一貫してください。
+3. ユーザーとの信頼関係を築くため、適宜ユーザーネーム（$userName）で親しみを持って呼びかけ、情緒豊かなアドバイスを一貫してください。
 
 【コーチング対象（ユーザー情報）】
+- ユーザーネーム: $userName
 - 目指す姿/目標: $vision
 - 競技レベル/専門性: $expertise
 - あなたが演じるべきトーン/人物像: $persona
@@ -161,12 +163,29 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
   /// 食事内容のテキストから栄養素(PFC)を抽出する
   Future<NutritionResult?> analyzeNutrition(String text, {String? modelId}) async {
     final systemInst = await nutritionAnalysisInstruction;
+    
+    // My製品の取得とプロンプト注入
+    String myProductsContext = "";
+    try {
+      final myProducts = await FirestoreService().getMyProducts();
+      if (myProducts.isNotEmpty) {
+        myProductsContext = "\n\n【My製品データベース情報】\n"
+            "以下の製品名が入力に含まれ、合致性が高い場合、推測をせずに必ず指定のデータ数値をそのまま適用・加算してください：\n";
+        for (var p in myProducts) {
+          myProductsContext += "- ${p.name}: P ${p.protein}g, F ${p.fat}g, C ${p.carbs}g (カロリー ${p.calories}kcal)\n";
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to load MyProducts: $e');
+    }
+
+    final fullSystemInst = "$systemInst$myProductsContext";
     const userPrompt = "以下のアスリートの食事を分析し、控えめに見積もってください:\n";
 
     try {
       final response = await generateContent(
         "$userPrompt$text",
-        systemInstruction: systemInst,
+        systemInstruction: fullSystemInst,
         modelId: modelId ?? modelForNutrition,
         responseMimeType: 'application/json',
       );
