@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'firebase_options.dart';
 import 'data/services/gemini_service.dart';
+import 'data/services/firestore_service.dart';
+import 'data/providers/providers.dart';
 
 import 'ui/layouts/responsive_layout.dart';
 import 'ui/screens/home_screen.dart';
@@ -21,6 +23,7 @@ import 'ui/screens/body_composition_screen.dart';
 import 'ui/screens/analysis_sheet_form.dart';
 import 'ui/screens/auth_screen.dart';
 import 'ui/screens/deferred_admin_screen.dart';
+import 'ui/screens/maintenance_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -125,11 +128,11 @@ final GoRouter _router = GoRouter(
   ],
 );
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: appThemeMode,
       builder: (context, mode, _) {
@@ -200,6 +203,22 @@ class MyApp extends StatelessWidget {
           ),
           themeMode: mode,
           routerConfig: _router,
+          builder: (context, child) {
+            final userAsync = ref.watch(userProfileProvider);
+            final user = userAsync.value;
+            final isAdmin = user?.role == 'admin';
+
+            return StreamBuilder<Map<String, dynamic>>(
+              stream: FirestoreService().getSystemSettingsStream(),
+              builder: (context, snapshot) {
+                final isMaintenance = snapshot.data?['maintenance_mode'] == true;
+                if (isMaintenance && !isAdmin) {
+                  return const MaintenanceScreen();
+                }
+                return child!;
+              },
+            );
+          },
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,

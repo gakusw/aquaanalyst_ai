@@ -30,11 +30,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   String _selectedModel = GeminiService.modelFlash;
   bool _isLoading = true;
   bool _isSaving = false;
+  int _totalUsers = 0;
+  int _newUsers = 0;
+  bool _isMaintenanceMode = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 7, vsync: this);
+    _tabController = TabController(length: 8, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       setState(() => _currentIndex = _tabController.index);
@@ -55,7 +58,13 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   Future<void> _loadSettings() async {
     try {
       final settings = await _firestoreService.getSystemSettings();
+      final total = await _firestoreService.getTotalUserCount();
+      final newU = await _firestoreService.getNewUserCountThisWeek();
       setState(() {
+        _totalUsers = total;
+        _newUsers = newU;
+        _isMaintenanceMode = settings['maintenance_mode'] ?? false;
+
         _setControllerText('coach_base', settings['coach_base'], PromptDefaults.coachBase);
         _setControllerText('nutrition_ocr', settings['nutrition_ocr'], PromptDefaults.nutritionOcr);
         _setControllerText('nutrition_analysis', settings['nutrition_analysis'], PromptDefaults.nutritionistSystem);
@@ -88,6 +97,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       final Map<String, dynamic> dataToSave = {
         'logical_day_start_hour': hour,
         'default_ai_model': _selectedModel,
+        'maintenance_mode': _isMaintenanceMode,
         'last_updated': DateTime.now().toIso8601String(),
       };
 
@@ -129,6 +139,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           controller: _tabController,
           isScrollable: true,
           tabs: const [
+            Tab(text: 'ダッシュボード'),
             Tab(text: '全般'),
             Tab(text: 'コーチ'),
             Tab(text: '食事OCR'),
@@ -150,15 +161,67 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
 
   Widget _buildCurrentTab() {
     switch (_currentIndex) {
-      case 0: return _buildGeneralTab();
-      case 1: return _buildPromptTab('coach_base', 'コーチ基本人格', 'エージェントの基本的な性格、専門知識レベル、行動指針。');
-      case 2: return _buildPromptTab('nutrition_ocr', '食事OCR', '画像から料理名と分量を抽出する際の指示。');
-      case 3: return _buildPromptTab('nutrition_analysis', '栄養解析', '料理名からPFCバランスを推定する思考プロセス。');
-      case 4: return _buildPromptTab('swim_analysis', '分析シート解析', 'タイムペーパーからラップタイムを抽出する指示。');
-      case 5: return _buildPromptTab('insight_guideline', 'タイム予測指針', '予測における科学的な制約事項。');
-      case 6: return _buildPromptTab('insight_prediction', '予測プロンプト', '予測実行時のメインテンプレート。{swimPbs} 等が置換されます。');
+      case 0: return _buildDashboardTab();
+      case 1: return _buildGeneralTab();
+      case 2: return _buildPromptTab('coach_base', 'コーチ基本人格', 'エージェントの基本的な性格、専門知識レベル、行動指針。');
+      case 3: return _buildPromptTab('nutrition_ocr', '食事OCR', '画像から料理名と分量を抽出する際の指示。');
+      case 4: return _buildPromptTab('nutrition_analysis', '栄養解析', '料理名からPFCバランスを推定する思考プロセス。');
+      case 5: return _buildPromptTab('swim_analysis', '分析シート解析', 'タイムペーパーからラップタイムを抽出する指示。');
+      case 6: return _buildPromptTab('insight_guideline', 'タイム予測指針', '予測における科学的な制約事項。');
+      case 7: return _buildPromptTab('insight_prediction', '予測プロンプト', '予測実行時のメインテンプレート。{swimPbs} 等が置換されます。');
       default: return const SizedBox.shrink();
     }
+  }
+
+  Widget _buildDashboardTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSectionHeader('ユーザー統計'),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Column(
+                  children: [
+                    const Text('総ユーザー数', style: TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    Text('$_totalUsers', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue)),
+                  ],
+                ),
+                Column(
+                  children: [
+                    const Text('新規登録 (直近7日)', style: TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 8),
+                    Text('$_newUsers', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.orange)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        _buildSectionHeader('緊急設定'),
+        Card(
+          color: _isMaintenanceMode ? Colors.red.shade50 : null,
+          child: Column(
+            children: [
+              SwitchListTile(
+                title: const Text('メンテナンスモード', style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text('オンにすると一般ユーザーはアプリを利用できなくなります。'),
+                value: _isMaintenanceMode,
+                activeColor: Colors.red,
+                onChanged: (val) {
+                  setState(() => _isMaintenanceMode = val);
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildGeneralTab() {

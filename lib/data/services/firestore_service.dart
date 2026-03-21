@@ -753,6 +753,35 @@ class FirestoreService {
   Future<void> saveSystemSettings(Map<String, dynamic> settings) async {
     await _db.collection('system_settings').doc('ai_config').set(settings, SetOptions(merge: true));
   }
+
+  // --- 統計ダッシュボード用 ---
+
+  /// 総ユーザー数を取得
+  Future<int> getTotalUserCount() async {
+    try {
+      final snapshot = await _db.collection('users').count().get();
+      return snapshot.count ?? 0;
+    } catch (e) {
+      debugPrint('Error counting users: $e');
+      return 0;
+    }
+  }
+
+  /// 直近7日以内の新規登録ユーザー数を取得
+  Future<int> getNewUserCountThisWeek() async {
+    try {
+      final oneWeekAgo = DateTime.now().subtract(const Duration(days: 7));
+      final snapshot = await _db
+          .collection('users')
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(oneWeekAgo))
+          .count()
+          .get();
+      return snapshot.count ?? 0;
+    } catch (e) {
+      debugPrint('Error counting new users: $e');
+      return 0;
+    }
+  }
 }
 
 class _BestRecord {
