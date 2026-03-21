@@ -208,16 +208,13 @@ class MyApp extends ConsumerWidget {
             final user = userAsync.value;
             final isAdmin = user?.role == 'admin';
 
-            return StreamBuilder<Map<String, dynamic>>(
-              stream: FirestoreService().getSystemSettingsStream(),
-              builder: (context, snapshot) {
-                final isMaintenance = snapshot.data?['maintenance_mode'] == true;
-                if (isMaintenance && !isAdmin) {
-                  return const MaintenanceScreen();
-                }
-                return child!;
-              },
-            );
+            final settingsAsync = ref.watch(systemSettingsProvider);
+            final isMaintenance = settingsAsync.value?['maintenance_mode'] == true;
+
+            if (isMaintenance && !isAdmin) {
+              return const MaintenanceScreen();
+            }
+            return child!;
           },
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,

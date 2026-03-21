@@ -12,7 +12,7 @@ final firestoreServiceProvider = Provider((ref) => FirestoreService());
 
 // ユーザープロフィール
 final userProfileProvider = StreamProvider.autoDispose<AppUser?>((ref) {
-  final stream = ref.watch(firestoreServiceProvider).getUserProfileStream();
+  final stream = ref.watch(firestoreServiceProvider).getUserProfileStream().asBroadcastStream();
   // 管理者の場合、設定を自動ロードする副作用を追加
   stream.listen((user) {
     if (user?.role == 'admin') {
@@ -20,6 +20,11 @@ final userProfileProvider = StreamProvider.autoDispose<AppUser?>((ref) {
     }
   });
   return stream;
+});
+
+// システム設定（メンテナンスモード等）
+final systemSettingsProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) {
+  return ref.watch(firestoreServiceProvider).getSystemSettingsStream();
 });
 
 // 練習記録 (最新50件)
