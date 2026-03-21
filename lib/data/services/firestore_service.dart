@@ -354,9 +354,9 @@ class FirestoreService {
         .delete();
   }
 
-  // --- My製品関連 ---
+  // --- My食品関連 ---
 
-  /// My製品のリストを取得するStream
+  /// My食品のリストを取得するStream
   Stream<List<MyProduct>> getMyProductsStream() {
     final uid = currentUserId;
     if (uid == null) return Stream.value([]);
@@ -372,7 +372,7 @@ class FirestoreService {
             .toList());
   }
 
-  /// 一度だけMy製品のリストを取得する
+  /// 一度だけMy食品のリストを取得する
   Future<List<MyProduct>> getMyProducts() async {
     final uid = currentUserId;
     if (uid == null) return [];
@@ -387,7 +387,7 @@ class FirestoreService {
     return snapshot.docs.map((doc) => MyProduct.fromMap(doc.data(), doc.id)).toList();
   }
 
-  /// My製品を保存・追加する
+  /// My食品を保存・追加する
   Future<void> saveMyProduct(MyProduct product) async {
     final uid = currentUserId;
     if (uid == null) throw Exception('ログインしていません');

@@ -83,7 +83,8 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
         onSelect: (product) {
           setState(() {
             final current = _memoController.text;
-            _memoController.text = current.isEmpty ? product.name : "$current\n${product.name}";
+            final insertText = '【My食品: ${product.name} (基準量: ${product.baseAmount}${product.unit}) P:${product.protein}g F:${product.fat}g C:${product.carbs}g ${product.calories}kcal】';
+            _memoController.text = current.isEmpty ? insertText : "$current\n$insertText";
           });
         },
       ),
@@ -193,7 +194,7 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
                 TextButton.icon(
                   onPressed: _showMyProductSheet,
                   icon: const Icon(Icons.bookmark, size: 16, color: Colors.orange),
-                  label: const Text('My製品', style: TextStyle(fontSize: 12, color: Colors.orange)),
+                  label: const Text('My食品', style: TextStyle(fontSize: 12, color: Colors.orange)),
                   style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
                 ),
                 TextButton.icon(
@@ -330,7 +331,7 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
         child: Column(
           children: [
             AppBar(
-              title: const Text('My製品リスト', style: TextStyle(fontSize: 16)),
+              title: const Text('My食品リスト', style: TextStyle(fontSize: 16)),
               automaticallyImplyLeading: false,
               actions: [
                 IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
@@ -343,7 +344,7 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
                   if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
                   final products = snapshot.data ?? [];
                   if (products.isEmpty) {
-                    return const Center(child: Text('登録されたMy製品はありません'));
+                    return const Center(child: Text('登録されたMy食品はありません'));
                   }
                   return ListView.builder(
                     itemCount: products.length,
@@ -351,7 +352,7 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
                       final p = products[index];
                       return ListTile(
                         title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('P:${p.protein}g F:${p.fat}g C:${p.carbs}g / ${p.calories}kcal'),
+                        subtitle: Text('基準量: ${p.baseAmount}${p.unit} - P:${p.protein}g F:${p.fat}g C:${p.carbs}g / ${p.calories}kcal', style: const TextStyle(fontSize: 12)),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () => _firestoreService.deleteMyProduct(p.id),
@@ -383,6 +384,8 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
 
   void _showAddDialog() {
     final nameCtrl = TextEditingController();
+    final amountCtrl = TextEditingController(text: '100');
+    final unitCtrl = TextEditingController(text: 'g');
     final pCtrl = TextEditingController();
     final fCtrl = TextEditingController();
     final cCtrl = TextEditingController();
@@ -391,15 +394,31 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('My製品の登録'),
+        title: const Text('My食品の登録'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: '製品名 (例: ザバスプロテイン)')),
-              TextField(controller: pCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'タンパク質 (g)')),
-              TextField(controller: fCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '脂質 (g)')),
-              TextField(controller: cCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '炭水化物 (g)')),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: '食品名 (例: 鶏むね肉)')),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(flex: 2, child: TextField(controller: amountCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '基準量 (例: 100)'))),
+                  const SizedBox(width: 8),
+                  Expanded(flex: 1, child: TextField(controller: unitCtrl, decoration: const InputDecoration(labelText: '単位 (例: g)'))),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: TextField(controller: pCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'タンパク質'))),
+                  const SizedBox(width: 8),
+                  Expanded(child: TextField(controller: fCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '脂質'))),
+                  const SizedBox(width: 8),
+                  Expanded(child: TextField(controller: cCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '炭水化物'))),
+                ],
+              ),
+              const SizedBox(height: 8),
               TextField(controller: kcalCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'カロリー (kcal)')),
             ],
           ),
@@ -410,13 +429,15 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
             onPressed: () async {
               final name = nameCtrl.text.trim();
               if (name.isEmpty) return;
+              final amount = double.tryParse(amountCtrl.text) ?? 100.0;
+              final unit = unitCtrl.text.trim();
               final p = double.tryParse(pCtrl.text) ?? 0;
               final f = double.tryParse(fCtrl.text) ?? 0;
               final c = double.tryParse(cCtrl.text) ?? 0;
               final kcal = double.tryParse(kcalCtrl.text) ?? 0;
               
               await _firestoreService.saveMyProduct(MyProduct(
-                id: '', name: name, protein: p, fat: f, carbs: c, calories: kcal
+                id: '', name: name, baseAmount: amount, unit: unit, protein: p, fat: f, carbs: c, calories: kcal
               ));
               if (mounted) Navigator.pop(ctx);
             }, 

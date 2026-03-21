@@ -164,22 +164,7 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
   Future<NutritionResult?> analyzeNutrition(String text, {String? modelId}) async {
     final systemInst = await nutritionAnalysisInstruction;
     
-    // My製品の取得とプロンプト注入
-    String myProductsContext = "";
-    try {
-      final myProducts = await FirestoreService().getMyProducts();
-      if (myProducts.isNotEmpty) {
-        myProductsContext = "\n\n【My製品データベース情報】\n"
-            "以下の製品名が入力に含まれ、合致性が高い場合、推測をせずに必ず指定のデータ数値をそのまま適用・加算してください：\n";
-        for (var p in myProducts) {
-          myProductsContext += "- ${p.name}: P ${p.protein}g, F ${p.fat}g, C ${p.carbs}g (カロリー ${p.calories}kcal)\n";
-        }
-      }
-    } catch (e) {
-      debugPrint('Failed to load MyProducts: $e');
-    }
-
-    final fullSystemInst = "$systemInst$myProductsContext";
+    final fullSystemInst = systemInst;
     const userPrompt = "以下のアスリートの食事を分析し、控えめに見積もってください:\n";
 
     try {

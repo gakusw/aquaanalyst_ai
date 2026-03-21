@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class MyProduct {
   final String id;
   final String name;
+  final double baseAmount;
+  final String unit;
   final double protein;
   final double fat;
   final double carbs;
@@ -12,6 +14,8 @@ class MyProduct {
   MyProduct({
     required this.id,
     required this.name,
+    this.baseAmount = 100.0,
+    this.unit = 'g',
     required this.protein,
     required this.fat,
     required this.carbs,
@@ -23,6 +27,8 @@ class MyProduct {
     return MyProduct(
       id: id,
       name: map['name'] ?? '',
+      baseAmount: (map['baseAmount'] as num?)?.toDouble() ?? 100.0,
+      unit: map['unit'] as String? ?? 'g',
       protein: (map['protein'] as num?)?.toDouble() ?? 0.0,
       fat: (map['fat'] as num?)?.toDouble() ?? 0.0,
       carbs: (map['carbs'] as num?)?.toDouble() ?? 0.0,
@@ -34,6 +40,8 @@ class MyProduct {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
+      'baseAmount': baseAmount,
+      'unit': unit,
       'protein': protein,
       'fat': fat,
       'carbs': carbs,
