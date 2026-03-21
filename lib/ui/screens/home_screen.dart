@@ -21,6 +21,9 @@ import '../../utils/app_colors.dart';
 import '../../utils/file_saver.dart'; // Add this
 import '../../data/providers/providers.dart';
 import '../widgets/premium_card.dart';
+import '../widgets/training_form.dart';
+import '../widgets/nutrition_form.dart';
+import '../widgets/body_composition_form.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -1500,7 +1503,6 @@ class _TodaySummaryCard extends StatefulWidget {
   final List<TrainingRecord> nutritionRecords;
   final AppUser? user;
   final WeeklyPlan? latestPlan;
-  final VoidCallback? onAddSleepPressed;
 
   const _TodaySummaryCard({
     required this.poolRecord,
@@ -1802,34 +1804,36 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
           label: '栄養状態',
           color: AppColors.carbs,
           children: [
-            if (widget.nutritionRecords.isEmpty) 
-              const _DetailRow(label: '食事内容', value: '未入力'),
-            ...widget.nutritionRecords.map((r) {
-              final double p = (r.subjectiveMetrics['protein'] as num?)?.toDouble() ?? 0.0;
-              final double f = (r.subjectiveMetrics['fat'] as num?)?.toDouble() ?? 0.0;
-              final double c = (r.subjectiveMetrics['carbs'] as num?)?.toDouble() ?? 0.0;
-              final kcal = (p * 4 + f * 9 + c * 4).round();
-              
-              return _DetailRow(
-                label: r.subjectiveMetrics['meal_label'] as String? ?? '未分類', 
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(child: _ExpandableText(
-                          r.details.isNotEmpty ? r.details.first['content'] : '記録あり',
-                          forceExpanded: isScreenshotFlag,
-                        )),
-                        const SizedBox(width: 8),
-                        Text('$kcal kcal', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigoAccent.withValues(alpha: 0.8))),
-                      ],
-                    ),
-                  ],
-                )
-              );
-            }),
-            const SizedBox(height: 12),
+            if (!isScreenshotFlag) ...[
+              if (widget.nutritionRecords.isEmpty) 
+                const _DetailRow(label: '食事内容', value: '未入力'),
+              ...widget.nutritionRecords.map((r) {
+                final double p = (r.subjectiveMetrics['protein'] as num?)?.toDouble() ?? 0.0;
+                final double f = (r.subjectiveMetrics['fat'] as num?)?.toDouble() ?? 0.0;
+                final double c = (r.subjectiveMetrics['carbs'] as num?)?.toDouble() ?? 0.0;
+                final kcal = (p * 4 + f * 9 + c * 4).round();
+                
+                return _DetailRow(
+                  label: r.subjectiveMetrics['meal_label'] as String? ?? '未分類', 
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: _ExpandableText(
+                            r.details.isNotEmpty ? r.details.first['content'] : '記録あり',
+                            forceExpanded: isScreenshotFlag,
+                          )),
+                          const SizedBox(width: 8),
+                          Text('$kcal kcal', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigoAccent.withValues(alpha: 0.8))),
+                        ],
+                      ),
+                    ],
+                  )
+                );
+              }),
+              const SizedBox(height: 12),
+            ],
             _PfcStatusRow(
               label: 'タンパク質 (P)', 
               value: proteinValue, 

@@ -27,12 +27,12 @@ class NutritionForm extends ConsumerStatefulWidget {
 class _NutritionFormState extends ConsumerState<NutritionForm> {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _memoController = TextEditingController();
+  final TextEditingController _pController = TextEditingController();
+  final TextEditingController _fController = TextEditingController();
+  final TextEditingController _cController = TextEditingController();
   bool _isOcrLoading = false;
   bool _isSaving = false;
   bool _hasAnalyzed = false;
-  double _subjectiveProtein = 0;
-  double _subjectiveFat = 0;
-  double _subjectiveCarbs = 0;
   String _selectedMealLabel = '朝食';
 
   @override
@@ -41,17 +41,28 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
     if (widget.initialRecord != null) {
       final r = widget.initialRecord!;
       _memoController.text = r.details.isNotEmpty ? (r.details.first['content'] ?? '') : '';
-      _subjectiveProtein = r.subjectiveMetrics['protein']?.toDouble() ?? 0.0;
-      _subjectiveFat = r.subjectiveMetrics['fat']?.toDouble() ?? 0.0;
-      _subjectiveCarbs = r.subjectiveMetrics['carbs']?.toDouble() ?? 0.0;
+      _pController.text = (r.subjectiveMetrics['protein']?.toDouble() ?? 0.0).round().toString();
+      _fController.text = (r.subjectiveMetrics['fat']?.toDouble() ?? 0.0).round().toString();
+      _cController.text = (r.subjectiveMetrics['carbs']?.toDouble() ?? 0.0).round().toString();
       _selectedMealLabel = r.subjectiveMetrics['meal_label'] ?? '朝食';
-      _hasAnalyzed = true; // 既存記録がある場合は解析済みとみなす（編集可能）
+      _hasAnalyzed = true; 
     }
+    // カロリー表示更新用リスナー
+    _pController.addListener(_onPfcChanged);
+    _fController.addListener(_onPfcChanged);
+    _cController.addListener(_onPfcChanged);
+  }
+
+  void _onPfcChanged() {
+    setState(() {});
   }
 
   @override
   void dispose() {
     _memoController.dispose();
+    _pController.dispose();
+    _fController.dispose();
+    _cController.dispose();
     super.dispose();
   }
 
@@ -151,9 +162,9 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
         }
 
         setState(() {
-          _subjectiveProtein = result.protein.clamp(0.0, 250.0);
-          _subjectiveFat = result.fat.clamp(0.0, 150.0);
-          _subjectiveCarbs = result.carbs.clamp(0.0, 400.0);
+          _pController.text = result.protein.clamp(0.0, 250.0).round().toString();
+          _fController.text = result.fat.clamp(0.0, 150.0).round().toString();
+          _cController.text = result.carbs.clamp(0.0, 400.0).round().toString();
           _hasAnalyzed = true;
         });
         if (mounted) {
@@ -173,7 +184,10 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
 
   @override
   Widget build(BuildContext context) {
-    final totalKcal = (_subjectiveProtein * 4 + _subjectiveFat * 9 + _subjectiveCarbs * 4).round();
+    final pV = double.tryParse(_pController.text) ?? 0.0;
+    final fV = double.tryParse(_fController.text) ?? 0.0;
+    final cV = double.tryParse(_cController.text) ?? 0.0;
+    final totalKcal = (pV * 4 + fV * 9 + cV * 4).round();
     
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -192,11 +206,11 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
           
           Row(
             children: [
-              _buildNutritionInput('タンパク質', _subjectiveProtein, (v) => setState(() => _subjectiveProtein = v), color: Colors.blueAccent),
+              _buildNutritionInput('タンパク質', _pController, color: Colors.blueAccent),
               const SizedBox(width: 12),
-              _buildNutritionInput('脂質', _subjectiveFat, (v) => setState(() => _subjectiveFat = v), color: Colors.redAccent),
+              _buildNutritionInput('脂質', _fController, color: Colors.redAccent),
               const SizedBox(width: 12),
-              _buildNutritionInput('炭水化物', _subjectiveCarbs, (v) => setState(() => _subjectiveCarbs = v), color: Colors.orangeAccent),
+              _buildNutritionInput('炭水化物', _cController, color: Colors.orangeAccent),
             ],
           ),
           const SizedBox(height: 24),
@@ -273,8 +287,7 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
     );
   }
 
-  Widget _buildNutritionInput(String label, double value, ValueChanged<double> onChanged, {required Color color}) {
-    final controller = TextEditingController(text: value == 0 ? '' : value.round().toString());
+  Widget _buildNutritionInput(String label, TextEditingController controller, {required Color color}) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,17 +295,13 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
           Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
           TextField(
             controller: controller,
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
             decoration: const InputDecoration(
               suffixText: 'g',
               isDense: true,
               contentPadding: EdgeInsets.symmetric(vertical: 4),
             ),
-            onChanged: (val) {
-              final d = double.tryParse(val) ?? 0.0;
-              onChanged(d);
-            },
           ),
         ],
       ),
@@ -321,9 +330,9 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
         'type': 'nutrition',
         'details': [if (_memoController.text.isNotEmpty) {'type': 'memo', 'content': _memoController.text}],
         'subjectiveMetrics': {
-          'protein': _subjectiveProtein, 
-          'fat': _subjectiveFat, 
-          'carbs': _subjectiveCarbs, 
+          'protein': double.tryParse(_pController.text) ?? 0.0, 
+          'fat': double.tryParse(_fController.text) ?? 0.0, 
+          'carbs': double.tryParse(_cController.text) ?? 0.0, 
           'meal_label': _selectedMealLabel
         },
       };
