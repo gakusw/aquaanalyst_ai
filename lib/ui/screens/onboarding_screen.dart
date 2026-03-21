@@ -14,7 +14,6 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final _visionController = TextEditingController();
   final _coachController = TextEditingController();
-  double _expertiseLevel = 5;
   final _firestoreService = FirestoreService();
   bool _isLoading = false;
 
@@ -40,7 +39,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ? Map<String, dynamic>.from(currentProfile.baseProfile) 
           : {};
       
-      baseProfile['expertiseLevel'] = _expertiseLevel;
       baseProfile['idealCoachPersona'] = _coachController.text;
       
       final updatedUser = AppUser(
@@ -96,21 +94,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // 2. 専門性と理想のコーチ像
-                // 2. 専門性と理想のコーチ像
+                // 2. 理想のコーチ像
                 StableTextField(
                   controller: _coachController,
                   lines: 5,
                   hintText: '例: ロジカルに，かつモチベーションが上がる言い回しが良い',
-                  labelText: '2. 理想のコーチ像 (専門性レベル: ${_expertiseLevel.round()} / 10)',
-                ),
-                Slider(
-                  value: _expertiseLevel,
-                  min: 1,
-                  max: 10,
-                  divisions: 9,
-                  label: _expertiseLevel.round().toString(),
-                  onChanged: (value) => setState(() => _expertiseLevel = value),
+                  labelText: '2. 理想のコーチ像',
                 ),
                 const SizedBox(height: 16),
 

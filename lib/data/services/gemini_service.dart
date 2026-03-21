@@ -133,7 +133,6 @@ class GeminiService {
     final base = await coachBaseInstruction;
     final userName = user.displayName.isNotEmpty ? user.displayName : 'スイマー';
     final vision = user.baseProfile['vision'] ?? '未設定';
-    final expertise = user.baseProfile['expertiseLevel'] ?? '一般水泳愛好家';
     final persona = user.baseProfile['idealCoachPersona'] ?? '誠実で論理的なコーチ';
 
     return """
@@ -147,7 +146,6 @@ $base
 【コーチング対象（ユーザー情報）】
 - ユーザーネーム: $userName
 - 目指す姿/目標: $vision
-- 競技レベル/専門性: $expertise
 - あなたが演じるべきトーン/人物像: $persona
 
 【参照知識（水泳練習メニュー設計の基礎概念）】

@@ -19,8 +19,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  double _expertiseLevel = 5.0;
-  bool _isDraggingExpertise = false; // ドラッグ中の上書き防止フラグ
   int _versionTapCount = 0;
 
   @override
@@ -364,15 +362,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, s) => Center(child: Text('読み込みエラー: $e')),
         data: (user) {
-          // Firestoreの値でローカル状態を同期
-          if (user != null && !_isDraggingExpertise) {
-            final savedLevel = (user.baseProfile['expertiseLevel'] as num?)?.toDouble();
-            if (savedLevel != null && savedLevel != _expertiseLevel) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted && !_isDraggingExpertise) setState(() => _expertiseLevel = savedLevel);
-              });
-            }
-          }
+          // Firestoreの値でローカル状態を同期 (専門性レベルなどを削除したため、同期処理を簡略化可能)
           
           final visionText = user?.vision != null && user!.vision.isNotEmpty == true ? user.vision : '未設定（タップして編集）';
           final age = user?.baseProfile['age'] ?? '未設定';
@@ -528,57 +518,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ListTile(
             title: Text('コーチング設定', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              children: [
-                const Icon(Icons.psychology, color: Colors.grey),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('専門性要求レベル', style: TextStyle(fontSize: 16)),
-                      Text(
-                        _expertiseLevel <= 3 ? '1: 初心者向き（平易な解説）'
-                            : _expertiseLevel <= 6 ? '中級者向き（実践的なアドバイス）'
-                            : _expertiseLevel <= 8 ? '上級者向き（科学的な視点を含む）'
-                            : '10: トップスイマー向き（最新研究ベース）',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-                Text(_expertiseLevel.round().toString(),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
-            ),
-          ),
-          Slider(
-            value: _expertiseLevel,
-            min: 1, max: 10, divisions: 9,
-            onChanged: (val) {
-              setState(() {
-                _expertiseLevel = val;
-                _isDraggingExpertise = true;
-              });
-            },
-            onChangeEnd: (val) async {
-              setState(() => _isDraggingExpertise = false);
-              if (user != null) {
-                Map<String, dynamic> updatedProfile = Map.from(user.baseProfile);
-                updatedProfile['expertiseLevel'] = val;
-                final updatedUser = AppUser(
-                  uid: user.uid,
-                  displayName: user.displayName,
-                  vision: user.vision,
-                  baseProfile: updatedProfile,
-                  createdAt: user.createdAt,
-                );
-                await _firestoreService.saveUserProfile(updatedUser);
-              }
-            },
-          ),
+
           ListTile(
             leading: const Icon(Icons.psychology_alt),
             title: const Text('理想のコーチ像'),
