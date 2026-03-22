@@ -47,10 +47,17 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
       _selectedMealLabel = r.subjectiveMetrics['meal_label'] ?? '朝食';
       _hasAnalyzed = true; 
     }
-    // カロリー表示更新用リスナー
+    // カロリー表示・解析状態更新用リスナー
     _pController.addListener(_onPfcChanged);
     _fController.addListener(_onPfcChanged);
     _cController.addListener(_onPfcChanged);
+    _memoController.addListener(_onMemoChanged);
+  }
+
+  void _onMemoChanged() {
+    if (_hasAnalyzed) {
+      setState(() => _hasAnalyzed = false);
+    }
   }
 
   void _onPfcChanged() {
@@ -97,10 +104,7 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
       }
     } catch (e) {
       if (!mounted) return;
-      final errMsg = e.toString().replaceFirst('Exception: ', '');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errMsg)),
-      );
+      GeminiService.showErrorDialog(context, e, title: '解析エラー');
     } finally {
       if (mounted) setState(() => _isOcrLoading = false);
     }
@@ -135,8 +139,13 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
     try {
       final user = ref.read(userProfileProvider).value;
       final modelId = user?.baseProfile['aiModel'] as String?;
+      final myProducts = ref.read(myProductsProvider).value;
       
-      final result = await GeminiService().analyzeNutrition(_memoController.text, modelId: modelId);
+      final result = await GeminiService().analyzeNutrition(
+        _memoController.text, 
+        modelId: modelId,
+        myProducts: myProducts,
+      );
       if (result != null) {
         if (result.protein > 250 || result.fat > 150 || result.carbs > 400) {
           if (!mounted) return;
@@ -175,7 +184,7 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('AI解析失敗: $e')));
+        GeminiService.showErrorDialog(context, e, title: 'AI解析エラー');
       }
     } finally {
       if (mounted) setState(() => _isAiAnalyzing = false);
@@ -184,6 +193,9 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
 
   @override
   Widget build(BuildContext context) {
+    // 解析時に利用するため、プロバイダーを watch してデータをロードしておく
+    ref.watch(myProductsProvider);
+
     final pV = double.tryParse(_pController.text) ?? 0.0;
     final fV = double.tryParse(_fController.text) ?? 0.0;
     final cV = double.tryParse(_cController.text) ?? 0.0;
@@ -358,6 +370,10 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
           Navigator.pop(context);
         }
       }
+    } catch (e) {
+      if (mounted) {
+        GeminiService.showErrorDialog(context, e, title: '保存エラー');
+      }
     } finally { if (mounted) setState(() => _isSaving = false); }
   }
 }
@@ -405,7 +421,7 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
                         title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('基準量: ${p.baseAmount}${p.unit} - P:${p.protein}g F:${p.fat}g C:${p.carbs}g / ${p.calories}kcal', style: const TextStyle(fontSize: 12)),
                         trailing: IconButton(
-                          icon: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
+                          icon: const Icon(Icons.delete, size: 14, color: Colors.grey),
                           onPressed: () => _firestoreService.deleteMyProduct(p.id),
                         ),
                         onTap: () {

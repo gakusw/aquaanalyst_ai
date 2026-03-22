@@ -95,10 +95,7 @@ class _TrainingFormState extends State<TrainingForm> {
       }
     } catch (e) {
       if (!mounted) return;
-      final errMsg = e.toString().replaceFirst('Exception: ', '');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errMsg)),
-      );
+      GeminiService.showErrorDialog(context, e, title: '解析エラー');
     } finally {
       if (mounted) {
         setState(() => _isOcrLoading = false);
@@ -149,10 +146,7 @@ class _TrainingFormState extends State<TrainingForm> {
       }
     } catch (e) {
       if (!mounted) return;
-      final errMsg = e.toString().replaceFirst('Exception: ', '');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errMsg)),
-      );
+      GeminiService.showErrorDialog(context, e, title: '解析エラー');
     } finally {
       if (mounted) {
         setState(() => _isDrylLandOcrLoading = false);
@@ -420,9 +414,7 @@ class _TrainingFormState extends State<TrainingForm> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存に失敗しました: $e')),
-        );
+        GeminiService.showErrorDialog(context, e, title: '保存エラー');
       }
     } finally {
       if (mounted) {

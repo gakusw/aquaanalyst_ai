@@ -161,7 +161,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('分析に失敗しました: $e')));
+        ai.GeminiService.showErrorDialog(context, e, title: '分析エラー');
       }
     } finally {
       if (mounted) setState(() => _isPredicting = false);

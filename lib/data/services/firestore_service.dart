@@ -165,6 +165,55 @@ class FirestoreService {
         .delete();
   }
 
+  // --- レース記録関連 ---
+
+  /// レース記録を保存する
+  Future<String> saveRaceRecord(Map<String, dynamic> data) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    final docRef = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('race_records')
+        .add({
+          ...data,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+    return docRef.id;
+  }
+
+  /// レース記録の一覧を取得するStream
+  Stream<List<Map<String, dynamic>>> getRaceRecordsStream({int limit = 50}) {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
+
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('race_records')
+        .orderBy('date', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => {...doc.data(), 'id': doc.id})
+            .toList());
+  }
+
+
+  /// レース記録を削除する
+  Future<void> deleteRaceRecord(String recordId) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('race_records')
+        .doc(recordId)
+        .delete();
+  }
+
   // --- 自己ベスト関連 ---
   
   /// 自己ベストの削除
@@ -289,6 +338,8 @@ class FirestoreService {
     await docRef.set(pb.toMap(), SetOptions(merge: true));
   }
 
+
+  
   /// タイムが以前の自己ベストより速い場合、または記録がない場合に自己ベストを更新する
   Future<void> updatePersonalBestIfFaster({
     required String event,
@@ -300,15 +351,40 @@ class FirestoreService {
     final uid = currentUserId;
     if (uid == null) return;
 
-    // 履歴として残したいので、既存記録の有無にかかわらず新規作成する
-    await savePersonalBest(PersonalBest(
-      id: '', // 自動生成
-      category: category,
-      event: event,
-      value: value,
-      date: date,
-      trainingRecordId: trainingRecordId,
-    ));
+    // 現在のその種目のベスト記録を確認
+    final snapshot = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('personal_bests')
+        .where('category', isEqualTo: category)
+        .where('event', isEqualTo: event)
+        .get();
+
+    bool isNewBest = true;
+    if (snapshot.docs.isNotEmpty) {
+      // 全データからベスト値を特定
+      final values = snapshot.docs.map((d) => (d.data()['value'] as num).toDouble());
+      final currentBest = category == 'swim' 
+          ? values.reduce((a, b) => a < b ? a : b)
+          : values.reduce((a, b) => a > b ? a : b);
+
+      if (category == 'swim') {
+        isNewBest = value < currentBest;
+      } else {
+        isNewBest = value > currentBest;
+      }
+    }
+
+    if (isNewBest) {
+      await savePersonalBest(PersonalBest(
+        id: '', // 自動生成
+        category: category,
+        event: event,
+        value: value,
+        date: date,
+        trainingRecordId: trainingRecordId,
+      ));
+    }
   }
 
   // --- 目標タイム関連 ---

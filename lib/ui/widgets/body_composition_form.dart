@@ -81,7 +81,7 @@ class _BodyCompositionFormState extends State<BodyCompositionForm> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))));
+      GeminiService.showErrorDialog(context, e, title: '解析エラー');
     } finally {
       if (mounted) setState(() => _isOcrLoading = false);
     }
@@ -118,7 +118,9 @@ class _BodyCompositionFormState extends State<BodyCompositionForm> {
         if (widget.onSaveSuccess != null) widget.onSaveSuccess!(); else Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
+      if (mounted) {
+        GeminiService.showErrorDialog(context, e, title: '保存エラー');
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

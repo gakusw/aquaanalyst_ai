@@ -383,10 +383,7 @@ $chatContext
       }
     } catch (e) {
       if (mounted) {
-        final currentUser = ref.read(userProfileProvider).value;
-        final modelId = currentUser?.baseProfile['aiModel'] as String? ?? GeminiService.modelPro;
-        final msg = GeminiService().translateError(e, modelId: modelId);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        GeminiService.showErrorDialog(context, e, title: '生成エラー');
       }
     } finally {
       if (mounted) {
@@ -476,7 +473,7 @@ $chatContext
     // 擬似的に当日の判定を行う。実際の運用時は plan.dateStr のパースか別管理が必要。
     // 4時切り替えの「今日」の曜日と比較
     final logicalToday = AppDateUtils.logicalToday();
-    final nowStr = ['月','火','水','木','金','土','日'][logicalToday.weekday - 1];
+    final nowStr = ['月曜','火曜','水曜','木曜','金曜','土曜','日曜'][logicalToday.weekday - 1];
     final bool isToday = plan.dateStr.contains(nowStr);
     
     Color intensityColor;

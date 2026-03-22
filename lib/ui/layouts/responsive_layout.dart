@@ -152,34 +152,20 @@ class _BottomAppBarItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool selected;
-  final bool isProminent;
   final VoidCallback onTap;
 
   const _BottomAppBarItem({
     required this.icon,
     required this.label,
     required this.selected,
-    this.isProminent = false,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    Color iconColor;
-    Color? bgColor;
-
-    if (isProminent) {
-      bgColor = selected
-          ? Theme.of(context).colorScheme.primary
-          : Theme.of(context).colorScheme.secondaryContainer;
-      iconColor = selected
-          ? Theme.of(context).colorScheme.onPrimary
-          : Theme.of(context).colorScheme.onSecondaryContainer;
-    } else {
-      iconColor = selected
-          ? Theme.of(context).colorScheme.primary
-          : Theme.of(context).colorScheme.onSurfaceVariant;
-    }
+    final iconColor = selected
+        ? Theme.of(context).colorScheme.primary
+        : Theme.of(context).colorScheme.onSurfaceVariant;
 
     final textColor = selected
         ? Theme.of(context).colorScheme.primary
@@ -193,19 +179,9 @@ class _BottomAppBarItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isProminent)
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: iconColor, size: 22),
-              )
-            else
-              Icon(icon, color: iconColor, size: 22),
+            Icon(icon, color: iconColor, size: 22),
             const SizedBox(height: 2),
-            Text(label, style: TextStyle(color: textColor, fontSize: 10, fontWeight: isProminent ? FontWeight.bold : FontWeight.normal)),
+            Text(label, style: TextStyle(color: textColor, fontSize: 10, fontWeight: FontWeight.normal)),
           ],
         ),
       ),

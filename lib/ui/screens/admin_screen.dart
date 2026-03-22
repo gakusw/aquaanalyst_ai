@@ -115,7 +115,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('保存に失敗しました: $e')));
+        GeminiService.showErrorDialog(context, e, title: '保存エラー');
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

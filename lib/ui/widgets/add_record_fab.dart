@@ -14,7 +14,7 @@ class AddRecordFab extends StatelessWidget {
     required String title,
     required IconData icon,
     required Color color,
-    required Widget Function(GlobalKey<dynamic> key) formBuilder,
+    required Widget Function(BuildContext dialogContext, GlobalKey<dynamic> key) formBuilder,
   }) {
     final GlobalKey<dynamic> formKey = GlobalKey();
 
@@ -30,29 +30,41 @@ class AddRecordFab extends StatelessWidget {
         ),
         content: SizedBox(
           width: double.maxFinite,
-          child: formBuilder(formKey),
+          child: formBuilder(ctx, formKey),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('キャンセル'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              // 各Stateの公開メソッドを安全に呼び出す
-              final state = formKey.currentState;
-              if (state != null && state is dynamic) {
-                try {
-                  // ignore: avoid_dynamic_calls
-                  state.saveRecord();
-                } catch (e) {
-                  // メソッドが存在しない場合のフォールバック（通常は起こらないはず）
-                  debugPrint('Save method not found: $e');
-                }
+          (() {
+            bool isSaving = false;
+            return StatefulBuilder(
+              builder: (ctx, setBtnState) {
+                return ElevatedButton(
+                  onPressed: isSaving ? null : () async {
+                    // 各Stateの公開メソッドを安全に呼び出す
+                    final state = formKey.currentState;
+                    if (state != null) {
+                      setBtnState(() => isSaving = true);
+                      try {
+                        // ignore: avoid_dynamic_calls
+                        await state.saveRecord();
+                      } catch (e) {
+                        // メソッドが存在しない場合のフォールバック（通常は起こらないはず）
+                        debugPrint('Save method not found: $e');
+                      } finally {
+                        if (ctx.mounted) setBtnState(() => isSaving = false);
+                      }
+                    }
+                  },
+                  child: isSaving 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('保存'),
+                );
               }
-            },
-            child: const Text('保存'),
-          ),
+            );
+          })(),
         ],
       ),
     );
@@ -87,7 +99,7 @@ class AddRecordFab extends StatelessWidget {
                     title: 'トレーニング記録',
                     icon: Icons.pool,
                     color: AppColors.pool,
-                    formBuilder: (key) => TrainingForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(ctx)),
+                    formBuilder: (dCtx, key) => TrainingForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(dCtx)),
                   );
                 },
               ),
@@ -103,7 +115,7 @@ class AddRecordFab extends StatelessWidget {
                     title: '食事記録',
                     icon: Icons.restaurant,
                     color: AppColors.fat,
-                    formBuilder: (key) => NutritionForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(ctx)),
+                    formBuilder: (dCtx, key) => NutritionForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(dCtx)),
                   );
                 },
               ),
@@ -119,7 +131,7 @@ class AddRecordFab extends StatelessWidget {
                     title: '体組成記録',
                     icon: Icons.monitor_weight,
                     color: AppColors.bodyComp,
-                    formBuilder: (key) => BodyCompositionForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(ctx)),
+                    formBuilder: (dCtx, key) => BodyCompositionForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(dCtx)),
                   );
                 },
               ),
@@ -135,17 +147,17 @@ class AddRecordFab extends StatelessWidget {
               ),
               ListTile(
                 leading: const CircleAvatar(backgroundColor: AppColors.skyBlue, child: Icon(Icons.analytics, color: Colors.white)),
-                title: const Text('自己分析シート'),
+                title: const Text('レース結果記録'),
                 subtitle: const Text('レース記録・ラップを詳細入力'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showFormDialog(
                     context: context,
-                    title: '自己分析シート',
+                    title: 'レース結果記録',
                     icon: Icons.analytics,
                     color: AppColors.skyBlue,
-                    formBuilder: (key) => AnalysisSheetForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(ctx)),
+                    formBuilder: (dCtx, key) => AnalysisSheetForm(key: key, isDialog: true, onSaveSuccess: () => Navigator.pop(dCtx)),
                   );
                 },
               ),

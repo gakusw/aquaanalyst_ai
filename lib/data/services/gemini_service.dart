@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import 'firestore_service.dart';
 import 'prompt_defaults.dart';
+import '../models/my_product.dart';
 
 class NutritionResult {
   final double protein;
@@ -159,16 +161,34 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
   }
 
   /// 食事内容のテキストから栄養素(PFC)を抽出する
-  Future<NutritionResult?> analyzeNutrition(String text, {String? modelId}) async {
+  Future<NutritionResult?> analyzeNutrition(String text, {String? modelId, List<MyProduct>? myProducts}) async {
     final systemInst = await nutritionAnalysisInstruction;
     
-    final fullSystemInst = systemInst;
-    const userPrompt = "以下のアスリートの食事を分析し、控えめに見積もってください:\n";
+    String userPrompt = "以下のアスリートの食事を分析してください:\n";
+    
+    // --- My食品の事前マッチングロジック (Dart側) ---
+    String matchingInstructions = "";
+    if (myProducts != null && myProducts.isNotEmpty) {
+      for (var p in myProducts) {
+        // 大文字小文字や空白を考慮した簡易マッチング
+        final escapedName = p.name.replaceAll(RegExp(r'([.*+?^${}()|[\]\\])'), r'\\$1');
+        final regex = RegExp(escapedName); 
+        if (regex.hasMatch(text)) {
+          matchingInstructions += "- 検出された登録食品: '${p.name}'\n";
+          matchingInstructions += "  この食品の基準値(Ground Truth): P:${p.protein}g, F:${p.fat}g, C:${p.carbs}g / 基準量:${p.baseAmount}${p.unit}\n";
+          matchingInstructions += "  ⚠️警告: あなたの内部知識にある '${p.name}' の数値は無視し、必ず上記の数値を採用して計算してください。\n";
+        }
+      }
+    }
+
+    if (matchingInstructions.isNotEmpty) {
+      userPrompt += "\n【‼️最優先採用データ：検出されたMy食品】\n$matchingInstructions\n";
+    }
 
     try {
       final response = await generateContent(
         "$userPrompt$text",
-        systemInstruction: fullSystemInst,
+        systemInstruction: systemInst,
         modelId: modelId ?? modelForNutrition,
         responseMimeType: 'application/json',
       );
@@ -209,16 +229,82 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
     }
     return null;
   }
-
   /// エラーメッセージの翻訳・整形
+  /// すべてのエラーを日本語またはエラーコードで表示する
   String translateError(dynamic e, {String? modelId}) {
-    final errStr = e.toString();
-    if (errStr.contains('quota')) {
-      return 'AIの利用制限に達しました。しばらく待ってから再度お試しいただくか、管理者メニューでモデルを切り替えてください。';
+    final errStr = e.toString().toLowerCase();
+    
+    // モデルが見つからない / サポートされていない
+    if (errStr.contains('not found') || errStr.contains('not supported') || errStr.contains('does not exist')) {
+      return '指定されたAIモデルが利用できません。設定画面からモデルを変更してください。（ERR_MODEL_UNAVAILABLE）';
     }
-    if (errStr.contains('api_key')) {
-      return 'APIキーが正しく設定されていません。';
+    // クォータ / レート制限
+    if (errStr.contains('quota') || errStr.contains('429') || errStr.contains('rate limit') || errStr.contains('resource exhausted')) {
+      return 'AIの利用制限に達しました。しばらく待ってから再度お試しいただくか、設定でモデルを切り替えてください。（ERR_QUOTA）';
     }
-    return 'エラーが発生しました: $errStr';
+    // サーバー過負荷
+    if (errStr.contains('overloaded') || errStr.contains('503') || errStr.contains('502') || errStr.contains('500') || errStr.contains('internal')) {
+      return 'AIサーバーが混雑しています。少し時間を置いてからやり直してください。（ERR_SERVER）';
+    }
+    // トークン制限
+    if (errStr.contains('token') || errStr.contains('exceeded') || errStr.contains('too long') || errStr.contains('too large')) {
+      return 'データの量が制限を超えました。入力を短くするか、より上位のAIモデルを選択してください。（ERR_TOKEN_LIMIT）';
+    }
+    // APIキー
+    if (errStr.contains('api_key') || errStr.contains('api key') || errStr.contains('authentication') || errStr.contains('unauthenticated')) {
+      return 'APIキーが無効または未設定です。管理者にお問い合わせください。（ERR_AUTH）';
+    }
+    // 権限
+    if (errStr.contains('permission') || errStr.contains('forbidden') || errStr.contains('403')) {
+      return 'この操作を行う権限がありません。（ERR_PERMISSION）';
+    }
+    // コンテンツブロック
+    if (errStr.contains('safety') || errStr.contains('blocked') || errStr.contains('harmful')) {
+      return '安全上の理由でコンテンツがブロックされました。（ERR_SAFETY）';
+    }
+    // ネットワーク / タイムアウト
+    if (errStr.contains('timeout') || errStr.contains('network') || errStr.contains('connection') || errStr.contains('socket')) {
+      return 'ネットワークエラーが発生しました。接続を確認してください。（ERR_NETWORK）';
+    }
+    // 不正なリクエスト
+    if (errStr.contains('invalid') || errStr.contains('bad request') || errStr.contains('400')) {
+      return 'リクエストが不正です。入力内容を確認してください。（ERR_INVALID_REQUEST）';
+    }
+    // Firestore / データベース
+    if (errStr.contains('firestore') || errStr.contains('firebase')) {
+      return 'データベースエラーが発生しました。しばらく待ってから再度お試しください。（ERR_DATABASE）';
+    }
+    // JSON パースエラー
+    if (errStr.contains('formatexception') || errStr.contains('json') || errStr.contains('unexpected character')) {
+      return 'AIからの応答を解析できませんでした。再度お試しください。（ERR_PARSE）';
+    }
+
+    // フォールバック: 英語のテキストを表示しないようにエラーコードのみ表示
+    // "Exception: " を除外した上で、ASCII英文字が多い場合はエラーコードに変換
+    final cleanMsg = e.toString().replaceAll('Exception: ', '').trim();
+    final hasEnglish = RegExp(r'[a-zA-Z]{5,}').hasMatch(cleanMsg);
+    if (hasEnglish) {
+      debugPrint('未翻訳エラー: $e'); // デバッグ用にログ出力
+      return '処理中にエラーが発生しました。しばらく待ってから再度お試しください。（ERR_UNKNOWN）';
+    }
+    return 'エラーが発生しました：$cleanMsg';
+  }
+
+  /// ダイアログの最前面にエラーを表示する共通ヘルパー
+  /// useRootNavigator: true で既存のダイアログの上に表示される
+  static void showErrorDialog(BuildContext context, dynamic error, {String title = 'エラー'}) {
+    final msg = GeminiService().translateError(error);
+    showDialog(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(msg),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(), child: const Text('閉じる')),
+        ],
+      ),
+    );
   }
 }

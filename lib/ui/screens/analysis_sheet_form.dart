@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/services/firestore_service.dart';
+import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
 import '../../utils/event_utils.dart';
 import '../../utils/app_colors.dart';
 
-/// 自己分析シート入力フォーム（モーダル表示用）
+/// レース結果記録入力フォーム
 class AnalysisSheetForm extends StatefulWidget {
   final bool isDialog;
   final VoidCallback? onSaveSuccess;
@@ -126,9 +127,7 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('解析に失敗しました: $e')),
-        );
+        GeminiService.showErrorDialog(context, e, title: '解析エラー');
       }
     } finally {
       if (mounted) setState(() => _isOcrLoading = false);
@@ -440,24 +439,77 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
     try {
       _calculateTimesFromCumulative(0);
       final record = TrainingRecord(
-        id: '', date: _selectedDate, type: 'analysis', durationMinutes: 0,
+        id: '', 
+        date: _selectedDate, 
+        type: 'analysis', 
+        durationMinutes: 0,
         details: [
-          {'type': 'event_info', 'event': EventUtils.normalizeEventName(_event), 'course': _course, 'distance': _totalDistance, 'total_time': _totalTimeController.text},
-          {'type': 'laps', 'data': _laps.map((l) => {'section': l.sectionController.text, 'cumulative': l.cumulativeController.text, 'time': l.timeController.text, 'stroke': l.strokeController.text, 'underwater': l.underwaterController.text, 'memo': l.memoController.text}).toList()}
+          {
+            'type': 'event_info', 
+            'event': EventUtils.normalizeEventName(_event), 
+            'course': _course, 
+            'distance': _totalDistance.toString(), 
+            'total_time': _totalTimeController.text
+          },
+          {
+            'type': 'laps', 
+            'data': _laps.map((l) => {
+              'section': l.sectionController.text, 
+              'cumulative': l.cumulativeController.text, 
+              'time': l.timeController.text, 
+              'stroke': l.strokeController.text, 
+              'underwater': l.underwaterController.text, 
+              'memo': l.memoController.text
+            }).toList()
+          }
         ],
         subjectiveMetrics: {},
       );
-      final recordId = await _firestoreService.addTrainingRecord(record);
+            final recordId = await _firestoreService.addTrainingRecord(record);
+      
+      // --- レース記録専用コレクションへの保存 ---
+      final raceData = {
+        'trainingRecordId': recordId,
+        'date': _selectedDate,
+        'event': EventUtils.normalizeEventName(_event),
+        'course': _course,
+        'distance': _totalDistance.toString(),
+        'totalTime': _totalTimeController.text,
+        'totalSeconds': _parseTime(_totalTimeController.text),
+        'laps': _laps.map((l) => {
+          'section': l.sectionController.text,
+          'cumulative': l.cumulativeController.text,
+          'time': l.timeController.text,
+          'stroke': l.strokeController.text,
+          'underwater': l.underwaterController.text,
+          'memo': l.memoController.text
+        }).toList(),
+      };
+      await _firestoreService.saveRaceRecord(raceData);
+      
+      // レース結果、且つタイムがあればPBも可能なら更新
       final totalSeconds = _parseTime(_totalTimeController.text);
       if (totalSeconds > 0) {
-        await _firestoreService.updatePersonalBestIfFaster(event: EventUtils.normalizeEventName(_event), value: totalSeconds, date: _selectedDate, trainingRecordId: recordId);
+        await _firestoreService.updatePersonalBestIfFaster(
+          event: EventUtils.normalizeEventName(_event), 
+          value: totalSeconds, 
+          date: _selectedDate, 
+          trainingRecordId: recordId
+        );
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('登録しました')));
-        if (widget.onSaveSuccess != null) widget.onSaveSuccess!(); else context.pop();
+
+
+            if (mounted) {
+        if (widget.onSaveSuccess != null) {
+          widget.onSaveSuccess!();
+        } else {
+          context.pop();
+        }
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('登録失敗: $e')));
+      if (mounted) {
+        GeminiService.showErrorDialog(context, e, title: '登録エラー');
+      }
     } finally { if (mounted) setState(() => _isSaving = false); }
   }
 

@@ -7,6 +7,7 @@ import '../models/weekly_plan.dart';
 import '../models/app_user.dart';
 import '../models/training_insight.dart';
 import '../services/gemini_service.dart';
+import '../models/my_product.dart';
 
 final firestoreServiceProvider = Provider((ref) => FirestoreService());
 
@@ -45,6 +46,16 @@ final goalTimesProvider = StreamProvider.autoDispose<List<GoalTime>>((ref) {
 // 最新の週間計画
 final latestWeeklyPlanProvider = StreamProvider.autoDispose<WeeklyPlan?>((ref) {
   return ref.watch(firestoreServiceProvider).getLatestWeeklyPlanStream();
+});
+
+// My食品リスト
+final myProductsProvider = StreamProvider.autoDispose<List<MyProduct>>((ref) {
+  return ref.watch(firestoreServiceProvider).getMyProductsStream();
+});
+
+// レース記録
+final raceRecordsProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(firestoreServiceProvider).getRaceRecordsStream();
 });
 
 // --- カテゴリ別レコードProvider (Computed) ---
@@ -114,11 +125,17 @@ final categorizedPbsProvider = Provider.autoDispose<Map<String, Map<String, Pers
   final Map<String, PersonalBest> swim = {};
   final Map<String, PersonalBest> dryland = {};
   
-  for (var pb in allPbs.reversed) {
+  for (var pb in allPbs) {
     if (pb.category == 'swim') {
-      swim[pb.event] = pb;
+      final current = swim[pb.event];
+      if (current == null || pb.value < current.value) {
+        swim[pb.event] = pb;
+      }
     } else if (pb.category == 'dryland') {
-      dryland[pb.event] = pb;
+      final current = dryland[pb.event];
+      if (current == null || pb.value > current.value) {
+        dryland[pb.event] = pb;
+      }
     }
   }
   return {'swim': swim, 'dryland': dryland};
@@ -159,7 +176,6 @@ final coachSystemContextProvider = Provider.autoDispose<String>((ref) {
   String nutritionText = nutritionRecords.isEmpty ? "なし" : nutritionRecords.take(10).map((r) {
     final detail = r.details.firstWhere((d) => d['type'] == 'memo', orElse: () => {'content': ''});
     final mealLabel = r.subjectiveMetrics['meal_label'] ?? '不明';
-    return "- ${r.date.toIso8601String().substring(0,10)} ($mealLabel): ${detail['content']}";
   }).join('\n');
   
   String pbText = pbs.isEmpty ? "なし" : pbs.map((pb) => "- ${pb.event}: ${pb.value}").join('\n');
