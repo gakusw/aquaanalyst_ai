@@ -168,8 +168,15 @@ class _AuthScreenState extends State<AuthScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Center(
-                  child: WaveLogo(size: 100),
+                Center(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/app_icon.png',
+                      width: 100,
+                      height: 100,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -269,79 +276,4 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
-}
-
-class WaveLogo extends StatelessWidget {
-  final double size;
-  const WaveLogo({super.key, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: WavePainter(
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      ),
-    );
-  }
-}
-
-class WavePainter extends CustomPainter {
-  final Color color;
-
-  WavePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    
-    // Draw a droplet/wave shape similar to the generated icon
-    path.moveTo(size.width * 0.5, size.height * 0.1);
-    
-    // Smooth curves for a modern look
-    path.cubicTo(
-      size.width * 0.8, size.height * 0.1,
-      size.width * 0.95, size.height * 0.5,
-      size.width * 0.9, size.height * 0.75,
-    );
-    
-    path.cubicTo(
-      size.width * 0.85, size.height * 0.95,
-      size.width * 0.15, size.height * 0.95,
-      size.width * 0.1, size.height * 0.75,
-    );
-    
-    path.cubicTo(
-      size.width * 0.05, size.height * 0.5,
-      size.width * 0.2, size.height * 0.1,
-      size.width * 0.5, size.height * 0.1,
-    );
-
-    canvas.drawPath(path, paint);
-
-    // Add a highlight/glow effect
-    final highlightPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    
-    final highlightPath = Path();
-    highlightPath.moveTo(size.width * 0.35, size.height * 0.3);
-    highlightPath.quadraticBezierTo(
-      size.width * 0.5, size.height * 0.2,
-      size.width * 0.65, size.height * 0.3,
-    );
-    
-    canvas.drawPath(highlightPath, highlightPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
