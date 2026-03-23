@@ -362,7 +362,7 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
               const Text('ラップ詳細', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               Row(
                 children: [
-                  IconButton(onPressed: _generateLaps, icon: const Icon(Icons.refresh, size: 18), visualDensity: VisualDensity.compact),
+                  // IconButton(onPressed: _generateLaps, icon: const Icon(Icons.refresh, size: 18), visualDensity: VisualDensity.compact),
                   IconButton(onPressed: _addCustomLap, icon: const Icon(Icons.add_circle_outline, size: 18), visualDensity: VisualDensity.compact),
                 ],
               ),

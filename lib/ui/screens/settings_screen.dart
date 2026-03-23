@@ -62,32 +62,118 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     if (newValue != null && newValue != currentValue && mounted) {
-      // モデルをコピーして更新
-      Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
-      String updatedVision = currentUser.vision;
-      String updatedDisplayName = currentUser.displayName;
+      try {
+        // モデルをコピーして更新
+        Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
+        String updatedVision = currentUser.vision;
+        String updatedDisplayName = currentUser.displayName;
 
-      if (fieldKey == 'vision') {
-        updatedVision = newValue;
-      } else if (fieldKey == 'displayName') {
-        updatedDisplayName = newValue;
-      } else if (fieldKey == 'idealCoachPersona') {
-        updatedProfile[fieldKey] = newValue;
-      } else {
-        updatedProfile[fieldKey] = newValue;
+        if (fieldKey == 'vision') {
+          updatedVision = newValue;
+        } else if (fieldKey == 'displayName') {
+          updatedDisplayName = newValue;
+        } else if (fieldKey == 'idealCoachPersona') {
+          updatedProfile[fieldKey] = newValue;
+        } else {
+          updatedProfile[fieldKey] = newValue;
+        }
+
+        final updatedUser = AppUser(
+          uid: currentUser.uid,
+          displayName: updatedDisplayName,
+          vision: updatedVision,
+          baseProfile: updatedProfile,
+          createdAt: currentUser.createdAt,
+        );
+
+        await _firestoreService.saveUserProfile(updatedUser);
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$title を更新しました')));
+        }
+      } catch (e) {
+        if (mounted) {
+          _showErrorDialog(context, '保存エラー', e.toString());
+        }
       }
+    }
+  }
 
-      final updatedUser = AppUser(
-        uid: currentUser.uid,
-        displayName: updatedDisplayName,
-        vision: updatedVision,
-        baseProfile: updatedProfile,
-        createdAt: currentUser.createdAt,
-      );
+  void _showErrorDialog(BuildContext context, String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title, style: const TextStyle(color: Colors.red)),
+        content: Text(message),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+        ],
+      ),
+    );
+  }
 
-      await _firestoreService.saveUserProfile(updatedUser);
-      if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$title を更新しました')));
+  Future<void> _editNutritionGoals(BuildContext context, AppUser currentUser) async {
+    final calorieController = TextEditingController(text: currentUser.baseProfile['targetCalories']?.toString() ?? '2500');
+    final proteinController = TextEditingController(text: currentUser.baseProfile['targetProtein']?.toString() ?? '150');
+    final fatController = TextEditingController(text: currentUser.baseProfile['targetFat']?.toString() ?? '70');
+    final carbsController = TextEditingController(text: currentUser.baseProfile['targetCarbs']?.toString() ?? '400');
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('標準（デフォルト）栄養目標の編集'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('週間計画がない場合や、AIへの指示に使用されます。', style: TextStyle(fontSize: 11, color: Colors.grey)),
+            const SizedBox(height: 16),
+            StableTextField(
+              controller: calorieController,
+              labelText: '目標エネルギー (kcal)',
+              hintText: '例: 2500',
+              keyboardType: TextInputType.number,
+            ),
+            Row(
+              children: [
+                Expanded(child: StableTextField(controller: proteinController, labelText: 'P (g)', hintText: '150', keyboardType: TextInputType.number)),
+                const SizedBox(width: 8),
+                Expanded(child: StableTextField(controller: fatController, labelText: 'F (g)', hintText: '70', keyboardType: TextInputType.number)),
+                const SizedBox(width: 8),
+                Expanded(child: StableTextField(controller: carbsController, labelText: 'C (g)', hintText: '400', keyboardType: TextInputType.number)),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('キャンセル')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('保存')),
+        ],
+      ),
+    );
+
+    if (result == true && mounted) {
+      try {
+        Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
+        updatedProfile['targetCalories'] = int.tryParse(calorieController.text) ?? 2500;
+        updatedProfile['targetProtein'] = int.tryParse(proteinController.text) ?? 150;
+        updatedProfile['targetFat'] = int.tryParse(fatController.text) ?? 70;
+        updatedProfile['targetCarbs'] = int.tryParse(carbsController.text) ?? 400;
+
+        final updatedUser = AppUser(
+          uid: currentUser.uid,
+          displayName: currentUser.displayName,
+          vision: currentUser.vision,
+          baseProfile: updatedProfile,
+          createdAt: currentUser.createdAt,
+        );
+
+        await _firestoreService.saveUserProfile(updatedUser);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('栄養目標を更新しました')));
+        }
+      } catch (e) {
+        if (mounted) {
+          _showErrorDialog(context, '保存エラー', e.toString());
+        }
       }
     }
   }
@@ -155,23 +241,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     if (result == true && mounted) {
-      Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
-      updatedProfile['age'] = ageController.text;
-      updatedProfile['height'] = heightController.text;
-      updatedProfile['weight'] = weightController.text;
-      updatedProfile['personal_notes'] = notesController.text;
+      try {
+        Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
+        updatedProfile['age'] = ageController.text;
+        updatedProfile['height'] = heightController.text;
+        updatedProfile['weight'] = weightController.text;
+        updatedProfile['personal_notes'] = notesController.text;
 
-      final updatedUser = AppUser(
-        uid: currentUser.uid,
-        displayName: nameController.text.isNotEmpty ? nameController.text : currentUser.displayName,
-        vision: currentUser.vision,
-        baseProfile: updatedProfile,
-        createdAt: currentUser.createdAt,
-      );
+        final updatedUser = AppUser(
+          uid: currentUser.uid,
+          displayName: nameController.text.isNotEmpty ? nameController.text : currentUser.displayName,
+          vision: currentUser.vision,
+          baseProfile: updatedProfile,
+          createdAt: currentUser.createdAt,
+        );
 
-      await _firestoreService.saveUserProfile(updatedUser);
-      if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('パーソナルデータを更新しました')));
+        await _firestoreService.saveUserProfile(updatedUser);
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('パーソナルデータを更新しました')));
+        }
+      } catch (e) {
+        if (mounted) {
+          _showErrorDialog(context, '保存エラー', e.toString());
+        }
       }
     }
   }
@@ -231,23 +323,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     if (result == true && mounted) {
-       Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
-       updatedProfile['env_pool_length'] = lengthController.text;
-       updatedProfile['env_depth'] = depthController.text;
-       updatedProfile['env_crowd'] = crowdController.text;
-       updatedProfile['env_notes'] = notesController.text;
-       
-       final updatedUser = AppUser(
-         uid: currentUser.uid,
-         displayName: currentUser.displayName,
-         vision: currentUser.vision,
-         baseProfile: updatedProfile,
-         createdAt: currentUser.createdAt,
-       );
-       
-       await _firestoreService.saveUserProfile(updatedUser);
-       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('練習環境を更新しました')));
+       try {
+         Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
+         updatedProfile['env_pool_length'] = lengthController.text;
+         updatedProfile['env_depth'] = depthController.text;
+         updatedProfile['env_crowd'] = crowdController.text;
+         updatedProfile['env_notes'] = notesController.text;
+         
+         final updatedUser = AppUser(
+           uid: currentUser.uid,
+           displayName: currentUser.displayName,
+           vision: currentUser.vision,
+           baseProfile: updatedProfile,
+           createdAt: currentUser.createdAt,
+         );
+         
+         await _firestoreService.saveUserProfile(updatedUser);
+         if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('練習環境を更新しました')));
+         }
+       } catch (e) {
+         if (mounted) {
+           _showErrorDialog(context, '保存エラー', e.toString());
+         }
        }
     }
   }
@@ -321,20 +419,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
 
     if (result != null && result != currentModel && mounted) {
-       Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
-       updatedProfile['aiModel'] = result;
-       
-       final updatedUser = AppUser(
-         uid: currentUser.uid,
-         displayName: currentUser.displayName,
-         vision: currentUser.vision,
-         baseProfile: updatedProfile,
-         createdAt: currentUser.createdAt,
-       );
-       
-       await _firestoreService.saveUserProfile(updatedUser);
-       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AIコーチモデルを更新しました')));
+       try {
+         Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
+         updatedProfile['aiModel'] = result;
+         
+         final updatedUser = AppUser(
+           uid: currentUser.uid,
+           displayName: currentUser.displayName,
+           vision: currentUser.vision,
+           baseProfile: updatedProfile,
+           createdAt: currentUser.createdAt,
+         );
+         
+         await _firestoreService.saveUserProfile(updatedUser);
+         if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('AIコーチモデルを更新しました')));
+         }
+       } catch (e) {
+         if (mounted) {
+           _showErrorDialog(context, '保存エラー', e.toString());
+         }
        }
     }
   }
@@ -362,20 +466,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, s) => Center(child: Text('読み込みエラー: $e')),
         data: (user) {
-          // Firestoreの値でローカル状態を同期 (専門性レベルなどを削除したため、同期処理を簡略化可能)
-          
-          final visionText = user?.vision != null && user!.vision.isNotEmpty == true ? user.vision : '未設定（タップして編集）';
-          final age = user?.baseProfile['age'] ?? '未設定';
-          final height = user?.baseProfile['height'] ?? '未設定';
-          final weight = user?.baseProfile['weight'] ?? '未設定';
+          // ユーザプロファイルが未作成の場合のフォールバック
+          final currentUser = user ?? AppUser(
+            uid: FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
+            displayName: 'ゲストユーザー',
+          );
+
+          final visionText = currentUser.vision.isNotEmpty ? currentUser.vision : '未設定（タップして編集）';
+          final age = currentUser.baseProfile['age'] ?? '未設定';
+          final height = currentUser.baseProfile['height'] ?? '未設定';
+          final weight = currentUser.baseProfile['weight'] ?? '未設定';
           final personalDataText = '年齢: $age歳 / 身長: ${height}cm / 体重: ${weight}kg';
           
-          final envLength = user?.baseProfile['env_pool_length'] ?? '-';
-          final envDepth = user?.baseProfile['env_depth'] ?? '-';
-          final envCrowd = user?.baseProfile['env_crowd'] ?? '-';
+          final envLength = currentUser.baseProfile['env_pool_length'] ?? '-';
+          final envDepth = currentUser.baseProfile['env_depth'] ?? '-';
+          final envCrowd = currentUser.baseProfile['env_crowd'] ?? '-';
           final envDataText = '水路: $envLength / 水深: $envDepth m / 人数: $envCrowd 人';
 
-          final aiModelKey = user?.baseProfile['aiModel'] ?? GeminiService.modelFlash;
+          final aiModelKey = currentUser.baseProfile['aiModel'] ?? GeminiService.modelFlash;
           String aiModelText = 'Gemini 2.5 Flash';
           if (aiModelKey.contains('3.1-flash-lite')) {
             aiModelText = 'Gemini 3.1 Flash-Lite';
@@ -394,48 +502,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: const Text('ビジョン(最終目標)'),
                 subtitle: Text(visionText),
                 trailing: const Icon(Icons.edit, size: 16),
-                onTap: () {
-                  if (user != null) _editProfileField(context, user, 'ビジョン', 'vision', user.vision);
-                },
+                onTap: () => _editProfileField(context, currentUser, 'ビジョン', 'vision', currentUser.vision),
               ),
               ListTile(
                 leading: const Icon(Icons.person),
                 title: const Text('パーソナルデータ (年齢/身長/体重)'),
                 subtitle: Text(personalDataText),
                 trailing: const Icon(Icons.edit, size: 16),
-                onTap: () {
-                  if (user != null) {
-                    _editPersonalData(context, user);
-                  }
-                },
+                onTap: () => _editPersonalData(context, currentUser),
               ),
               ListTile(
                 leading: const Icon(Icons.pool),
                 title: const Text('主な練習環境'),
                 subtitle: Text(envDataText),
                 trailing: const Icon(Icons.edit, size: 16),
-                onTap: () {
-                  if (user != null) {
-                    _editEnvironment(context, user);
-                  }
-                },
+                onTap: () => _editEnvironment(context, currentUser),
+              ),
+              ListTile(
+                leading: const Icon(Icons.restaurant_menu),
+                title: const Text('標準（デフォルト）栄養目標'),
+                subtitle: Text('目標: ${currentUser.baseProfile['targetCalories'] ?? 2500} kcal (P:${currentUser.baseProfile['targetProtein'] ?? 150}g / F:${currentUser.baseProfile['targetFat'] ?? 70}g / C:${currentUser.baseProfile['targetCarbs'] ?? 400}g)'),
+                trailing: const Icon(Icons.edit, size: 16),
+                onTap: () => _editNutritionGoals(context, currentUser),
               ),
               ListTile(
                 leading: const Icon(Icons.medical_services_outlined),
                 title: const Text('怪我・病気の既往歴'),
-                subtitle: Text(user?.baseProfile['medicalHistory'] as String? ?? 'なし'),
+                subtitle: Text(currentUser.baseProfile['medicalHistory'] as String? ?? 'なし'),
                 trailing: const Icon(Icons.edit, size: 16),
-                onTap: () {
-                  if (user != null) {
-                    _editProfileField(
-                      context, 
-                      user, 
-                      '怪我・病気の既往歴', 
-                      'medicalHistory', 
-                      user.baseProfile['medicalHistory'] as String? ?? 'なし'
-                    );
-                  }
-                },
+                onTap: () => _editProfileField(
+                    context, 
+                    currentUser, 
+                    '怪我・病気の既往歴', 
+                    'medicalHistory', 
+                    currentUser.baseProfile['medicalHistory'] as String? ?? 'なし'
+                  ),
               ),
               const Divider(),
 
@@ -448,11 +549,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: const Text('AIコーチモデル'),
                 subtitle: Text(aiModelText),
                 trailing: const Icon(Icons.edit, size: 16),
-                onTap: () {
-                  if (user != null) {
-                    _editAiModel(context, user);
-                  }
-                },
+                onTap: () => _editAiModel(context, currentUser),
               ),
               const Divider(),
 
@@ -488,21 +585,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ],
                         selected: {mode},
                         onSelectionChanged: (s) async {
-                          final newMode = s.first;
-                          appThemeMode.value = newMode;
-                          if (user != null) {
-                            Map<String, dynamic> updatedProfile = Map.from(user.baseProfile);
+                          try {
+                            final newMode = s.first;
+                            appThemeMode.value = newMode;
+                            
+                            Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
                             updatedProfile['themeMode'] = newMode == ThemeMode.dark ? 'dark' 
                                                         : newMode == ThemeMode.light ? 'light' 
                                                         : 'system';
                             final updatedUser = AppUser(
-                              uid: user.uid,
-                              displayName: user.displayName,
-                              vision: user.vision,
+                              uid: currentUser.uid,
+                              displayName: currentUser.displayName,
+                              vision: currentUser.vision,
                               baseProfile: updatedProfile,
-                              createdAt: user.createdAt,
+                              createdAt: currentUser.createdAt,
                             );
                             await _firestoreService.saveUserProfile(updatedUser);
+                          } catch (e) {
+                            if (mounted) {
+                              _showErrorDialog(context, '設定保存エラー', e.toString());
+                            }
                           }
                         },
                       ),
@@ -524,17 +626,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: const Text('理想のコーチ像'),
             subtitle: Text(user?.baseProfile['idealCoachPersona'] as String? ?? '専門的かつモチベーションを高めてくれるコーチ'),
             trailing: const Icon(Icons.edit, size: 16),
-            onTap: () {
-              if (user != null) {
-                _editProfileField(
-                  context, 
-                  user, 
-                  '理想のコーチ像', 
-                  'idealCoachPersona', 
-                  user.baseProfile['idealCoachPersona'] as String? ?? '専門的かつモチベーションを高めてくれるコーチ'
-                );
-              }
-            },
+            onTap: () => _editProfileField(
+                context, 
+                currentUser, 
+                '理想のコーチ像', 
+                'idealCoachPersona', 
+                currentUser.baseProfile['idealCoachPersona'] as String? ?? '専門的かつモチベーションを高めてくれる、誠実で論理的なコーチ'
+              ),
           ),
           ListTile(
             leading: const Icon(Icons.refresh),
@@ -549,7 +647,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             leading: const Icon(Icons.info_outline),
             title: const Text('バージョン 1.0.0 (Prototype)'),
             onTap: () async {
-              if (user?.role == 'admin') return;
+              if (currentUser.role == 'admin') return;
               setState(() {
                 _versionTapCount++;
               });
@@ -571,16 +669,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ],
                   ),
                 );
-                if (ok == true && pwController.text == 'Admin2026' && user != null) {
+                if (ok == true && pwController.text == 'Admin2026') {
                   final elevatedUser = AppUser(
-                    uid: user.uid,
-                    displayName: user.displayName,
-                    vision: user.vision,
-                    baseProfile: user.baseProfile,
-                    createdAt: user.createdAt,
+                    uid: currentUser.uid,
+                    displayName: currentUser.displayName,
+                    vision: currentUser.vision,
+                    baseProfile: currentUser.baseProfile,
+                    createdAt: currentUser.createdAt,
                     role: 'admin',
                   );
                   await _firestoreService.saveUserProfile(elevatedUser);
+                  ref.invalidate(userProfileProvider); // プロバイダーを強制再読み込み
                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('管理者権限を付与しました', style: TextStyle(color: Colors.amber))));
                 }
               }

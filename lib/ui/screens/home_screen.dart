@@ -124,7 +124,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('バッジコレクション', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text(
+                          'バッジコレクション', 
+                          style: TextStyle(
+                            fontSize: 18, 
+                            fontWeight: FontWeight.bold, 
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
                         SegmentedButton<bool>(
                           segments: const [
                             ButtonSegment(value: true, label: Text('今月', style: TextStyle(fontSize: 11))),
@@ -145,42 +152,82 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       showMonthly: _showMonthlyBadges,
                     ),
                     const SizedBox(height: 24),
-
+                    
                     // 今日のサマリー
-                    _TodaySummaryCard(
-                      poolRecords: todayRecords.where((r) => r.type == 'pool').toList(),
-                      drylandRecords: todayRecords.where((r) => r.type == 'dryland').toList(),
-                      nutritionRecords: todayRecords.where((r) => 
-                        r.type == 'nutrition' && 
-                        r.subjectiveMetrics['is_body_composition'] != true
-                      ).toList(),
-                      sleepRecords: todayRecords.where((r) => r.type == 'sleep').toList(),
-                      user: user,
-                      latestPlan: plan,
-                    ),
-                    const SizedBox(height: 24),
-
-                    // アクティビティ履歴
-                    const Text('アクティビティ履歴', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    const _ActivityCalendar(),
-                    const SizedBox(height: 24),
-
-                    // レース記録
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('レース記録', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        TextButton.icon(
-                          onPressed: () => setState(() => _isRaceRecordsExpanded = !_isRaceRecordsExpanded),
-                          icon: Icon(_isRaceRecordsExpanded ? Icons.expand_less : Icons.expand_more, size: 18),
-                          label: Text(_isRaceRecordsExpanded ? 'たたむ' : 'すべて表示', style: const TextStyle(fontSize: 12)),
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1000), // サマリーも巨大化を防ぐ
+                        child: _TodaySummaryCard(
+                          poolRecords: todayRecords.where((r) => r.type == 'pool').toList(),
+                          drylandRecords: todayRecords.where((r) => r.type == 'dryland').toList(),
+                          nutritionRecords: todayRecords.where((r) => 
+                            r.type == 'nutrition' && 
+                            r.subjectiveMetrics['is_body_composition'] != true
+                          ).toList(),
+                          sleepRecords: todayRecords.where((r) => r.type == 'sleep').toList(),
+                          user: user,
+                          latestPlan: plan,
                         ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    _buildRaceRecordsSection(ref),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
+
+                    // アクティビティ履歴とレース記録（PCでは横並び）
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final calendar = Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('アクティビティ履歴', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 12),
+                            Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 600),
+                                child: const _ActivityCalendar(),
+                              ),
+                            ),
+                          ],
+                        );
+                        final races = Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('レース記録', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                TextButton.icon(
+                                  onPressed: () => setState(() => _isRaceRecordsExpanded = !_isRaceRecordsExpanded),
+                                  icon: Icon(_isRaceRecordsExpanded ? Icons.expand_less : Icons.expand_more, size: 18),
+                                  label: Text(_isRaceRecordsExpanded ? 'たたむ' : 'すべて表示', style: const TextStyle(fontSize: 12)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            _buildRaceRecordsSection(ref),
+                          ],
+                        );
+
+                        if (constraints.maxWidth > 900) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(flex: 3, child: calendar),
+                              const SizedBox(width: 32),
+                              Expanded(flex: 2, child: races),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              calendar,
+                              const SizedBox(height: 32),
+                              races,
+                            ],
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 32),
 
             // 現在の自己ベスト
             Row(
@@ -1597,15 +1644,18 @@ class _PfcStatusRow extends StatelessWidget {
     final double percent = maxValue > 0 ? (value / maxValue).clamp(0.0, 1.0) : 0.0;
     
     if (isPoster) {
-      final pLabel = label.contains('タンパク質') ? 'P' : label.contains('脂質') ? 'F' : label.contains('炭水化物') ? 'C' : 'CAL';
+      final pLabel = (label.contains('タンパク質') || label.contains('Protein')) ? 'タンパク質' : 
+                     (label.contains('脂質') || label.contains('Fat')) ? '脂質' : 
+                     (label.contains('炭水化物') || label.contains('Carbs')) ? '炭水化物' : 'エネルギー';
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4.0),
         child: Row(
           children: [
             SizedBox(
-              width: 32,
-              child: Text(pLabel, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white70)),
+              width: 100, // ラベル幅を短縮
+              child: Text(pLabel, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white70)),
             ),
+            const SizedBox(width: 12),
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -1617,10 +1667,14 @@ class _PfcStatusRow extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            Text(
-              '${value.toInt()}/${maxValue.toInt()}',
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: -0.5),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 80,
+              child: Text(
+                '${value.toInt()}/${maxValue.toInt()}',
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white70, letterSpacing: -0.5),
+              ),
             ),
           ],
         ),
@@ -1652,7 +1706,14 @@ class _PfcStatusRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        Text(status, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+        SizedBox(
+          width: 40,
+          child: Text(
+            status, 
+            textAlign: TextAlign.center,
+            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+        ),
       ]),
     );
   }
@@ -1665,7 +1726,7 @@ class _BadgeCountSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recordsByEffectiveDay = ref.watch(recordsByEffectiveDayProvider);
-    final latestPlan = ref.watch(latestWeeklyPlanProvider).value;
+    final weeklyPlans = ref.watch(weeklyPlansProvider).value ?? [];
     // recordsByEffectiveDay はプロバイダーから取得済み
 
     int poolTotal = 0, poolMonth = 0;
@@ -1693,12 +1754,19 @@ class _BadgeCountSection extends ConsumerWidget {
         dC += r.subjectiveMetrics['carbs']?.toDouble() ?? 0.0;
       }
 
-      // 目標値（その曜日のものを取得）
+      // その日の目標値を取得（過去の計画を優先）
       final dt = DateTime(y, m, d);
       final weekdayStr = ['月','火','水','木','金','土','日'][dt.weekday - 1];
       int targetP = 150, targetF = 70, targetC = 400; // デフォルト
-      if (latestPlan != null) {
-        final dp = latestPlan!.dailyPlans.where((p) => p.dateStr.contains(weekdayStr)).firstOrNull;
+
+      // その日を含む計画を検索
+      final planForDay = weeklyPlans.where((p) => 
+        (p.startDate.isBefore(dt) || p.startDate.isAtSameMomentAs(dt)) && 
+        (p.endDate.isAfter(dt) || p.endDate.isAtSameMomentAs(dt))
+      ).firstOrNull;
+
+      if (planForDay != null) {
+        final dp = planForDay.dailyPlans.where((p) => p.dateStr.contains(weekdayStr)).firstOrNull;
         if (dp != null) {
           targetP = dp.targetProtein > 0 ? dp.targetProtein : targetP;
           targetF = dp.targetFat > 0 ? dp.targetFat : targetF;
@@ -1956,16 +2024,16 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     }
 
     final int totalSleepMinutes = widget.sleepRecords.fold(0, (sum, r) => sum + r.durationMinutes);
-    final sleepStr = totalSleepMinutes > 0
-        ? '${(totalSleepMinutes / 60).floor()}時間 ${totalSleepMinutes % 60}分'
-        : '未入力';
+    final sleepStr = totalSleepMinutes > 0 
+      ? '${(totalSleepMinutes / 60).floor()}時間 ${totalSleepMinutes % 60}分'
+      : '未入力';
 
     return """
 🌊 今日の AquaAnalyst 成果！
 
 【水中】$poolDist ($poolMenu)
 【陸トレ】$drylandMenu
-【栄養】P: ${p.toInt()}/${targetP}g (${p >= targetP ? '達成' : '不足'}), F: ${f.toInt()}/${targetF}g, C: ${c.toInt()}/${targetC}g
+【栄養】タンパク質: ${p.toInt()}/${targetP}g (${p >= targetP ? '達成' : '不足'}), 脂質: ${f.toInt()}/${targetF}g, 炭水化物: ${c.toInt()}/${targetC}g
 【睡眠】$sleepStr
 
 #AquaAnalyst #競泳 #アスリート
@@ -2037,7 +2105,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 ),
                 Screenshot(
                   controller: _screenshotController,
-                  child: _buildSummaryPosterWidget(context, constraints.maxWidth > 600, constraints.maxWidth > 550),
+                  child: _buildSummaryPosterWidget(context, false, constraints.maxWidth > 550),
                 ),
               ],
             ),
@@ -2048,13 +2116,27 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     );
   }
 
-  Widget _buildSummaryPosterWidget(BuildContext context, bool isScreenshotFlag, bool useTwoColumns, {bool isMobilePoster = false}) {
+  Widget _buildSummaryPosterWidget(BuildContext context, bool isPosterMode, bool useTwoColumns, {bool isMobilePoster = false}) {
     // derived variables
     final int totalPoolDuration = widget.poolRecords.fold(0, (sum, r) => sum + r.durationMinutes);
-    final poolDistanceLabel = totalPoolDuration > 0 ? '$totalPoolDuration 分' : '未入力';
+    final int totalPoolDistance = widget.poolRecords.fold(0, (sum, r) {
+      final dist = r.subjectiveMetrics['total_distance'] as num?;
+      return sum + (dist?.toInt() ?? 0);
+    });
+    final poolDist = totalPoolDistance > 0 ? '$totalPoolDistance m' : '0 m';
+    final poolDuration = totalPoolDuration > 0 ? '$totalPoolDuration min' : '';
+    final double avgFeeling = widget.poolRecords.isEmpty ? 0 : 
+        widget.poolRecords.fold(0.0, (sum, r) => sum + (r.subjectiveMetrics['feeling'] ?? 0.0)) / widget.poolRecords.length;
+    final poolDistanceLabel = totalPoolDistance > 0 
+        ? '$poolDist ($poolDuration)${avgFeeling > 0 ? ' [Cond: ${avgFeeling.toStringAsFixed(1)}]' : ''}' 
+        : '未入力';
 
     final poolMenuLabel = widget.poolRecords.isNotEmpty
-        ? widget.poolRecords.map((r) => r.details.isNotEmpty ? (r.details.first['content'] ?? '記録あり') : '記録あり').join(' / ')
+        ? widget.poolRecords.map((r) {
+            final content = r.details.map((d) => (d['content'] as String?)?.trim() ?? '').where((s) => s.isNotEmpty).join(', ');
+            final condition = r.subjectiveMetrics['condition'] as String?;
+            return (condition != null && condition.isNotEmpty) ? '$condition\n$content' : content;
+          }).where((s) => s.isNotEmpty).join('\n')
         : '未入力';
     final poolSubjective = widget.poolRecords.isNotEmpty 
         ? (widget.poolRecords.fold(0.0, (sum, r) => sum + (r.subjectiveMetrics['feeling']?.toDouble() ?? 0.0)) / widget.poolRecords.length).round().toString()
@@ -2063,8 +2145,9 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     final drylandMenuLabel = widget.drylandRecords.isNotEmpty
         ? widget.drylandRecords.map((r) {
             if (r.details.isEmpty) return '記録あり';
-            final menuTextItem = r.details.where((d) => d['type'] == 'menu_text').firstOrNull;
-            if (menuTextItem != null && menuTextItem['content'] != null) return menuTextItem['content'] as String;
+            final menuTexts = r.details.where((d) => d['type'] == 'menu_text').map((d) => (d['content'] as String?)?.trim() ?? '記録あり').where((s) => s.isNotEmpty);
+            if (menuTexts.isNotEmpty) return menuTexts.join(', ');
+            
             final sets = r.details.where((d) => d['type'] == 'dryland_set');
             if (sets.isNotEmpty) {
               final exercises = <String>{};
@@ -2072,7 +2155,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
               return exercises.join(', ');
             }
             return '記録あり';
-          }).join(' / ')
+          }).join('\n')
         : '未入力';
 
     final drylandSubjective = widget.drylandRecords.isNotEmpty
@@ -2090,8 +2173,13 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     
     final double totalCalories = (proteinValue * 4) + (fatValue * 9) + (carbsValue * 4);
 
-    // 週間計画から今日の必要量を算出
-    int targetP = 150, targetF = 70, targetC = 400; // デフォルト値
+    // 週間計画から今日の必要量を算出（またはプロフィールからデフォルト値を取得）
+    final currentUser = widget.user;
+    int targetP = currentUser?.baseProfile['targetProtein'] ?? 150;
+    int targetF = currentUser?.baseProfile['targetFat'] ?? 70;
+    int targetC = currentUser?.baseProfile['targetCarbs'] ?? 400;
+    int targetCalInt = currentUser?.baseProfile['targetCalories'] ?? 2500;
+
     if (widget.latestPlan != null) {
       final logicalToday = AppDateUtils.logicalToday();
       final weekdayStr = ['月曜','火曜','水曜','木曜','金曜','土曜','日曜'][logicalToday.weekday - 1];
@@ -2100,9 +2188,19 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
         targetP = todaysPlan.targetProtein > 0 ? todaysPlan.targetProtein : targetP;
         targetF = todaysPlan.targetFat > 0 ? todaysPlan.targetFat : targetF;
         targetC = todaysPlan.targetCarbs > 0 ? todaysPlan.targetCarbs : targetC;
+        targetCalInt = todaysPlan.targetCalories > 0 ? todaysPlan.targetCalories : targetCalInt;
       }
     }
-    final double targetCalories = (targetP * 4.0) + (targetF * 9.0) + (targetC * 4.0);
+
+    // 記録自体に目標値が保存されている場合は、それを最優先（永続化対応）
+    final latestWithTarget = widget.nutritionRecords.where((r) => r.dailyTargets != null).firstOrNull;
+    if (latestWithTarget != null) {
+      targetP = latestWithTarget.dailyTargets!['protein'] ?? targetP;
+      targetF = latestWithTarget.dailyTargets!['fat'] ?? targetF;
+      targetC = latestWithTarget.dailyTargets!['carbs'] ?? targetC;
+      targetCalInt = latestWithTarget.dailyTargets!['calories'] ?? targetCalInt;
+    }
+    final double targetCalories = targetCalInt.toDouble();
     final int totalSleepMinutes = widget.sleepRecords.fold(0, (sum, r) => sum + r.durationMinutes);
     final sleepStr = totalSleepMinutes > 0 
       ? '${(totalSleepMinutes / 60).floor()}h ${totalSleepMinutes % 60}m'
@@ -2125,13 +2223,18 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
         final poolSection = _buildSummarySection(
           context,
           icon: Icons.pool,
-          label: isScreenshotFlag ? 'Swim' : '水中トレーニング',
+          label: isPosterMode ? 'Swim' : '水中トレーニング',
           color: AppColors.pool,
-          isPoster: isScreenshotFlag,
-          topTrailing: isScreenshotFlag ? poolDistanceLabel : null,
+          isPoster: isPosterMode,
+          topTrailing: isPosterMode ? poolDistanceLabel : null,
           children: [
-            if (!isScreenshotFlag) ...[
+            if (!isPosterMode) ...[
               _DetailRow(label: '総練習時間', value: poolDistanceLabel),
+              if (widget.poolRecords.isNotEmpty)
+                _DetailRow(
+                  label: 'コンディション',
+                  value: '${(widget.poolRecords.fold(0.0, (sum, r) => sum + (r.subjectiveMetrics['feeling'] ?? 0.0)) / widget.poolRecords.length).toStringAsFixed(1)} / 10',
+                ),
               const SizedBox(height: 8),
               ...widget.poolRecords.map((r) => Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
@@ -2159,34 +2262,18 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 final lines = poolMenuLabel.split('\n').where((l) => l.trim().isNotEmpty).toList();
                 
                 // ポスター用：水中メニューを段組み表示
-                if (isScreenshotFlag && !isMobilePoster) {
-                  if (lines.length > 45) {
-                    // 3段組み
-                    final part = (lines.length / 3).ceil();
-                    final col1 = lines.sublist(0, part).join('\n');
-                    final col2 = lines.sublist(part, part * 2).join('\n');
-                    final col3 = lines.sublist(part * 2).join('\n');
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: Text(col1, style: const TextStyle(fontSize: 10, height: 1.3))),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(col2, style: const TextStyle(fontSize: 10, height: 1.3))),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(col3, style: const TextStyle(fontSize: 10, height: 1.3))),
-                      ],
-                    );
-                  } else if (lines.length > 15) {
-                    // 2段組み
+                if (isPosterMode && !isMobilePoster) {
+                  if (lines.length > 15) {
+                    // 2段組み（PCポスターでの可読性重視）
                     final mid = (lines.length / 2).ceil();
                     final col1 = lines.sublist(0, mid).join('\n');
                     final col2 = lines.sublist(mid).join('\n');
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: Text(col1, style: const TextStyle(fontSize: 11, height: 1.4))),
+                        Expanded(child: Text(col1, style: const TextStyle(fontSize: 10, height: 1.3))),
                         const SizedBox(width: 8),
-                        Expanded(child: Text(col2, style: const TextStyle(fontSize: 11, height: 1.4))),
+                        Expanded(child: Text(col2, style: const TextStyle(fontSize: 10, height: 1.3))),
                       ],
                     );
                   }
@@ -2210,12 +2297,12 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
         final drylandSection = _buildSummarySection(
           context,
           icon: Icons.fitness_center,
-          label: isScreenshotFlag ? 'Dryland' : '陸上トレーニング',
+          label: isPosterMode ? 'Dryland' : '陸上トレーニング',
           color: AppColors.dryland,
-          isPoster: isScreenshotFlag,
-          topTrailing: isScreenshotFlag ? '$drylandSubjective/10' : null,
+          isPoster: isPosterMode,
+          topTrailing: isPosterMode ? '$drylandSubjective/10' : null,
           children: [
-            if (!isScreenshotFlag) ...[
+            if (!isPosterMode) ...[
               _DetailRow(label: '主観平均', value: '$drylandSubjective / 10'),
               const SizedBox(height: 8),
               ...widget.drylandRecords.map((r) {
@@ -2258,24 +2345,8 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 final lines = drylandMenuLabel.split('\n').where((l) => l.trim().isNotEmpty).toList();
                 
                 // ポスター用：陸トレメニューを段組み表示
-                if (isScreenshotFlag && !isMobilePoster) {
-                  if (lines.length > 30) {
-                    // 3段組み（陸トレは少し短めの閾値で3段にする）
-                    final part = (lines.length / 3).ceil();
-                    final col1 = lines.sublist(0, part).join('\n');
-                    final col2 = lines.sublist(part, part * 2).join('\n');
-                    final col3 = lines.sublist(part * 2).join('\n');
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: Text(col1, style: const TextStyle(fontSize: 10, height: 1.3))),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(col2, style: const TextStyle(fontSize: 10, height: 1.3))),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(col3, style: const TextStyle(fontSize: 10, height: 1.3))),
-                      ],
-                    );
-                  } else if (lines.length > 10) {
+                if (isPosterMode && !isMobilePoster) {
+                  if (lines.length > 10) {
                     // 2段組み
                     final mid = (lines.length / 2).ceil();
                     final col1 = lines.sublist(0, mid).join('\n');
@@ -2283,9 +2354,9 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: Text(col1, style: const TextStyle(fontSize: 11, height: 1.4))),
+                        Expanded(child: Text(col1, style: const TextStyle(fontSize: 10, height: 1.3))),
                         const SizedBox(width: 8),
-                        Expanded(child: Text(col2, style: const TextStyle(fontSize: 11, height: 1.4))),
+                        Expanded(child: Text(col2, style: const TextStyle(fontSize: 10, height: 1.3))),
                       ],
                     );
                   }
@@ -2309,11 +2380,12 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
         final nutritionSection = _buildSummarySection(
           context,
           icon: Icons.restaurant,
-          label: isScreenshotFlag ? 'Nutrition Status' : '栄養状態',
+          label: isPosterMode ? 'Nutrition Status' : '栄養状態',
           color: AppColors.carbs,
-          isPoster: isScreenshotFlag,
+          isPoster: isPosterMode,
           children: [
-            if (!isScreenshotFlag) ...[
+            // Poster mode: Skip meal details to save space
+            if (!isPosterMode) ...[
               if (widget.nutritionRecords.isEmpty) 
                 const _DetailRow(label: '食事内容', value: '未入力'),
               ...widget.nutritionRecords.map((r) {
@@ -2331,7 +2403,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                         children: [
                           Expanded(child: _ExpandableText(
                             r.details.isNotEmpty ? r.details.first['content'] : '記録あり',
-                            forceExpanded: isScreenshotFlag,
+                            forceExpanded: isPosterMode,
                           )),
                           const SizedBox(width: 8),
                           Text('$kcal kcal', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigoAccent.withValues(alpha: 0.8))),
@@ -2344,74 +2416,85 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
               const SizedBox(height: 12),
             ],
             _PfcStatusRow(
-              label: 'タンパク質 (P)', 
+              label: isPosterMode ? 'Protein (P)' : 'タンパク質 (P)', 
               value: proteinValue, 
               maxValue: targetP.toDouble(), 
               color: AppColors.protein, 
-              status: (targetP > 0 && proteinValue >= targetP) ? '達成' : '不足',
-              isPoster: isScreenshotFlag,
+              status: (targetP > 0 && proteinValue >= targetP) ? (isPosterMode ? 'Goal' : '達成') : (isPosterMode ? 'Short' : '不足'),
+              isPoster: isPosterMode,
             ),
             _PfcStatusRow(
-              label: '脂質 (F)', 
+              label: isPosterMode ? 'Fat (F)' : '脂質 (F)', 
               value: fatValue, 
               maxValue: targetF.toDouble(), 
               color: AppColors.fat, 
-              status: (targetF > 0 && fatValue >= targetF) ? '達成' : '不足',
-              isPoster: isScreenshotFlag,
+              status: (targetF > 0 && fatValue >= targetF) ? (isPosterMode ? 'Goal' : '達成') : (isPosterMode ? 'Short' : '不足'),
+              isPoster: isPosterMode,
             ),
             _PfcStatusRow(
-              label: '炭水化物 (C)', 
+              label: isPosterMode ? 'Carbs (C)' : '炭水化物 (C)', 
               value: carbsValue, 
               maxValue: targetC.toDouble(), 
               color: AppColors.carbs, 
-              status: (targetC > 0 && carbsValue >= targetC) ? '達成' : '不足',
-              isPoster: isScreenshotFlag,
+              status: (targetC > 0 && carbsValue >= targetC) ? (isPosterMode ? 'Goal' : '達成') : (isPosterMode ? 'Short' : '不足'),
+              isPoster: isPosterMode,
             ),
             Padding(
-              padding: EdgeInsets.symmetric(vertical: isScreenshotFlag ? 8.0 : 4.0),
-              child: Divider(height: 1, color: isScreenshotFlag ? Colors.white10 : null),
+              padding: EdgeInsets.symmetric(vertical: isPosterMode ? 8.0 : 4.0),
+              child: Divider(height: 1, color: isPosterMode ? Colors.white10 : null),
             ),
             _PfcStatusRow(
-              label: 'エネルギー (kcal)', 
+              label: isPosterMode ? 'Energy (kcal)' : 'エネルギー (kcal)', 
               value: totalCalories, 
               maxValue: targetCalories > 0 ? targetCalories : 2500, 
               color: Colors.purpleAccent, 
-              status: (targetCalories > 0 && totalCalories >= targetCalories) ? '達成' : '不足',
-              isPoster: isScreenshotFlag,
+              status: (targetCalories > 0 && totalCalories >= targetCalories) ? (isPosterMode ? 'Goal' : '達成') : (isPosterMode ? 'Short' : '不足'),
+              isPoster: isPosterMode,
             ),
           ],
         );
 
         final sleepSection = _buildSummarySection(
           context,
-          icon: Icons.bedtime,
-          label: isScreenshotFlag ? 'Sleep' : '睡眠時間',
+          icon: Icons.nightlight_round,
+          label: isPosterMode ? 'Sleep & Recovery' : '睡眠時間',
           color: AppColors.sleep,
-          isPoster: isScreenshotFlag,
-          topTrailing: isScreenshotFlag ? sleepStr : null,
+          isPoster: isPosterMode,
+          topTrailing: isPosterMode ? sleepStr : null,
           children: [
             if (widget.sleepRecords.isNotEmpty)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!isScreenshotFlag) _DetailRow(
-                    label: '実績 (合計)',
-                    value: '${(totalSleepMinutes / 60).floor()}時間 ${totalSleepMinutes % 60}分',
-                  ),
-                  _ExpandableText(
-                    widget.sleepRecords.length == 1 
-                        ? (widget.sleepRecords.first.details.isNotEmpty ? widget.sleepRecords.first.details.first['content'] : '記録あり')
-                        : '${widget.sleepRecords.length}件の記録の合計です',
-                    forceExpanded: isScreenshotFlag,
-                  ),
-                  if (!isScreenshotFlag) ...widget.sleepRecords.map((r) {
-                    final start = DateTime.parse(r.subjectiveMetrics['sleep_start'] as String);
-                    final end = DateTime.parse(r.subjectiveMetrics['sleep_end'] as String);
-                    return Text(
-                      '・${start.hour}:${start.minute.toString().padLeft(2, '0')} 〜 ${end.hour}:${end.minute.toString().padLeft(2, '0')} (${r.durationMinutes}分)',
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
-                    );
-                  }),
+                  if (isPosterMode) ...[
+                    Text(
+                      sleepStr,
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, height: 1.2),
+                    ),
+                    const SizedBox(height: 8),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ExpandableText(
+                            widget.sleepRecords.length == 1 
+                                ? (widget.sleepRecords.first.details.isNotEmpty ? widget.sleepRecords.first.details.first['content'] : '良質な睡眠を確保しました')
+                                : '${widget.sleepRecords.length}件の記録に基づいています',
+                            forceExpanded: false,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          sleepStr,
+                          style: const TextStyle(
+                            fontSize: 22, 
+                            fontWeight: FontWeight.w900, 
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               )
             else
@@ -2419,14 +2502,6 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('未入力', style: TextStyle(color: Colors.grey, fontSize: 13)),
-                  if (!isScreenshotFlag) TextButton(
-                    onPressed: () {}, // 睡眠記録の追加導線が必要な場合はここでコールバックを設定
-                    child: const Text('睡眠記録を入力', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      foregroundColor: AppColors.sleep,
-                    ),
-                  ),
                 ],
               ),
           ],
@@ -2438,9 +2513,9 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
           aiSection = _buildSummarySection(
             context,
             icon: Icons.wb_twilight,
-            label: isScreenshotFlag ? 'Coach Insights' : 'AIコーチの評価',
+            label: isPosterMode ? 'Coach Insights' : 'AIコーチの評価',
             color: AppColors.pool,
-            isPoster: isScreenshotFlag,
+            isPoster: isPosterMode,
             children: [
               Text(
                 _aiEvaluation!,
@@ -2450,38 +2525,13 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
           );
         }
 
-        // レイアウト分岐：PCポスター（1080px）の場合は3カラム(2:1:1)を使用
+        // 2カラム：PCでの通常表示やポスター表示（以前の3カラムは幅が狭いため廃止）
         Widget contentLayout;
-        if (isScreenshotFlag && !isMobilePoster) {
-          contentLayout = Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 2, child: poolSection),
-              const SizedBox(width: 16),
-              Expanded(flex: 1, child: drylandSection),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 1, 
-                child: Column(
-                  children: [
-                    nutritionSection,
-                    const SizedBox(height: 16),
-                    sleepSection,
-                    if (aiSection != null) ...[
-                      const SizedBox(height: 16),
-                      aiSection,
-                    ],
-                  ],
-                )
-              ),
-            ],
-          );
-        } else if (useTwoColumns) {
-          // モバイルポスターまたは通常表示の2カラム
+        if (useTwoColumns) {
+          // 栄養状態以外のタイルで2カラムを構成
           final tiles = [
             _LayoutTile(widget: poolSection, height: poolTileHeight),
             _LayoutTile(widget: drylandSection, height: drylandTileHeight),
-            _LayoutTile(widget: nutritionSection, height: nutritionTileHeight),
             _LayoutTile(widget: sleepSection, height: 3.5),
             if (aiSection != null) _LayoutTile(widget: aiSection, height: aiTileHeight),
           ];
@@ -2501,12 +2551,18 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
             }
           }
           
-          contentLayout = Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          contentLayout = Column(
             children: [
-              Expanded(child: Column(children: leftColWidgets)),
-              const SizedBox(width: 16),
-              Expanded(child: Column(children: rightColWidgets)),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: Column(children: leftColWidgets)),
+                  const SizedBox(width: 16),
+                  Expanded(child: Column(children: rightColWidgets)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              nutritionSection, // 栄養状態のみ最下部で全幅を使用
             ],
           );
         } else {
@@ -2514,105 +2570,100 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
           contentLayout = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              poolSection, const SizedBox(height: 16),
-              drylandSection, const SizedBox(height: 16),
-              nutritionSection, const SizedBox(height: 16),
-              sleepSection, const SizedBox(height: 16),
-              if (aiSection != null) ...[aiSection, const SizedBox(height: 16)],
+              poolSection, const SizedBox(height: 8),
+              drylandSection, const SizedBox(height: 8),
+              sleepSection, const SizedBox(height: 8),
+              if (aiSection != null) ...[aiSection, const SizedBox(height: 8)],
+              nutritionSection, // シングルカラムでも最下部に配置
             ],
           );
         }
 
         
-        Widget body = Column(
+        final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+        final Color posterBgColor = isDarkMode ? const Color(0xFF0F172A) : Colors.white;
+        final Color posterHeaderColor = isDarkMode ? Colors.white : const Color(0xFF0F172A);
+        final Color posterSubHeaderColor = isDarkMode ? Colors.white70 : Colors.black54;
+
+        final Widget body = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 画像専用ヘッダー
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'DAILY SUMMARY',
-                        style: TextStyle(
-                          fontSize: isScreenshotFlag ? (isMobilePoster ? 24 : 32) : 12, 
-                          letterSpacing: isScreenshotFlag ? 1 : 2, 
-                          fontWeight: FontWeight.w900, 
-                          color: Colors.white,
-                        ),
+            // ヘッダー部分
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isPosterMode ? 'DAILY SUMMARY' : 'ACHIEVEMENT',
+                      style: TextStyle(
+                        fontSize: isPosterMode ? (isMobilePoster ? 24 : 32) : 24, 
+                        fontWeight: FontWeight.w900, 
+                        letterSpacing: 1.5,
+                        color: isPosterMode ? posterHeaderColor : null,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isScreenshotFlag 
-                          ? '${AppDateUtils.logicalToday().month}/${AppDateUtils.logicalToday().day} 成果報告'
-                          : '${AppDateUtils.logicalToday().year}/${AppDateUtils.logicalToday().month}/${AppDateUtils.logicalToday().day}',
-                        style: TextStyle(
-                          fontSize: isScreenshotFlag ? (isMobilePoster ? 16 : 18) : 22, 
-                          fontWeight: FontWeight.bold,
-                          color: isScreenshotFlag ? Colors.white70 : null,
-                        ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isPosterMode 
+                        ? '${AppDateUtils.logicalToday().month}/${AppDateUtils.logicalToday().day} 成果報告'
+                        : '${AppDateUtils.logicalToday().year}/${AppDateUtils.logicalToday().month}/${AppDateUtils.logicalToday().day}',
+                      style: TextStyle(
+                        fontSize: isPosterMode ? (isMobilePoster ? 16 : 18) : 22, 
+                        fontWeight: FontWeight.bold,
+                        color: isPosterMode ? posterSubHeaderColor : null,
                       ),
-                    ],
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: isScreenshotFlag ? 16 : 12, vertical: isScreenshotFlag ? 8 : 6),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(30),
                     ),
-                    child: Text(
-                      'AquaAnalyst AI',
-                      style: TextStyle(color: Colors.white, fontSize: isScreenshotFlag ? 14 : 10, fontWeight: FontWeight.bold),
-                    ),
+                  ],
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: isPosterMode ? 16 : 12, vertical: isPosterMode ? 8 : 6),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(30),
                   ),
-                ],
-              ),
-              if (isScreenshotFlag) const SizedBox(height: 32) else const SizedBox(height: 24),
-              
-              contentLayout,
-              
-              if (isScreenshotFlag) const SizedBox(height: 24) else const SizedBox(height: 24),
-              Center(
-                child: Text(
-                  isScreenshotFlag ? 'Generated by AquaAnalyst AI' : 'Powered by AquaAnalyst AI',
-                  style: TextStyle(
-                    fontSize: 11, 
-                    color: isScreenshotFlag ? Colors.white38 : Colors.grey, 
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.5,
+                  child: Text(
+                    'AquaAnalyst AI',
+                    style: TextStyle(color: Colors.white, fontSize: isPosterMode ? 14 : 10, fontWeight: FontWeight.bold),
                   ),
                 ),
-              ),
-            ],
-          );
+              ],
+            ),
+            if (isPosterMode) const SizedBox(height: 32) else const SizedBox(height: 24),
+                
+            contentLayout,
+            
+            if (isPosterMode) const SizedBox(height: 24) else const SizedBox(height: 24),
+            // Attribution is now handled by the Positioned widget in the Stack
+          ],
+        );
 
-        final double horizontalPadding = isScreenshotFlag ? (isMobilePoster ? 16.0 : 32.0) : 24.0;
-        final double verticalPadding = isScreenshotFlag ? (isMobilePoster ? 32.0 : 32.0) : 24.0;
+        final double horizontalPadding = isPosterMode ? (isMobilePoster ? 16.0 : 32.0) : 24.0;
+        final double verticalPadding = isPosterMode ? (isMobilePoster ? 32.0 : 32.0) : 24.0;
 
         // スマホ幅: FittedBoxを使わず、はみ出しを許可する
         // PC幅: FittedBoxを使わず、高さを動的に伸ばして1ページに収める
         // ヘッダー・フッター・タイルのサイズは固定（縮小しない）
 
         return Container(
-                width: isMobilePoster ? 480 : (isScreenshotFlag ? 1400 : null),
+                width: isMobilePoster ? 480 : (isPosterMode ? 1400 : null),
                 // PC版：高さを固定せず動的に伸ばす（内容量に応じて）
                 // スマホ版：高さを固定せず、はみ出しOK
-                height: isScreenshotFlag ? null : null,
-                constraints: (!isScreenshotFlag) ? const BoxConstraints(minWidth: 320, maxWidth: 650) : null,
+                height: isMobilePoster ? 853.0 : (isPosterMode ? null : null),
+                constraints: (!isPosterMode) ? const BoxConstraints(minWidth: 320, maxWidth: 650) : null,
                 decoration: BoxDecoration(
-                  color: isScreenshotFlag ? const Color(0xFF0F172A) : null,
-                  gradient: isScreenshotFlag ? null : LinearGradient(
+                  color: isPosterMode ? posterBgColor : null,
+                  gradient: isPosterMode ? null : LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: Theme.of(context).brightness == Brightness.dark
+                    colors: isDarkMode
                         ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
                         : [Colors.white, const Color(0xFFF1F5F9)],
                   ),
                   borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
+                  boxShadow: isPosterMode ? null : [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 20,
@@ -2620,9 +2671,9 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                     ),
                   ],
                   border: Border.all(
-                    color: isScreenshotFlag 
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : (Theme.of(context).brightness == Brightness.dark
+                    color: isPosterMode 
+                        ? (isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05))
+                        : (isDarkMode
                             ? Colors.white.withValues(alpha: 0.05)
                             : Colors.blue.withValues(alpha: 0.1)),
                   ),
@@ -2630,7 +2681,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 clipBehavior: Clip.antiAlias,
                 child: Stack(
                   children: [
-                    if (!isScreenshotFlag) Positioned(
+                    if (!isPosterMode) Positioned(
                       right: -20,
                       top: -20,
                       child: Icon(
@@ -2640,8 +2691,21 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
+                      padding: EdgeInsets.fromLTRB(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding + 40),
                       child: body,
+                    ),
+                    Positioned(
+                      bottom: 16,
+                      right: horizontalPadding,
+                      child: Text(
+                        'Generated by AquaAnalyst AI',
+                        style: TextStyle(
+                          fontSize: isMobilePoster ? 10 : 12,
+                          color: isDarkMode ? Colors.white.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.3),
+                          fontStyle: FontStyle.italic,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -2682,16 +2746,16 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     return Container(
       decoration: BoxDecoration(
         color: isPoster 
-            ? const Color(0xFF1E293B).withValues(alpha: 0.4)
+            ? (isLight ? Colors.white : const Color(0xFF1E293B).withValues(alpha: 0.4))
             : effectiveColor.withValues(alpha: isLight ? 0.08 : 0.03),
         borderRadius: BorderRadius.circular(isPoster ? 12 : 16),
         border: Border.all(
           color: isPoster
-              ? const Color(0xFF334155).withValues(alpha: 0.8)
+              ? (isLight ? Colors.blue.withValues(alpha: 0.1) : const Color(0xFF334155).withValues(alpha: 0.8))
               : effectiveColor.withValues(alpha: isLight ? 0.3 : 0.15)
         ),
       ),
-      padding: EdgeInsets.all(isPoster ? 16 : 12),
+      padding: EdgeInsets.all(isPoster ? 12 : 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2711,18 +2775,21 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 Icon(icon, color: effectiveColor, size: 16),
                 const SizedBox(width: 8),
               ],
-              Text(
-                displayLabel,
-                style: TextStyle(
-                  fontSize: isPoster ? 12 : 15,
-                  fontWeight: isPoster ? FontWeight.w900 : FontWeight.bold,
-                  letterSpacing: isPoster ? 1.2 : null,
-                  color: isPoster
-                      ? effectiveColor.withValues(alpha: 0.9)
-                      : (Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.9) : Colors.black87),
+              Expanded(
+                child: Text(
+                  displayLabel,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: isPoster ? 12 : 15,
+                    fontWeight: isPoster ? FontWeight.w900 : FontWeight.bold,
+                    letterSpacing: isPoster ? 1.2 : null,
+                    color: isPoster
+                        ? effectiveColor.withValues(alpha: 0.9)
+                        : (Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.9) : Colors.black87),
+                  ),
                 ),
               ),
-              if (isPoster && topTrailing != null) ...[
+              if (topTrailing != null) ...[
                 const Spacer(),
                 Text(
                   topTrailing,
@@ -2731,7 +2798,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
               ],
             ],
           ),
-          SizedBox(height: isPoster ? 12 : 16),
+          SizedBox(height: isPoster ? 6 : 16), // 12から6に短縮
           ...children,
         ],
       ),
@@ -3029,7 +3096,7 @@ class _ActivityCalendarState extends ConsumerState<_ActivityCalendar> {
 
   @override
   Widget build(BuildContext context) {
-    final latestPlan = ref.watch(latestWeeklyPlanProvider).value;
+    final weeklyPlans = ref.watch(weeklyPlansProvider).value ?? [];
     final days = _getDaysInMonth();
     final today = DateTime.now();
     final weekDays = ['日', '月', '火', '水', '木', '金', '土'];
@@ -3099,20 +3166,36 @@ class _ActivityCalendarState extends ConsumerState<_ActivityCalendar> {
                   dC += r.subjectiveMetrics['carbs']?.toDouble() ?? 0.0;
                 }
 
-                // 目標値（曜日に基づく）
+                // その日の目標値を取得（曜日に基づく）
                 final weekdayStr = ['月','火','水','木','金','土','日'][date.weekday - 1];
                 int targetP = 150, targetF = 70, targetC = 400;
-                if (latestPlan != null) {
-                  final dp = latestPlan.dailyPlans.where((p) => p.dateStr.contains(weekdayStr)).firstOrNull;
-                  if (dp != null) {
-                    targetP = dp.targetProtein > 0 ? dp.targetProtein : targetP;
-                    targetF = dp.targetFat > 0 ? dp.targetFat : targetF;
-                    targetC = dp.targetCarbs > 0 ? dp.targetCarbs : targetC;
-                  }
-                }
-                pOk = dP >= targetP;
-                fOk = dF >= targetF;
-                cOk = dC >= targetC;
+
+                 // その日を含む計画を検索
+                 final planForDay = weeklyPlans.where((p) => 
+                   (p.startDate.isBefore(date) || p.startDate.isAtSameMomentAs(date)) && 
+                   (p.endDate.isAfter(date) || p.endDate.isAtSameMomentAs(date))
+                 ).firstOrNull;
+ 
+                 if (planForDay != null) {
+                   final dp = planForDay.dailyPlans.where((p) => p.dateStr.contains(weekdayStr)).firstOrNull;
+                   if (dp != null) {
+                     targetP = dp.targetProtein > 0 ? dp.targetProtein : targetP;
+                     targetF = dp.targetFat > 0 ? dp.targetFat : targetF;
+                     targetC = dp.targetCarbs > 0 ? dp.targetCarbs : targetC;
+                   }
+                 }
+ 
+                 // 記録自体に目標値が保存されている場合は、それを最優先する
+                 final latestWithTarget = nutRecords.where((r) => r.dailyTargets != null).firstOrNull;
+                 if (latestWithTarget != null) {
+                   targetP = latestWithTarget.dailyTargets!['protein'] ?? targetP;
+                   targetF = latestWithTarget.dailyTargets!['fat'] ?? targetF;
+                   targetC = latestWithTarget.dailyTargets!['carbs'] ?? targetC;
+                 }
+ 
+                 pOk = targetP > 0 && dP >= targetP;
+                 fOk = targetF > 0 && dF >= targetF;
+                 cOk = targetC > 0 && dC >= targetC;
               }
 
               return GestureDetector(

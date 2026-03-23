@@ -1,1 +1,39 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"aquaanalyst-ai","appId":"1:1039570206588:android:4ee6e6544b9b5cc31caef9","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"aquaanalyst-ai","configurations":{"android":"1:1039570206588:android:4ee6e6544b9b5cc31caef9","ios":"1:1039570206588:ios:21993be90fd982211caef9","macos":"1:1039570206588:ios:21993be90fd982211caef9","web":"1:1039570206588:web:965d830cf5c2b5b41caef9","windows":"1:1039570206588:web:36f69eb9489bf82a1caef9"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "aquaanalyst-ai",
+          "appId": "1:1039570206588:android:4ee6e6544b9b5cc31caef9",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "aquaanalyst-ai",
+          "configurations": {
+            "android": "1:1039570206588:android:4ee6e6544b9b5cc31caef9",
+            "ios": "1:1039570206588:ios:21993be90fd982211caef9",
+            "macos": "1:1039570206588:ios:21993be90fd982211caef9",
+            "web": "1:1039570206588:web:965d830cf5c2b5b41caef9",
+            "windows": "1:1039570206588:web:36f69eb9489bf82a1caef9"
+          }
+        }
+      }
+    }
+  }
+}

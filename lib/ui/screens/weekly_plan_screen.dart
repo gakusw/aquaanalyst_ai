@@ -26,7 +26,6 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _drylController = TextEditingController();
   final TextEditingController _sleepController = TextEditingController();
-  bool _isSaving = false;
   bool _isGenerating = false;
   bool _initialized = false;
 
@@ -81,7 +80,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
           else
             IconButton(
               icon: const Icon(Icons.refresh),
-              tooltip: 'コーチに計画を再生成させる',
+              tooltip: '再生成',
               onPressed: _generateWeeklyPlan,
             ),
         ],
@@ -237,7 +236,14 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
 
   Future<void> _generateWeeklyPlan() async {
     final currentUser = ref.read(userProfileProvider).value;
-    if (currentUser == null) return;
+    if (currentUser == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ユーザープロファイルが見つかりません。設定画面からプロフィールを入力してから再試行してください。')),
+        );
+      }
+      return;
+    }
     setState(() => _isGenerating = true);
     try {
       final gemini = GeminiService();
@@ -314,6 +320,11 @@ $chatContext
 """,
       );
 
+      final targetProtein = currentUser.baseProfile['targetProtein'] ?? 150;
+      final targetFat = currentUser.baseProfile['targetFat'] ?? 70;
+      final targetCarbs = currentUser.baseProfile['targetCarbs'] ?? 400;
+      final targetCalories = currentUser.baseProfile['targetCalories'] ?? 2500;
+
       final prompt = '''
 $sysInst
 
@@ -324,6 +335,7 @@ $sysInst
 $pbText
 - 今週の陸上トレーニング目標: $targetDryland
 - 今週の睡眠・リカバリー目標: $targetSleep
+- 標準的な栄養摂取目標: P:${targetProtein}g, F:${targetFat}g, C:${targetCarbs}g, Cal:${targetCalories}kcal
 
 $chatContext
 
@@ -335,8 +347,8 @@ $chatContext
   "dailyPlans": [
     {
       "dateStr": "月曜日",
-      "waterMenu": "W-up 800m...",
-      "dryland": "胸・三頭筋...",
+      "waterMenu": "その日のテーマ（目的）\n練習内容（1行）: 説明\n次のセット（改行）: 説明",
+      "dryland": "その日のテーマ（目的）\n練習内容（1行）: 説明\n次の種目（改行）: 説明",
       "intensity": "中", 
       "targetCalories": 3200,
       "targetProtein": 150,
@@ -345,10 +357,12 @@ $chatContext
     }
   ]
 }
-※targetProtein, targetFat, targetCarbs はその日の合計摂取目標量（g）です。
-※トレーニング強度(intensity)が高い日は炭水化物(targetCarbs)を多めに設定するなど、専門的な調整を行ってください。
-※dailyPlansは必ず月曜日から日曜日までの7日分を配列で作成してください。
-※intensityは必ず "低", "中低", "中", "高", "OFF", "REST" のいずれかにしてください。
+
+【重要指示】
+1. **メニューの書式**: `waterMenu` と `dryland` は、**必ず最初の1行目にその日のテーマ（目的や何の日か。例：持久力強化の日、スピード系、休養日(REST)など）を簡潔に記述してください。** 2行目以降に、各練習項目とその説明を記述してください。練習項目とその説明は可能な限り同じ1行に収め、別のセットや種目に移る場合のみ改行を入れてください。
+2. **栄養目標の整合性**: 各日の `targetProtein`, `targetFat`, `targetCarbs`, `targetCalories` は **絶対に0にしないでください**。上記の「標準的な栄養摂取目標」をベースに、その日のトレーニング強度（intensity）に合わせて増減調整（高強度の日は炭水化物を増やす等）した具体的な数値を設定してください。
+3. **曜日の網羅**: `dailyPlans` は必ず月曜日から日曜日までの7日分を配列で作成してください。
+4. **強度指定**: `intensity` は必ず "低", "中低", "中", "高", "OFF", "REST" のいずれかにしてください。
 ''';
 
       final modelId = currentUser.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
@@ -395,8 +409,14 @@ $chatContext
   Widget _buildWeekPlanContent(WeeklyPlan? plan) {
     if (plan == null) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 32.0),
-        child: Center(child: Text('現在設定されている週間計画はありません。\n右上の更新ボタンから計画をAIに生成させてください。', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, height: 1.5))),
+        padding: EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
+        child: Center(
+          child: Text(
+            '現在、パーソナライズされた週間計画はありません。\n右上の [再生成] ボタンから、AIコーチにあなただけのトレーニング計画を作成させてください。', 
+            textAlign: TextAlign.center, 
+            style: TextStyle(color: Colors.grey, height: 1.6, fontSize: 13)
+          )
+        ),
       );
     }
 
@@ -427,18 +447,8 @@ $chatContext
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('$startStr 〜 $endStr',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            Chip(
-              label: const Text('生成された計画'),
-              backgroundColor: AppColors.skyBlue.withValues(alpha: 0.3),
-              labelStyle: const TextStyle(fontSize: 10),
-            ),
-          ],
-        ),
+        Text('$startStr 〜 $endStr',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
         if (plan.aiMessage.isNotEmpty)
           PremiumCard(
             icon: Icons.chat_bubble_outline,

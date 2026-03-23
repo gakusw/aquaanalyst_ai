@@ -43,8 +43,39 @@ class FirestoreService {
     final uid = currentUserId;
     if (uid == null) throw Exception('ログインしていません');
 
+    // 既存データの読み込みを試みて、不慮の上書き（レースコンディション）を防止
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      if (doc.exists && user.displayName == 'ゲストユーザー') {
+        // 既存データがあり、かつ新しいデータがデフォルト（ゲスト）の場合、
+        // 名前や目標などの重要フィールドの上書きをスキップし、role等のみを更新する
+        final updateData = user.toMap();
+        updateData.remove('displayName');
+        updateData.remove('vision');
+        updateData.remove('baseProfile');
+        
+        if (updateData.isNotEmpty) {
+          await _db.collection('users').doc(uid).update(updateData);
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint('Error during safety check in saveUserProfile: $e');
+      // エラー時は通常の保存を試みる
+    }
+
     // uidはドキュメントIDであるためMapのフィールドからは除外してsetする
     await _db.collection('users').doc(uid).set(user.toMap(), SetOptions(merge: true));
+  }
+
+  /// ユーザープロフィールの特定フィールドのみを更新
+  Future<void> updateUserProfileFields(String uid, Map<String, dynamic> data) async {
+    await _db.collection('users').doc(uid).update(data);
+  }
+
+  /// 管理者権限のみを付与（既存のプロフィールを破壊しない）
+  Future<void> elevateUserToAdmin(String uid) async {
+    await updateUserProfileFields(uid, {'role': 'admin'});
   }
 
   // --- トレーニング・栄養記録関連 ---
@@ -229,7 +260,21 @@ class FirestoreService {
         .delete();
   }
 
-  // --- 週間計画関連 ---
+  /// すべての週間計画を取得するStream
+  Stream<List<WeeklyPlan>> getWeeklyPlansStream() {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
+
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('weekly_plans')
+        .orderBy('startDate', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => WeeklyPlan.fromMap(doc.data(), doc.id))
+            .toList());
+  }
 
   /// 最新の週間計画を取得するStream
   Stream<WeeklyPlan?> getLatestWeeklyPlanStream() {

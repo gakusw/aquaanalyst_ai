@@ -9,6 +9,7 @@ class TrainingRecord {
   final List<Map<String, dynamic>> details;
   final Map<String, dynamic> subjectiveMetrics;
   final String? aiFeedback;
+  final Map<String, int>? dailyTargets; // 追加: 保存時の目標値 (P, F, C, Cal)
 
   TrainingRecord({
     required this.id,
@@ -19,6 +20,7 @@ class TrainingRecord {
     this.details = const [],
     this.subjectiveMetrics = const {},
     this.aiFeedback,
+    this.dailyTargets,
   });
 
   factory TrainingRecord.fromMap(Map<String, dynamic> map, String id) {
@@ -31,6 +33,7 @@ class TrainingRecord {
       details: List<Map<String, dynamic>>.from(map['details'] ?? []),
       subjectiveMetrics: Map<String, dynamic>.from(map['subjectiveMetrics'] ?? {}),
       aiFeedback: map['aiFeedback'],
+      dailyTargets: map['dailyTargets'] != null ? Map<String, int>.from(map['dailyTargets']) : null,
     );
   }
 
@@ -43,6 +46,7 @@ class TrainingRecord {
       'details': details,
       'subjectiveMetrics': subjectiveMetrics,
       'aiFeedback': aiFeedback,
+      'dailyTargets': dailyTargets,
     };
   }
 }

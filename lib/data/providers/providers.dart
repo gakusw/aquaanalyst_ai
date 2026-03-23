@@ -48,6 +48,11 @@ final latestWeeklyPlanProvider = StreamProvider.autoDispose<WeeklyPlan?>((ref) {
   return ref.watch(firestoreServiceProvider).getLatestWeeklyPlanStream();
 });
 
+// すべての週間計画（履歴・バッジ判定用）
+final weeklyPlansProvider = StreamProvider.autoDispose<List<WeeklyPlan>>((ref) {
+  return ref.watch(firestoreServiceProvider).getWeeklyPlansStream();
+});
+
 // My食品リスト
 final myProductsProvider = StreamProvider.autoDispose<List<MyProduct>>((ref) {
   return ref.watch(firestoreServiceProvider).getMyProductsStream();

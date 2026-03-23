@@ -1,45 +1,154 @@
-Analyzing 2 items...                                            
+Downloading package sky_engine...                                2,368ms
+Downloading package flutter_gpu...                                  71ms
+Downloading flutter_patched_sdk tools...                         2,608ms
+Downloading flutter_patched_sdk_product tools...                 1,923ms
+Downloading windows-x64 tools...                                   15.1s
+Downloading windows-x64/font-subset tools...                     1,879ms
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 67.0.0 (98.0.0 available)
+  _flutterfire_internals 1.3.59 (1.3.67 available)
+  analyzer 6.4.1 (12.0.0 available)
+  cloud_firestore 5.6.12 (6.1.3 available)
+  cloud_firestore_platform_interface 6.6.12 (7.0.7 available)
+  cloud_firestore_web 4.4.12 (5.1.3 available)
+  dependency_validator 4.1.3 (5.0.4 available)
+  firebase_auth 5.7.0 (6.2.0 available)
+  firebase_auth_platform_interface 7.7.3 (8.1.7 available)
+  firebase_auth_web 5.15.3 (6.1.3 available)
+  firebase_core 3.15.2 (4.5.0 available)
+  firebase_core_web 2.24.1 (3.5.0 available)
+  fl_chart 0.69.0 (1.2.0 available)
+  flutter_lints 3.0.2 (6.0.0 available)
+  flutter_riverpod 2.6.1 (3.3.1 available)
+  go_router 14.8.1 (17.1.0 available)
+  google_sign_in 6.3.0 (7.2.0 available)
+  google_sign_in_android 6.2.1 (7.2.9 available)
+  google_sign_in_ios 5.9.0 (6.3.0 available)
+  google_sign_in_platform_interface 2.5.0 (3.1.0 available)
+  google_sign_in_web 0.12.4+4 (1.1.3 available)
+  js 0.6.7 (0.7.2 available)
+  lints 3.0.0 (6.1.0 available)
+  meta 1.17.0 (1.18.2 available)
+  native_toolchain_c 0.17.5 (0.17.6 available)
+  pasteboard 0.2.0 (0.5.0 available)
+  riverpod 2.6.1 (3.2.1 available)
+  share_plus 10.1.4 (12.0.1 available)
+  share_plus_platform_interface 5.0.2 (6.1.0 available)
+  test_api 0.7.10 (0.7.11 available)
+  vector_math 2.2.0 (2.3.0 available)
+  win32 5.15.0 (6.0.0 available)
+Got dependencies!
+32 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing aquaanalyst_ai...                                     
 
-   info - The private field _bodyCompOffset could be 'final' - lib\ui\screens\home_screen.dart:24:7 - prefer_final_fields
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:536:32 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:907:138 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:921:141 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1039:138 - deprecated_member_use
-warning - The declaration '_buildBodyCompChartData' isn't referenced - lib\ui\screens\home_screen.dart:1107:17 - unused_element
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1138:152 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1148:122 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1153:110 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1188:64 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1211:64 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1212:61 - deprecated_member_use
-warning - A value for optional parameter 'key' isn't ever given - lib\ui\screens\home_screen.dart:1245:35 - unused_element_parameter
-warning - The '!' will have no effect because the receiver can't be null - lib\ui\screens\home_screen.dart:1283:30 - unnecessary_non_null_assertion
-   info - 'surfaceVariant' is deprecated and shouldn't be used. Use surfaceContainerHighest instead. This feature was deprecated after v3.18.0-0.1.pre - lib\ui\screens\home_screen.dart:1300:44 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1300:59 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1360:41 - deprecated_member_use
-warning - The declaration '_LegendItem' isn't referenced - lib\ui\screens\home_screen.dart:1380:7 - unused_element
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1501:51 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1566:133 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1659:42 - deprecated_member_use
-warning - The '!' will have no effect because the receiver can't be null - lib\ui\screens\home_screen.dart:1669:36 - unnecessary_non_null_assertion
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1684:22 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:1686:41 - deprecated_member_use
-warning - A value for optional parameter 'key' isn't ever given - lib\ui\screens\home_screen.dart:1702:34 - unused_element_parameter
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\home_screen.dart:2047:107 - deprecated_member_use
-warning - A value for optional parameter 'maxLines' isn't ever given - lib\ui\screens\home_screen.dart:2080:42 - unused_element_parameter
-   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\insight_screen.dart:159:30 - use_build_context_synchronously
-   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\insight_screen.dart:163:30 - use_build_context_synchronously
-   info - 'surfaceVariant' is deprecated and shouldn't be used. Use surfaceContainerHighest instead. This feature was deprecated after v3.18.0-0.1.pre - lib\ui\screens\insight_screen.dart:224:44 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\insight_screen.dart:224:59 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\insight_screen.dart:294:62 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\insight_screen.dart:667:72 - deprecated_member_use
-warning - The declaration '_buildVisionAlignmentView' isn't referenced - lib\ui\screens\insight_screen.dart:702:10 - unused_element
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\insight_screen.dart:716:64 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\insight_screen.dart:736:65 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\insight_screen.dart:744:46 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\insight_screen.dart:749:47 - deprecated_member_use
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\insight_screen.dart:877:56 - deprecated_member_use
-   info - Use 'const' with the constructor to improve performance - lib\ui\screens\insight_screen.dart:915:60 - prefer_const_constructors
-   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\insight_screen.dart:920:68 - deprecated_member_use
+warning - The value of the local variable 'detail' isn't used - lib\data\providers\providers.dart:177:11 - unused_local_variable
+warning - The value of the local variable 'mealLabel' isn't used - lib\data\providers\providers.dart:178:11 - unused_local_variable
+   info - Unnecessary braces in a string interpolation - lib\data\providers\providers.dart:187:60 - unnecessary_brace_in_string_interps
+   info - Unnecessary braces in a string interpolation - lib\data\providers\providers.dart:187:70 - unnecessary_brace_in_string_interps
+   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' - lib\data\services\firestore_service.dart:14:8 - unnecessary_import
+warning - Unused import: 'data/services/firestore_service.dart' - lib\main.dart:10:8 - unused_import
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\ui\screens\admin_screen.dart:215:17 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\admin_screen.dart:272:44 - use_build_context_synchronously
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\admin_screen.dart:319:33 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\agent_feedback_screen.dart:320:18 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\agent_feedback_screen.dart:322:20 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\agent_feedback_screen.dart:338:16 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\agent_feedback_screen.dart:340:18 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\analysis_sheet_form.dart:282:32 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\analysis_sheet_form.dart:296:30 - prefer_const_constructors
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\ui\screens\analysis_sheet_form.dart:315:19 - deprecated_member_use
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\analysis_sheet_form.dart:421:16 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\analysis_sheet_form.dart:423:18 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\analysis_sheet_form.dart:524:149 - prefer_const_constructors
+   info - Unnecessary braces in a string interpolation - lib\ui\screens\analysis_sheet_form.dart:556:42 - unnecessary_brace_in_string_interps
+   info - Unnecessary braces in a string interpolation - lib\ui\screens\analysis_sheet_form.dart:557:42 - unnecessary_brace_in_string_interps
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\analysis_sheet_screen.dart:63:16 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\analysis_sheet_screen.dart:65:18 - prefer_const_constructors
+warning - Unused import: 'package:flutter_riverpod/flutter_riverpod.dart' - lib\ui\screens\deferred_admin_screen.dart:2:8 - unused_import
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\deferred_admin_screen.dart:41:16 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\deferred_admin_screen.dart:43:18 - prefer_const_constructors
+warning - Unused import: 'package:pasteboard/pasteboard.dart' - lib\ui\screens\home_screen.dart:10:8 - unused_import
+warning - Unused import: '../widgets/body_composition_form.dart' - lib\ui\screens\home_screen.dart:28:8 - unused_import
+warning - The value of the local variable 'poolRecord' isn't used - lib\ui\screens\home_screen.dart:92:11 - unused_local_variable
+warning - The value of the local variable 'drylandRecord' isn't used - lib\ui\screens\home_screen.dart:93:11 - unused_local_variable
+   info - Use 'const' for final variables initialized to a constant value - lib\ui\screens\home_screen.dart:707:5 - prefer_const_declarations
+warning - The declaration '_showPbOptionsDialog' isn't referenced - lib\ui\screens\home_screen.dart:1012:8 - unused_element
+warning - The declaration '_buildBodyCompLineBars' isn't referenced - lib\ui\screens\home_screen.dart:1184:26 - unused_element
+warning - The declaration '_SectionLabel' isn't referenced - lib\ui\screens\home_screen.dart:1538:7 - unused_element
+warning - A value for optional parameter 'key' isn't ever given - lib\ui\screens\home_screen.dart:1663:35 - unused_element_parameter
+warning - The '!' will have no effect because the receiver can't be null - lib\ui\screens\home_screen.dart:1701:30 - unnecessary_non_null_assertion
+warning - The declaration '_shareSummaryText' isn't referenced - lib\ui\screens\home_screen.dart:1912:8 - unused_element
+   info - The parameter name 'sum' matches a visible type name - lib\ui\screens\home_screen.dart:1917:63 - avoid_types_as_parameter_names
+   info - The parameter name 'sum' matches a visible type name - lib\ui\screens\home_screen.dart:1958:64 - avoid_types_as_parameter_names
+   info - The parameter name 'sum' matches a visible type name - lib\ui\screens\home_screen.dart:2053:63 - avoid_types_as_parameter_names
+warning - The value of the local variable 'poolSubjective' isn't used - lib\ui\screens\home_screen.dart:2059:11 - unused_local_variable
+   info - The parameter name 'sum' matches a visible type name - lib\ui\screens\home_screen.dart:2060:42 - avoid_types_as_parameter_names
+   info - The parameter name 'sum' matches a visible type name - lib\ui\screens\home_screen.dart:2079:45 - avoid_types_as_parameter_names
+   info - The parameter name 'sum' matches a visible type name - lib\ui\screens\home_screen.dart:2106:64 - avoid_types_as_parameter_names
+warning - The '!' will have no effect because the receiver can't be null - lib\ui\screens\home_screen.dart:2122:74 - unnecessary_non_null_assertion
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\home_screen.dart:2418:15 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\ui\screens\home_screen.dart:2420:27 - prefer_const_literals_to_create_immutables
+warning - The '!' will have no effect because the receiver can't be null - lib\ui\screens\home_screen.dart:2438:30 - unnecessary_non_null_assertion
+warning - A value for optional parameter 'key' isn't ever given - lib\ui\screens\home_screen.dart:2735:34 - unused_element_parameter
+   info - The parameter name 'sum' matches a visible type name - lib\ui\screens\home_screen.dart:2830:89 - avoid_types_as_parameter_names
+   info - The parameter name 'sum' matches a visible type name - lib\ui\screens\home_screen.dart:2881:67 - avoid_types_as_parameter_names
+warning - A value for optional parameter 'maxLines' isn't ever given - lib\ui\screens\home_screen.dart:3157:42 - unused_element_parameter
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\insight_screen.dart:160:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\insight_screen.dart:164:42 - use_build_context_synchronously
+warning - The value of the local variable 'minDate' isn't used - lib\ui\screens\insight_screen.dart:397:11 - unused_local_variable
+warning - The value of the local variable 'registeredDays' isn't used - lib\ui\screens\insight_screen.dart:398:20 - unused_local_variable
+   info - Use 'const' for final variables initialized to a constant value - lib\ui\screens\insight_screen.dart:425:5 - prefer_const_declarations
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\ui\screens\insight_screen.dart:860:107 - deprecated_member_use
+   info - Use 'const' for final variables initialized to a constant value - lib\ui\screens\insight_screen.dart:875:5 - prefer_const_declarations
+warning - The declaration '_getDotPainter' isn't referenced - lib\ui\screens\insight_screen.dart:981:23 - unused_element
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\maintenance_screen.dart:8:12 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\maintenance_screen.dart:9:13 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\maintenance_screen.dart:10:16 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\maintenance_screen.dart:12:18 - prefer_const_constructors
+   info - Use 'const' literals as arguments to constructors of '@immutable' classes - lib\ui\screens\maintenance_screen.dart:14:23 - prefer_const_literals_to_create_immutables
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\settings_screen.dart:90:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\settings_screen.dart:174:31 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\settings_screen.dart:250:31 - use_build_context_synchronously
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\ui\screens\settings_screen.dart:272:23 - deprecated_member_use
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\ui\screens\settings_screen.dart:273:23 - deprecated_member_use
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\ui\screens\settings_screen.dart:279:23 - deprecated_member_use
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\ui\screens\settings_screen.dart:280:23 - deprecated_member_use
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\ui\screens\settings_screen.dart:286:23 - deprecated_member_use
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\ui\screens\settings_screen.dart:287:23 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\settings_screen.dart:337:31 - use_build_context_synchronously
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\settings_screen.dart:350:16 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\screens\settings_screen.dart:352:18 - prefer_const_constructors
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\ui\screens\settings_screen.dart:565:53 - use_build_context_synchronously
+   info - The private field _isSaving could be 'final' - lib\ui\screens\weekly_plan_screen.dart:29:8 - prefer_final_fields
+warning - The value of the field '_isSaving' isn't used - lib\ui\screens\weekly_plan_screen.dart:29:8 - unused_field
+warning - The declaration '_getFieldKey' isn't referenced - lib\ui\screens\weekly_plan_screen.dart:118:13 - unused_element
+warning - The declaration '_buildEditableGoalCard' isn't referenced - lib\ui\screens\weekly_plan_screen.dart:122:10 - unused_element
+warning - The value of the local variable 'now' isn't used - lib\ui\screens\weekly_plan_screen.dart:159:13 - unused_local_variable
+   info - Use interpolation to compose strings and values - lib\ui\screens\weekly_plan_screen.dart:265:23 - prefer_interpolation_to_compose_strings
+   info - Use 'const' with the constructor to improve performance - lib\ui\widgets\add_record_fab.dart:91:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\widgets\add_record_fab.dart:107:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\widgets\add_record_fab.dart:123:26 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\widgets\add_record_fab.dart:139:26 - prefer_const_constructors
+   info - Statements in an if should be enclosed in a block - lib\ui\widgets\body_composition_form.dart:118:43 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\ui\widgets\body_composition_form.dart:118:73 - curly_braces_in_flow_control_structures
+   info - Use 'const' with the constructor to improve performance - lib\ui\widgets\nutrition_form.dart:473:92 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\widgets\nutrition_form.dart:481:78 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\widgets\nutrition_form.dart:483:78 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\widgets\nutrition_form.dart:485:78 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\widgets\nutrition_form.dart:489:61 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\widgets\training_form.dart:167:15 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\ui\widgets\training_form.dart:237:66 - prefer_const_constructors
+   info - The imported package 'intl' isn't a dependency of the importing package - lib\utils\date_utils.dart:1:8 - depend_on_referenced_packages
+   info - 'dart:html' is deprecated and shouldn't be used. Use package:web and dart:js_interop instead - lib\utils\file_saver_web.dart:1:1 - deprecated_member_use
+   info - Don't use web-only libraries outside Flutter web plugins - lib\utils\file_saver_web.dart:1:1 - avoid_web_libraries_in_flutter
+   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' - lib\utils\file_saver_web.dart:2:8 - unnecessary_import
+warning - The value of the local variable 'anchor' isn't used - lib\utils\file_saver_web.dart:8:9 - unused_local_variable
+warning - Unused import: 'package:google_generative_ai/google_generative_ai.dart' - test\list_models.dart:1:8 - unused_import
+warning - Unused import: 'dart:io' - test\list_models.dart:3:8 - unused_import
+   info - Don't invoke 'print' in production code - test\list_models.dart:9:5 - avoid_print
+   info - Don't invoke 'print' in production code - test\list_models.dart:17:5 - avoid_print
+   info - Don't invoke 'print' in production code - test\list_models.dart:20:5 - avoid_print
 
-41 issues found. (ran in 4.6s)
+107 issues found. (ran in 9.4s)

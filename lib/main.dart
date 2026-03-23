@@ -133,6 +133,22 @@ class MyApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // アプリ起動時/ユーザーデータ取得時にテーマを同期
+    ref.listen(userProfileProvider, (previous, next) {
+      final user = next.value;
+      if (user != null) {
+        final savedTheme = user.baseProfile['themeMode'] as String?;
+        if (savedTheme != null) {
+          final newMode = savedTheme == 'dark' ? ThemeMode.dark 
+                        : savedTheme == 'light' ? ThemeMode.light 
+                        : ThemeMode.system;
+          if (appThemeMode.value != newMode) {
+            appThemeMode.value = newMode;
+          }
+        }
+      }
+    });
+
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: appThemeMode,
       builder: (context, mode, _) {

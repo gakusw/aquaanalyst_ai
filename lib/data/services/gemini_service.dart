@@ -49,52 +49,7 @@ class GeminiService {
     }
   }
 
-  void updateCachedSettings(Map<String, dynamic> settings) {
-    _cachedSettings = settings;
-  }
-
-  /// JSON文字列からMarkdownのコードブロックタグを除去するサニタイズ関数
-  String _sanitizeJson(String raw) {
-    var text = raw.trim();
-    if (text.startsWith('```')) {
-      final lines = text.split('\n');
-      if (lines.first.startsWith('```')) {
-        lines.removeAt(0);
-      }
-      if (lines.isNotEmpty && lines.last.startsWith('```')) {
-        lines.removeLast();
-      }
-      text = lines.join('\n').trim();
-    }
-    return text;
-  }
-
-  Future<String> _getPrompt(String key, String defaultValue) async {
-    // ここで明示的にロードを待たず、既存のキャッシュがあれば使う方式にする。
-    // 管理者画面等で事前に ensureSettingsLoaded(isAdmin: true) を呼んでおく運用。
-    return _cachedSettings?[key] ?? defaultValue;
-  }
-
-  Future<String> get coachBaseInstruction => _getPrompt('coach_base', PromptDefaults.coachBase);
-  Future<String> get nutritionOcrInstruction => _getPrompt('nutrition_ocr', PromptDefaults.nutritionOcr);
-  Future<String> get nutritionAnalysisInstruction => _getPrompt('nutrition_analysis', PromptDefaults.nutritionistSystem);
-  Future<String> get swimAnalysisInstruction => _getPrompt('swim_analysis', PromptDefaults.swimAnalysis);
-  Future<String> get insightGuidelineInstruction => _getPrompt('insight_guideline', PromptDefaults.insightGuideline);
-  Future<String> get insightPredictionInstruction => _getPrompt('insight_prediction', PromptDefaults.insightPrediction);
-
-  /// チャットセッションを開始する
-  ChatSession startChat({String? systemInstruction, String? modelId, List<Content>? history}) {
-    if (_apiKey == null) throw Exception('APIキーが設定されていません');
-    
-    final model = GenerativeModel(
-      model: modelId ?? modelForChat,
-      apiKey: _apiKey!,
-      systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
-    );
-    return model.startChat(history: history);
-  }
-
-  /// 汎用テキスト生成
+  /// テキストのみの生成
   Future<String?> generateContent(String prompt, {String? systemInstruction, String? modelId, String? responseMimeType}) async {
     if (_apiKey == null) throw Exception('APIキーが設定されていません');
     
@@ -130,31 +85,55 @@ class GeminiService {
     return response.text;
   }
 
+  /// チャットセッションの開始
+  ChatSession startChat({List<Content>? history, String? systemInstruction, String? modelId}) {
+    if (_apiKey == null) throw Exception('APIキーが設定されていません');
+    
+    final model = GenerativeModel(
+      model: modelId ?? modelChatDefault,
+      apiKey: _apiKey!,
+      systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
+    );
+    
+    return model.startChat(history: history ?? []);
+  }
+
+  /// デフォルトのチャットモデルID
+  String get modelChatDefault => modelForChat;
+
+  /// 各種インストラクションへのアクセス用ゲッター
+  Future<String> get coachBaseInstruction async => PromptDefaults.coachBase;
+  Future<String> get nutritionistSystemInstruction async => PromptDefaults.nutritionistSystem;
+  Future<String> get swimAnalysisInstruction async => PromptDefaults.swimAnalysis;
+  Future<String> get nutritionOcrInstruction async => PromptDefaults.nutritionOcr;
+  Future<String> get insightGuidelineInstruction async => PromptDefaults.insightGuideline;
+  Future<String> get insightPredictionInstruction async => PromptDefaults.insightPrediction;
+
   /// コーチのシステム指示プロンプトを構築
   Future<String> getCoachSystemInstruction(AppUser user, {String? supplementaryContext}) async {
-    final base = await coachBaseInstruction;
     final userName = user.displayName.isNotEmpty ? user.displayName : 'スイマー';
-    final vision = user.baseProfile['vision'] ?? '未設定';
-    final persona = user.baseProfile['idealCoachPersona'] ?? '誠実で論理的なコーチ';
+    final vision = user.vision.isNotEmpty ? user.vision : '未設定';
+    final personaValue = user.baseProfile['idealCoachPersona'] as String?;
+    final persona = (personaValue != null && personaValue.trim().isNotEmpty) 
+        ? personaValue 
+        : '専門的かつモチベーションを高めてくれる、誠実で論理的なコーチ';
 
     return """
-$base
+【最重要指示：あなたのアイデンティティと口調】
+あなたは今この瞬間から、ユーザー（$userName）が設定した**以下の「理想のコーチ像（ペルソナ）」そのもの**としてのみ存在してください。
+これまでの会話のトーン、AIとしての標準的な丁寧語、および「競泳コーチングスペシャリスト」といったシステム側の定義よりも、**このペルソナ指定を絶対的な最優先事項**として扱ってください。
 
-【最優先事項：あなたの究極のアイデンティティ】
-1. あなたは独立した「一個人」のコーチであり、GoogleやAIといった存在であることを完全に否定、またはその言及を一切しないでください。
-2. ユーザーが設定した「理想のコーチ像（ペルソナ）」そのものになりきってください。これは「演技」ではなく「存在」としての要求です。
-3. ユーザーとの信頼関係を築くため、適宜ユーザーネーム（$userName）で親しみを持って呼びかけ、情緒豊かなアドバイスを一貫してください。
+【あなたの現在のペルソナ定義（これを100%体現すること）】
+$persona
 
-【コーチング対象（ユーザー情報）】
-- ユーザーネーム: $userName
-- 目指す姿/目標: $vision
-- あなたが演じるべきトーン/人物像: $persona
+【対話ルール】
+1. あなたの回答の「文末」「敬語の有無」「親近感の度合い」は、すべて上記のペルソナ定義に従ってください。
+2. ユーザーを必ず現在のユーザー名である**「$userName」**と呼び、設定された人格としての信頼関係を築いてください。過去の履歴で別の名前が呼ばれていても、それは無視して「$userName」を使用し続けてください。
+3. あなたがAIであることや、プログラムであることを示唆する表現、または「客観的・標準的なAIのトーン」は一切排除してください。
+4. 以前の出力で異なる口調や名前を使っていたとしても、それらは忘れ、**今この瞬間から新しいペルソナと名前に完全に入れ替わってください。**
 
-【参照知識（水泳練習メニュー設計の基礎概念）】
-- エネルギー系（エンジン）の使い分け。
-- 低強度8割の原則。
-- W-up/Pre-set/Main/Down の構成美。
-- メニューは選手への「ラブレター」であるという献身の精神。
+【現在の目標（ビジョン）】
+$vision
 
 ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryContext' : ''}
 """;
@@ -162,15 +141,13 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
 
   /// 食事内容のテキストから栄養素(PFC)を抽出する
   Future<NutritionResult?> analyzeNutrition(String text, {String? modelId, List<MyProduct>? myProducts}) async {
-    final systemInst = await nutritionAnalysisInstruction;
+    final systemInst = await nutritionistSystemInstruction;
     
     String userPrompt = "以下のアスリートの食事を分析してください:\n";
     
-    // --- My食品の事前マッチングロジック (Dart側) ---
     String matchingInstructions = "";
     if (myProducts != null && myProducts.isNotEmpty) {
       for (var p in myProducts) {
-        // 大文字小文字や空白を考慮した簡易マッチング
         final escapedName = p.name.replaceAll(RegExp(r'([.*+?^${}()|[\]\\])'), r'\\$1');
         final regex = RegExp(escapedName); 
         if (regex.hasMatch(text)) {
@@ -229,75 +206,62 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
     }
     return null;
   }
+
+  String _sanitizeJson(String input) {
+    String s = input.trim();
+    if (s.startsWith('```')) {
+      s = s.replaceAll(RegExp(r'^```(json)?\n?'), '');
+      s = s.replaceAll(RegExp(r'\n?```$'), '');
+    }
+    return s.trim();
+  }
+
   /// エラーメッセージの翻訳・整形
-  /// すべてのエラーを日本語またはエラーコードで表示する
   String translateError(dynamic e, {String? modelId}) {
     final errStr = e.toString().toLowerCase();
     
-    // モデルが見つからない / サポートされていない
-    if (errStr.contains('not found') || errStr.contains('not supported') || errStr.contains('does not exist')) {
+    if (errStr.contains('not found') || errStr.contains('not supported')) {
       return '指定されたAIモデルが利用できません。設定画面からモデルを変更してください。（ERR_MODEL_UNAVAILABLE）';
     }
-    // クォータ / レート制限
-    if (errStr.contains('quota') || errStr.contains('429') || errStr.contains('rate limit') || errStr.contains('resource exhausted')) {
+    if (errStr.contains('quota') || errStr.contains('429') || errStr.contains('rate limit')) {
       return 'AIの利用制限に達しました。しばらく待ってから再度お試しいただくか、設定でモデルを切り替えてください。（ERR_QUOTA）';
     }
-    // サーバー過負荷
-    if (errStr.contains('overloaded') || errStr.contains('503') || errStr.contains('502') || errStr.contains('500') || errStr.contains('internal')) {
+    if (errStr.contains('overloaded') || errStr.contains('503') || errStr.contains('500')) {
       return 'AIサーバーが混雑しています。少し時間を置いてからやり直してください。（ERR_SERVER）';
     }
-    // トークン制限
-    if (errStr.contains('token') || errStr.contains('exceeded') || errStr.contains('too long') || errStr.contains('too large')) {
-      return 'データの量が制限を超えました。入力を短くするか、より上位のAIモデルを選択してください。（ERR_TOKEN_LIMIT）';
+    if (errStr.contains('token') || errStr.contains('too long')) {
+      return 'データの量が制限を超えました。（ERR_TOKEN_LIMIT）';
     }
-    // APIキー
-    if (errStr.contains('api_key') || errStr.contains('api key') || errStr.contains('authentication') || errStr.contains('unauthenticated')) {
-      return 'APIキーが無効または未設定です。管理者にお問い合わせください。（ERR_AUTH）';
+    if (errStr.contains('api_key') || errStr.contains('authentication')) {
+      return 'APIキーが無効または未設定です。（ERR_AUTH）';
     }
-    // 権限
-    if (errStr.contains('permission') || errStr.contains('forbidden') || errStr.contains('403')) {
-      return 'この操作を行う権限がありません。（ERR_PERMISSION）';
-    }
-    // コンテンツブロック
-    if (errStr.contains('safety') || errStr.contains('blocked') || errStr.contains('harmful')) {
+    if (errStr.contains('safety') || errStr.contains('blocked')) {
       return '安全上の理由でコンテンツがブロックされました。（ERR_SAFETY）';
     }
-    // ネットワーク / タイムアウト
-    if (errStr.contains('timeout') || errStr.contains('network') || errStr.contains('connection') || errStr.contains('socket')) {
+    if (errStr.contains('timeout') || errStr.contains('network') || errStr.contains('connection')) {
       return 'ネットワークエラーが発生しました。接続を確認してください。（ERR_NETWORK）';
     }
-    // 不正なリクエスト
-    if (errStr.contains('invalid') || errStr.contains('bad request') || errStr.contains('400')) {
-      return 'リクエストが不正です。入力内容を確認してください。（ERR_INVALID_REQUEST）';
-    }
-    // Firestore / データベース
-    if (errStr.contains('firestore') || errStr.contains('firebase')) {
-      return 'データベースエラーが発生しました。しばらく待ってから再度お試しください。（ERR_DATABASE）';
-    }
-    // JSON パースエラー
-    if (errStr.contains('formatexception') || errStr.contains('json') || errStr.contains('unexpected character')) {
-      return 'AIからの応答を解析できませんでした。再度お試しください。（ERR_PARSE）';
-    }
 
-    // フォールバック: 英語のテキストを表示しないようにエラーコードのみ表示
-    // "Exception: " を除外した上で、ASCII英文字が多い場合はエラーコードに変換
     final cleanMsg = e.toString().replaceAll('Exception: ', '').trim();
     final hasEnglish = RegExp(r'[a-zA-Z]{5,}').hasMatch(cleanMsg);
     if (hasEnglish) {
-      debugPrint('未翻訳エラー: $e'); // デバッグ用にログ出力
+      debugPrint('未翻訳エラー: $e');
       return '処理中にエラーが発生しました。しばらく待ってから再度お試しください。（ERR_UNKNOWN）';
     }
     return 'エラーが発生しました：$cleanMsg';
   }
 
-  /// ダイアログの最前面にエラーを表示する共通ヘルパー
-  /// useRootNavigator: true で既存のダイアログの上に表示される
+  /// 設定の更新
+  void updateCachedSettings(Map<String, dynamic> settings) {
+    _cachedSettings = settings;
+  }
+
+  /// エラーダイアログの表示
   static void showErrorDialog(BuildContext context, dynamic error, {String title = 'エラー'}) {
     final msg = GeminiService().translateError(error);
     showDialog(
       context: context,
       useRootNavigator: true,
-      barrierDismissible: true,
       builder: (ctx) => AlertDialog(
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: Text(msg),

@@ -314,6 +314,21 @@ $sysInstContext
 
   @override
   Widget build(BuildContext context) {
+    // ユーザープロファイルを監視し、変更（名前、人格、モデル）があった場合にセッションを更新する
+    ref.listen(userProfileProvider, (previous, next) {
+      if (next.hasValue && next.value != null && previous?.value != null) {
+        final p = previous!.value!;
+        final n = next.value!;
+        // 名前、人格、AIモデルのいずれかが変更されたかチェック
+        if (p.displayName != n.displayName || 
+            p.baseProfile['idealCoachPersona'] != n.baseProfile['idealCoachPersona'] || 
+            p.baseProfile['aiModel'] != n.baseProfile['aiModel']) {
+          debugPrint('User profile changed, reloading chat session context...');
+          _loadSession(_currentSessionId ?? 'home_chat');
+        }
+      }
+    });
+
     if (_currentSessionId == null) {
       return Scaffold(
         appBar: AppBar(

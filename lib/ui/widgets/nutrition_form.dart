@@ -7,6 +7,7 @@ import '../../data/models/training_record.dart';
 import '../widgets/stable_text_field.dart';
 import '../../data/providers/providers.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/date_utils.dart';
 import '../../data/models/my_product.dart';
 
 class NutritionForm extends ConsumerStatefulWidget {
@@ -338,6 +339,34 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
     }
     setState(() => _isSaving = true);
     try {
+      final user = ref.read(userProfileProvider).value;
+      
+      // 当日の目標値を取得（永続化のため）
+      int targetP = user?.baseProfile['targetProtein'] ?? 150;
+      int targetF = user?.baseProfile['targetFat'] ?? 70;
+      int targetC = user?.baseProfile['targetCarbs'] ?? 400;
+      int targetCal = user?.baseProfile['targetCalories'] ?? 2500;
+
+      final latestPlan = ref.read(latestWeeklyPlanProvider).value;
+      if (latestPlan != null) {
+        final logicalToday = AppDateUtils.logicalToday();
+        final weekdayStr = ['月曜','火曜','水曜','木曜','金曜','土曜','日曜'][logicalToday.weekday - 1];
+        final todaysPlan = latestPlan.dailyPlans.where((p) => p.dateStr.contains(weekdayStr)).firstOrNull;
+        if (todaysPlan != null) {
+             targetP = todaysPlan.targetProtein > 0 ? todaysPlan.targetProtein : targetP;
+             targetF = todaysPlan.targetFat > 0 ? todaysPlan.targetFat : targetF;
+             targetC = todaysPlan.targetCarbs > 0 ? todaysPlan.targetCarbs : targetC;
+             targetCal = todaysPlan.targetCalories > 0 ? todaysPlan.targetCalories : targetCal;
+        }
+      }
+
+      final Map<String, int> dailyTargets = {
+        'protein': targetP,
+        'fat': targetF,
+        'carbs': targetC,
+        'calories': targetCal,
+      };
+
       final recordData = {
         'type': 'nutrition',
         'details': [if (_memoController.text.isNotEmpty) {'type': 'memo', 'content': _memoController.text}],
@@ -347,6 +376,7 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
           'carbs': double.tryParse(_cController.text) ?? 0.0, 
           'meal_label': _selectedMealLabel
         },
+        'dailyTargets': dailyTargets, // 永続化
       };
 
       if (widget.initialRecord != null) {
@@ -356,8 +386,9 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
           id: '', 
           date: DateTime.now(), 
           type: 'nutrition',
-          details: recordData['details'] as List<Map<String, dynamic>>,
+          details: List<Map<String, dynamic>>.from(recordData['details'] as List),
           subjectiveMetrics: recordData['subjectiveMetrics'] as Map<String, dynamic>,
+          dailyTargets: dailyTargets,
         );
         await _firestoreService.addTrainingRecord(record);
       }
