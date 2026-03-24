@@ -1799,7 +1799,7 @@ class _BadgeCountSection extends ConsumerWidget {
           const SizedBox(height: 16),
           LayoutBuilder(
             builder: (context, constraints) {
-              final bool isNarrow = constraints.maxWidth < 450;
+              final bool isNarrow = constraints.maxWidth < 600;
               final trainingBadges = [
                 _BadgeCountItem(icon: Icons.pool, color: AppColors.pool, count: showMonthly ? poolMonth : poolTotal, label: '水中'),
                 _BadgeCountItem(icon: Icons.fitness_center, color: AppColors.dryland, count: showMonthly ? drylandMonth : drylandTotal, label: '陸トレ'),
