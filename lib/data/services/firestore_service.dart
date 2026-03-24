@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/app_user.dart';
+import '../models/my_menu.dart';
 import '../models/training_record.dart';
 import '../models/weekly_plan.dart';
 import '../models/training_insight.dart';
@@ -43,28 +44,37 @@ class FirestoreService {
     final uid = currentUserId;
     if (uid == null) throw Exception('ログインしていません');
 
-    // 既存データの読み込みを試みて、不慮の上書き（レースコンディション）を防止
     try {
       final doc = await _db.collection('users').doc(uid).get();
-      if (doc.exists && user.displayName == 'ゲストユーザー') {
-        // 既存データがあり、かつ新しいデータがデフォルト（ゲスト）の場合、
-        // 名前や目標などの重要フィールドの上書きをスキップし、role等のみを更新する
-        final updateData = user.toMap();
-        updateData.remove('displayName');
-        updateData.remove('vision');
-        updateData.remove('baseProfile');
+      
+      if (doc.exists) {
+        final existingData = doc.data()!;
+        final Map<String, dynamic> updateData = user.toMap();
         
+        // baseProfile のマージ方針：
+        // 既存のドキュメントにあるフィールド（例: themeMode）を不用意に消さないよう、
+        // 既存データをベースに新しいデータでプロパティ単位で上書きする。
+        final oldBaseProfile = existingData['baseProfile'] as Map<String, dynamic>? ?? {};
+        final newBaseProfile = user.baseProfile;
+        
+        final mergedProfile = Map<String, dynamic>.from(oldBaseProfile);
+        newBaseProfile.forEach((key, value) {
+          // 値が null でない限り、空文字であってもユーザーの意図として上書きを許可する。
+          mergedProfile[key] = value;
+        });
+        updateData['baseProfile'] = mergedProfile;
+
         if (updateData.isNotEmpty) {
           await _db.collection('users').doc(uid).update(updateData);
         }
         return;
       }
     } catch (e) {
-      debugPrint('Error during safety check in saveUserProfile: $e');
-      // エラー時は通常の保存を試みる
+      debugPrint('Error during saveUserProfile update: $e');
+      // 取得・更新エラー時はフォールバックとして set を試みる
     }
 
-    // uidはドキュメントIDであるためMapのフィールドからは除外してsetする
+    // 新規作成時、または既存データなし
     await _db.collection('users').doc(uid).set(user.toMap(), SetOptions(merge: true));
   }
 
@@ -903,6 +913,54 @@ class FirestoreService {
       debugPrint('Error counting new users: $e');
       return 0;
     }
+  }
+
+  /// トレーニングインサイト（履歴）を取得するStream
+  Stream<List<TrainingInsight>> getTrainingInsightsStream() {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('training_insights')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => TrainingInsight.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  // --- My Menus ---
+
+  Stream<List<MyMenu>> getMyMenusStream() {
+    final uid = currentUserId;
+    if (uid == null) return Stream.value([]);
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('my_menus')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MyMenu.fromMap(doc.id, doc.data()))
+            .toList());
+  }
+
+  Future<void> saveMyMenu(MyMenu menu) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+    
+    if (menu.id.isEmpty) {
+      await _db.collection('users').doc(uid).collection('my_menus').add(menu.toMap());
+    } else {
+      await _db.collection('users').doc(uid).collection('my_menus').doc(menu.id).update(menu.toMap());
+    }
+  }
+
+  Future<void> deleteMyMenu(String menuId) async {
+    final uid = currentUserId;
+    if (uid == null) throw Exception('ログインしていません');
+    await _db.collection('users').doc(uid).collection('my_menus').doc(menuId).delete();
   }
 }
 

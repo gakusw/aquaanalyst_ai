@@ -589,18 +589,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             final newMode = s.first;
                             appThemeMode.value = newMode;
                             
-                            Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
-                            updatedProfile['themeMode'] = newMode == ThemeMode.dark ? 'dark' 
-                                                        : newMode == ThemeMode.light ? 'light' 
-                                                        : 'system';
-                            final updatedUser = AppUser(
-                              uid: currentUser.uid,
-                              displayName: currentUser.displayName,
-                              vision: currentUser.vision,
-                              baseProfile: updatedProfile,
-                              createdAt: currentUser.createdAt,
-                            );
-                            await _firestoreService.saveUserProfile(updatedUser);
+                            await _firestoreService.updateUserProfileFields(currentUser.uid, {
+                              'baseProfile.themeMode': newMode == ThemeMode.dark ? 'dark' 
+                                                     : newMode == ThemeMode.light ? 'light' 
+                                                     : 'system'
+                            });
                           } catch (e) {
                             if (mounted) {
                               _showErrorDialog(context, '設定保存エラー', e.toString());
@@ -622,7 +615,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
 
           ListTile(
-            leading: const Icon(Icons.psychology_alt),
+            leading: Image.asset('assets/images/app_icon.png', width: 24, height: 24),
             title: const Text('理想のコーチ像'),
             subtitle: Text(user?.baseProfile['idealCoachPersona'] as String? ?? '専門的かつモチベーションを高めてくれるコーチ'),
             trailing: const Icon(Icons.edit, size: 16),
@@ -670,15 +663,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 );
                 if (ok == true && pwController.text == 'Admin2026') {
-                  final elevatedUser = AppUser(
-                    uid: currentUser.uid,
-                    displayName: currentUser.displayName,
-                    vision: currentUser.vision,
-                    baseProfile: currentUser.baseProfile,
-                    createdAt: currentUser.createdAt,
-                    role: 'admin',
-                  );
-                  await _firestoreService.saveUserProfile(elevatedUser);
+                  await _firestoreService.elevateUserToAdmin(currentUser.uid);
                   ref.invalidate(userProfileProvider); // プロバイダーを強制再読み込み
                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('管理者権限を付与しました', style: TextStyle(color: Colors.amber))));
                 }

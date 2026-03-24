@@ -79,15 +79,10 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
       
       final modelId = user.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
       _activeModelId = modelId;
-      final medicalHistory = user.baseProfile['medicalHistory'] as String? ?? 'なし';
-
       // 共通メソッドを使用してシステム指示を生成
       final fullSysInst = await GeminiService().getCoachSystemInstruction(
         user,
-        supplementaryContext: """
-$sysInstContext
-■ 既往歴: $medicalHistory
-""",
+        supplementaryContext: sysInstContext,
       );
 
       // トークン節約のため、Geminiに送る履歴を直近20件に制限
@@ -139,14 +134,9 @@ $sysInstContext
       _activeModelId = modelId;
 
       final sysInstContext = ref.read(coachSystemContextProvider);
-      final medicalHistory = user.baseProfile['medicalHistory'] as String? ?? 'なし';
-      
       final sysInst = await GeminiService().getCoachSystemInstruction(
         user,
-        supplementaryContext: """
-$sysInstContext
-■ 既往歴: $medicalHistory
-""",
+        supplementaryContext: sysInstContext,
       );
 
       _chatSession = GeminiService().startChat(
@@ -452,11 +442,11 @@ $sysInstContext
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: PremiumCard(
-          icon: Icons.psychology,
+          customIcon: Image.asset('assets/images/app_icon.png'),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.psychology, size: 64, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
+              Image.asset('assets/images/app_icon.png', width: 64, height: 64, opacity: const AlwaysStoppedAnimation(0.5)),
               const SizedBox(height: 24),
               const Text(
                 'コーチに相談しましょう',
@@ -560,7 +550,7 @@ $sysInstContext
               margin: const EdgeInsets.only(right: 16.0),
               child: CircleAvatar(
                 backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: Icon(Icons.psychology, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                backgroundImage: const AssetImage('assets/images/app_icon.png'),
               ),
             ),
           Expanded(

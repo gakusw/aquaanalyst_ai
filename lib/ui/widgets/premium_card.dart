@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class PremiumCard extends StatelessWidget {
   final Widget child;
   final IconData? icon;
+  final Widget? customIcon;
   final List<Color>? gradientColors;
   final VoidCallback? onTap;
   final EdgeInsetsGeometry? padding;
@@ -12,6 +13,7 @@ class PremiumCard extends StatelessWidget {
     super.key,
     required this.child,
     this.icon,
+    this.customIcon,
     this.gradientColors,
     this.onTap,
     this.padding,
@@ -55,14 +57,21 @@ class PremiumCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          if (icon != null)
+          if (customIcon != null || icon != null)
             Positioned(
               right: -20,
               top: -20,
-              child: Icon(
-                icon,
-                size: 100,
-                color: colorScheme.primary.withValues(alpha: 0.05),
+              child: Opacity(
+                opacity: 0.05,
+                child: SizedBox(
+                  width: 100,
+                  height: 100,
+                  child: customIcon ?? Icon(
+                    icon,
+                    size: 100,
+                    color: colorScheme.primary,
+                  ),
+                ),
               ),
             ),
           Material(

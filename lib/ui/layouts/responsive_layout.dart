@@ -13,6 +13,23 @@ class ResponsiveLayout extends StatefulWidget {
 
 class _ResponsiveLayoutState extends State<ResponsiveLayout> {
 
+  Widget _buildAppIcon(BuildContext context, {required bool isSelected, double size = 40}) {
+    final color = isSelected 
+        ? Theme.of(context).colorScheme.primary 
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+    
+    // 背景（ネイビー）を切り取った新画像を使用
+    return ColorFiltered(
+      colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      child: Image.asset(
+        'assets/images/app_icon_nav.png',
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+      ),
+    );
+  }
+
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith('/home')) return 0;
@@ -37,11 +54,32 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
 
-    // 共通のデスティネーション定義 (5タブ: Home / Weekly / Coach / Insight / Settings)
-    final destinations = <NavigationDestinationData>[
+    // モバイル用（BottomAppBar）のデスティネーション定義
+    final mobileDestinations = <NavigationDestinationData>[
       NavigationDestinationData(icon: Icons.home_outlined, selectedIcon: Icons.home, label: 'ホーム'),
       NavigationDestinationData(icon: Icons.calendar_month_outlined, selectedIcon: Icons.calendar_month, label: '週間計画'),
-      NavigationDestinationData(icon: Icons.psychology_outlined, selectedIcon: Icons.psychology, label: 'コーチに相談'),
+      NavigationDestinationData(
+        icon: Icons.psychology_outlined, 
+        selectedIcon: Icons.psychology, 
+        label: 'コーチに相談',
+        customIcon: _buildAppIcon(context, isSelected: false, size: 32),
+        customSelectedIcon: _buildAppIcon(context, isSelected: true, size: 32),
+      ),
+      NavigationDestinationData(icon: Icons.insights_outlined, selectedIcon: Icons.insights, label: 'インサイト'),
+      NavigationDestinationData(icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: '設定'),
+    ];
+
+    // PC用（NavigationRail）のデスティネーション定義
+    final railDestinations = <NavigationDestinationData>[
+      NavigationDestinationData(icon: Icons.home_outlined, selectedIcon: Icons.home, label: 'ホーム'),
+      NavigationDestinationData(icon: Icons.calendar_month_outlined, selectedIcon: Icons.calendar_month, label: '週間計画'),
+      NavigationDestinationData(
+        icon: Icons.psychology_outlined, 
+        selectedIcon: Icons.psychology, 
+        label: 'コーチに相談',
+        customIcon: _buildAppIcon(context, isSelected: false, size: 26),
+        customSelectedIcon: _buildAppIcon(context, isSelected: true, size: 26),
+      ),
       NavigationDestinationData(icon: Icons.insights_outlined, selectedIcon: Icons.insights, label: 'インサイト'),
       NavigationDestinationData(icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: '設定'),
     ];
@@ -60,10 +98,10 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
                   selectedIndex: selectedIndex,
                   onDestinationSelected: (index) => _onItemTapped(index, context),
                   labelType: NavigationRailLabelType.all,
-                  destinations: destinations
+                  destinations: railDestinations
                       .map((d) => NavigationRailDestination(
-                            icon: Icon(d.icon),
-                            selectedIcon: Icon(d.selectedIcon),
+                            icon: SizedBox(width: 32, height: 32, child: d.customIcon ?? Icon(d.icon, size: 28)),
+                            selectedIcon: SizedBox(width: 32, height: 32, child: d.customSelectedIcon ?? Icon(d.selectedIcon, size: 28)),
                             label: Text(d.label),
                           ))
                       .toList(),
@@ -78,8 +116,9 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
           layout = Scaffold(
             body: widget.child,
             bottomNavigationBar: BottomAppBar(
-              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-              height: 76,
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+              height: 72,
+              clipBehavior: Clip.none,
               elevation: 4,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -87,8 +126,9 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
                   // 1. ホーム (左端)
                   Expanded(
                     child: _BottomAppBarItem(
-                      icon: selectedIndex == 0 ? Icons.home : Icons.home_outlined,
-                      label: 'ホーム',
+                      icon: mobileDestinations[0].icon,
+                      selectedIcon: mobileDestinations[0].selectedIcon,
+                      label: mobileDestinations[0].label,
                       selected: selectedIndex == 0,
                       onTap: () => _onItemTapped(0, context),
                     ),
@@ -96,8 +136,9 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
                   // 2. 週間計画
                   Expanded(
                     child: _BottomAppBarItem(
-                      icon: selectedIndex == 1 ? Icons.calendar_month : Icons.calendar_month_outlined,
-                      label: '週間計画',
+                      icon: mobileDestinations[1].icon,
+                      selectedIcon: mobileDestinations[1].selectedIcon,
+                      label: mobileDestinations[1].label,
                       selected: selectedIndex == 1,
                       onTap: () => _onItemTapped(1, context),
                     ),
@@ -111,8 +152,11 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
                   // 4. コーチ
                   Expanded(
                     child: _BottomAppBarItem(
-                      icon: selectedIndex == 2 ? Icons.psychology : Icons.psychology_outlined,
-                      label: 'コーチに相談',
+                      icon: mobileDestinations[2].icon,
+                      selectedIcon: mobileDestinations[2].selectedIcon,
+                      customIcon: mobileDestinations[2].customIcon,
+                      customSelectedIcon: mobileDestinations[2].customSelectedIcon,
+                      label: mobileDestinations[2].label,
                       selected: selectedIndex == 2,
                       onTap: () => _onItemTapped(2, context),
                     ),
@@ -120,8 +164,9 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
                   // 5. インサイト
                   Expanded(
                     child: _BottomAppBarItem(
-                      icon: selectedIndex == 3 ? Icons.insights : Icons.insights_outlined,
-                      label: 'インサイト',
+                      icon: mobileDestinations[3].icon,
+                      selectedIcon: mobileDestinations[3].selectedIcon,
+                      label: mobileDestinations[3].label,
                       selected: selectedIndex == 3,
                       onTap: () => _onItemTapped(3, context),
                     ),
@@ -129,8 +174,9 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
                   // 6. 設定
                   Expanded(
                     child: _BottomAppBarItem(
-                      icon: selectedIndex == 4 ? Icons.settings : Icons.settings_outlined,
-                      label: '設定',
+                      icon: mobileDestinations[4].icon,
+                      selectedIcon: mobileDestinations[4].selectedIcon,
+                      label: mobileDestinations[4].label,
                       selected: selectedIndex == 4,
                       onTap: () => _onItemTapped(4, context),
                     ),
@@ -150,12 +196,18 @@ class _ResponsiveLayoutState extends State<ResponsiveLayout> {
 /// スマホ用 BottomAppBar の個別アイテム
 class _BottomAppBarItem extends StatelessWidget {
   final IconData icon;
+  final IconData selectedIcon;
+  final Widget? customIcon;
+  final Widget? customSelectedIcon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
   const _BottomAppBarItem({
     required this.icon,
+    required this.selectedIcon,
+    this.customIcon,
+    this.customSelectedIcon,
     required this.label,
     required this.selected,
     required this.onTap,
@@ -163,6 +215,7 @@ class _BottomAppBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final iconData = selected ? selectedIcon : icon;
     final iconColor = selected
         ? Theme.of(context).colorScheme.primary
         : Theme.of(context).colorScheme.onSurfaceVariant;
@@ -171,17 +224,30 @@ class _BottomAppBarItem extends StatelessWidget {
         ? Theme.of(context).colorScheme.primary
         : Theme.of(context).colorScheme.onSurfaceVariant;
 
+    Widget iconWidget;
+    if (selected && customSelectedIcon != null) {
+      iconWidget = customSelectedIcon!;
+    } else if (!selected && customIcon != null) {
+      iconWidget = customIcon!;
+    } else {
+      iconWidget = Icon(iconData, color: iconColor, size: 28);
+    }
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.only(top: 2, bottom: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: iconColor, size: 22),
-            const SizedBox(height: 2),
-            Text(label, style: TextStyle(color: textColor, fontSize: 10, fontWeight: FontWeight.normal)),
+            SizedBox(
+              height: 40, 
+              child: Center(child: iconWidget),
+            ),
+            const SizedBox(height: 1),
+            Text(label, style: TextStyle(color: textColor, fontSize: 9, fontWeight: FontWeight.normal)),
           ],
         ),
       ),
@@ -192,11 +258,15 @@ class _BottomAppBarItem extends StatelessWidget {
 class NavigationDestinationData {
   final IconData icon;
   final IconData selectedIcon;
+  final Widget? customIcon;
+  final Widget? customSelectedIcon;
   final String label;
 
   NavigationDestinationData({
     required this.icon,
     required this.selectedIcon,
+    this.customIcon,
+    this.customSelectedIcon,
     required this.label,
   });
 }

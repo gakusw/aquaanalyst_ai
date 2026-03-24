@@ -422,7 +422,11 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.6,
@@ -431,6 +435,8 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
             AppBar(
               title: const Text('My食品リスト', style: TextStyle(fontSize: 16)),
               automaticallyImplyLeading: false,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
               actions: [
                 IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
               ],
@@ -451,9 +457,18 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
                       return ListTile(
                         title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('基準量: ${p.baseAmount}${p.unit} - P:${p.protein}g F:${p.fat}g C:${p.carbs}g / ${p.calories}kcal', style: const TextStyle(fontSize: 12)),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, size: 14, color: Colors.grey),
-                          onPressed: () => _firestoreService.deleteMyProduct(p.id),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, size: 18, color: Colors.teal),
+                              onPressed: () => _showEditDialog(p),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, size: 18, color: Colors.redAccent),
+                              onPressed: () => _showDeleteConfirm(p),
+                            ),
+                          ],
                         ),
                         onTap: () {
                           widget.onSelect(p);
@@ -471,7 +486,9 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
                 onPressed: _showAddDialog,
                 icon: const Icon(Icons.add),
                 label: const Text('新しく登録する'),
-                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
               ),
             ),
           ],
@@ -501,7 +518,7 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Expanded(flex: 2, child: TextField(controller: amountCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '基準量 (例: 100)'))),
+                  Expanded(flex: 2, child: TextField(controller: amountCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '基準量 (例: 100)'))),
                   const SizedBox(width: 8),
                   Expanded(flex: 1, child: TextField(controller: unitCtrl, decoration: const InputDecoration(labelText: '単位 (例: g)'))),
                 ],
@@ -509,15 +526,15 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Expanded(child: TextField(controller: pCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'タンパク質'))),
+                  Expanded(child: TextField(controller: pCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'タンパク質'))),
                   const SizedBox(width: 8),
-                  Expanded(child: TextField(controller: fCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '脂質'))),
+                  Expanded(child: TextField(controller: fCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '脂質'))),
                   const SizedBox(width: 8),
-                  Expanded(child: TextField(controller: cCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '炭水化物'))),
+                  Expanded(child: TextField(controller: cCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '炭水化物'))),
                 ],
               ),
               const SizedBox(height: 8),
-              TextField(controller: kcalCtrl, keyboardType: TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'カロリー (kcal)')),
+              TextField(controller: kcalCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'カロリー (kcal)')),
             ],
           ),
         ),
@@ -540,6 +557,94 @@ class _MyProductsSheetState extends State<_MyProductsSheet> {
               if (ctx.mounted) Navigator.pop(ctx);
             }, 
             child: const Text('登録')
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditDialog(MyProduct product) {
+    final nameCtrl = TextEditingController(text: product.name);
+    final amountCtrl = TextEditingController(text: product.baseAmount.toString());
+    final unitCtrl = TextEditingController(text: product.unit);
+    final pCtrl = TextEditingController(text: product.protein.toString());
+    final fCtrl = TextEditingController(text: product.fat.toString());
+    final cCtrl = TextEditingController(text: product.carbs.toString());
+    final kcalCtrl = TextEditingController(text: product.calories.toString());
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('My食品の編集'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: '食品名')),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(flex: 2, child: TextField(controller: amountCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '基準量'))),
+                  const SizedBox(width: 8),
+                  Expanded(flex: 1, child: TextField(controller: unitCtrl, decoration: const InputDecoration(labelText: '単位'))),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: TextField(controller: pCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'タンパク質'))),
+                  const SizedBox(width: 8),
+                  Expanded(child: TextField(controller: fCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '脂質'))),
+                  const SizedBox(width: 8),
+                  Expanded(child: TextField(controller: cCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '炭水化物'))),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(controller: kcalCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: 'カロリー (kcal)')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          TextButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              final amount = double.tryParse(amountCtrl.text) ?? product.baseAmount;
+              final unit = unitCtrl.text.trim();
+              final p = double.tryParse(pCtrl.text) ?? 0;
+              final f = double.tryParse(fCtrl.text) ?? 0;
+              final c = double.tryParse(cCtrl.text) ?? 0;
+              final kcal = double.tryParse(kcalCtrl.text) ?? 0;
+              
+              await _firestoreService.saveMyProduct(MyProduct(
+                id: product.id, name: name, baseAmount: amount, unit: unit, protein: p, fat: f, carbs: c, calories: kcal,
+                createdAt: product.createdAt,
+              ));
+              if (ctx.mounted) Navigator.pop(ctx);
+            }, 
+            child: const Text('更新')
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirm(MyProduct product) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('削除の確認'),
+        content: Text('「${product.name}」を削除してもよろしいですか？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          TextButton(
+            onPressed: () async {
+              await _firestoreService.deleteMyProduct(product.id);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('削除'),
           ),
         ],
       ),

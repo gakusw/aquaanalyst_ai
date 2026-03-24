@@ -8,6 +8,7 @@ import '../models/app_user.dart';
 import '../models/training_insight.dart';
 import '../services/gemini_service.dart';
 import '../models/my_product.dart';
+import '../models/my_menu.dart';
 
 final firestoreServiceProvider = Provider((ref) => FirestoreService());
 
@@ -56,6 +57,11 @@ final weeklyPlansProvider = StreamProvider.autoDispose<List<WeeklyPlan>>((ref) {
 // My食品リスト
 final myProductsProvider = StreamProvider.autoDispose<List<MyProduct>>((ref) {
   return ref.watch(firestoreServiceProvider).getMyProductsStream();
+});
+
+// Myメニューリスト
+final myMenusProvider = StreamProvider.autoDispose<List<MyMenu>>((ref) {
+  return ref.watch(firestoreServiceProvider).getMyMenusStream();
 });
 
 // レース記録
@@ -179,12 +185,12 @@ final coachSystemContextProvider = Provider.autoDispose<String>((ref) {
     "- ${r.date.toIso8601String().substring(0,10)}: 体重 ${r.subjectiveMetrics['weight']}kg, 体脂肪 ${r.subjectiveMetrics['body_fat']}%").join('\n');
     
   String nutritionText = nutritionRecords.isEmpty ? "なし" : nutritionRecords.take(10).map((r) {
-    final detail = r.details.firstWhere((d) => d['type'] == 'memo', orElse: () => {'content': ''});
-    final mealLabel = r.subjectiveMetrics['meal_label'] ?? '不明';
+    final mealLabel = r.subjectiveMetrics['meal_label'] ?? '詳細なし';
+    return "- ${r.date.toIso8601String().substring(0,10)}: $mealLabel";
   }).join('\n');
   
-  String pbText = pbs.isEmpty ? "なし" : pbs.map((pb) => "- ${pb.event}: ${pb.value}").join('\n');
-  String goalText = goals.isEmpty ? "なし" : goals.map((g) => "- ${g.event}: ${g.value}").join('\n');
+  String pbText = pbs.isEmpty ? "なし" : pbs.map((pb) => "- ${pb.event}: ${pb.value}${pb.category == 'swim' ? '秒' : 'kg'}").join('\n');
+  String goalText = goals.isEmpty ? "なし" : goals.map((g) => "- ${g.event}: ${g.value}秒").join('\n');
   
   String sleepText = sleepRecords.isEmpty ? "なし" : sleepRecords.take(7).map((r) {
     final hours = (r.durationMinutes / 60).floor();
@@ -192,15 +198,38 @@ final coachSystemContextProvider = Provider.autoDispose<String>((ref) {
     return "- ${r.date.toIso8601String().substring(0,10)}: ${hours}時間${mins}分 睡眠";
   }).join('\n');
 
+  // プロフィール情報の詳細化
+  final age = user.baseProfile['age'] ?? '未設定';
+  final height = user.baseProfile['height'] ?? '未設定';
+  final weight = user.baseProfile['weight'] ?? '未設定';
+  final medical = user.baseProfile['medicalHistory'] ?? '特になし';
+  final notes = user.baseProfile['personal_notes'] ?? '特になし';
+  final pool = user.baseProfile['env_pool_length'] ?? '不明';
+  final targetCal = user.baseProfile['targetCalories'] ?? '2500';
+
   return """
-[最新のユーザーデータ]
+[ユーザープロフィール]
+■ 基本情報:
+- 名前: ${user.displayName}
+- ビジョン(目標): ${user.vision.isEmpty ? '未設定' : user.vision}
+- 年齢: $age 歳
+- 身長: $height cm
+- 体重(初期/設定値): $weight kg
+- 既往歴/怪我: $medical
+- 備考: $notes
+
+■ 練習環境:
+- 主な水路: $pool
+- 目標摂取カロリー(標準): $targetCal kcal
+
+[最新の活動データ]
 ■ 睡眠記録 (直近):
 $sleepText
 
-■ 体組成:
+■ 体組成 (直近):
 $bodyCompText
 
-■ 食事/サプリメント記録:
+■ 食事記録 (直近):
 $nutritionText
 
 ■ 自己ベスト:
@@ -241,6 +270,11 @@ final insightDataProvider = Provider.autoDispose<Map<String, dynamic>>((ref) {
 // 最新のトレーニングインサイト
 final latestInsightProvider = StreamProvider.autoDispose<TrainingInsight?>((ref) {
   return ref.watch(firestoreServiceProvider).getLatestInsightStream();
+});
+
+// 全インサイト履歴
+final trainingInsightsProvider = StreamProvider.autoDispose<List<TrainingInsight>>((ref) {
+  return ref.watch(firestoreServiceProvider).getTrainingInsightsStream();
 });
 
 // 本日のAI利用回数

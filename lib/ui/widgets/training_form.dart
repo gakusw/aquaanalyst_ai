@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
+import '../../data/models/my_menu.dart';
+import '../../data/providers/providers.dart';
 import '../../utils/event_utils.dart';
 import '../widgets/stable_text_field.dart';
 import '../../utils/app_colors.dart';
 
-class TrainingForm extends StatefulWidget {
+class TrainingForm extends ConsumerStatefulWidget {
   final bool isDialog;
   final VoidCallback? onSaveSuccess;
   final TrainingRecord? initialRecord;
@@ -19,10 +22,10 @@ class TrainingForm extends StatefulWidget {
   });
 
   @override
-  State<TrainingForm> createState() => _TrainingFormState();
+  ConsumerState<TrainingForm> createState() => _TrainingFormState();
 }
 
-class _TrainingFormState extends State<TrainingForm> {
+class _TrainingFormState extends ConsumerState<TrainingForm> {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _menuController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
@@ -154,6 +157,26 @@ class _TrainingFormState extends State<TrainingForm> {
     }
   }
 
+  void _showMyMenuSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _MyMenuSheet(
+        currentContent: _menuController.text.trim(),
+        onSelect: (content) {
+          setState(() {
+            if (_menuController.text.isNotEmpty) {
+              _menuController.text += '\n\n';
+            }
+            _menuController.text += content;
+          });
+        },
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -170,13 +193,14 @@ class _TrainingFormState extends State<TrainingForm> {
               const Spacer(),
               if (_isOcrLoading)
                 const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              else
+              else ...[
                 TextButton.icon(
                   onPressed: _runOcr,
                   icon: const Icon(Icons.camera_alt, size: 16),
                   label: const Text('写真解析', style: TextStyle(fontSize: 12)),
                   style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
                 ),
+              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -188,6 +212,18 @@ class _TrainingFormState extends State<TrainingForm> {
             lines: 8,
             hintText: '',
             // labelText は省いて上に Text で表示
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: _showMyMenuSheet,
+                icon: const Icon(Icons.bookmark, size: 16, color: Colors.teal),
+                label: const Text('Myメニュー', style: TextStyle(fontSize: 12, color: Colors.teal)),
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -421,5 +457,213 @@ class _TrainingFormState extends State<TrainingForm> {
         setState(() => _isSaving = false);
       }
     }
+  }
+}
+
+class _MyMenuSheet extends ConsumerStatefulWidget {
+  final String currentContent;
+  final Function(String) onSelect;
+  const _MyMenuSheet({required this.currentContent, required this.onSelect});
+
+  @override
+  ConsumerState<_MyMenuSheet> createState() => _MyMenuSheetState();
+}
+
+class _MyMenuSheetState extends ConsumerState<_MyMenuSheet> {
+  final FirestoreService _firestoreService = FirestoreService();
+
+  @override
+  Widget build(BuildContext context) {
+    final myMenusAsync = ref.watch(myMenusProvider);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Column(
+          children: [
+            AppBar(
+              title: const Text('Myメニューリスト', style: TextStyle(fontSize: 16)),
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              actions: [
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+              ],
+            ),
+            Expanded(
+              child: myMenusAsync.when(
+                data: (menus) => menus.isEmpty
+                  ? const Center(child: Text('登録されたメニューはありません'))
+                  : ListView.builder(
+                      itemCount: menus.length,
+                      itemBuilder: (context, index) {
+                        final m = menus[index];
+                        return ListTile(
+                          title: Text(m.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text(m.content, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, size: 18, color: Colors.teal),
+                                onPressed: () => _showEditDialog(m),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete, size: 18, color: Colors.redAccent),
+                                onPressed: () => _showDeleteConfirm(m),
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            widget.onSelect(m.content);
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, st) => Center(child: Text('エラー: $e')),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton.icon(
+                onPressed: _showAddDialog,
+                icon: const Icon(Icons.add),
+                label: const Text('現在内容を新しく登録する'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddDialog() {
+    final nameCtrl = TextEditingController();
+    final contentCtrl = TextEditingController(text: widget.currentContent);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Myメニューの登録'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('練習メニューをMyメニューとして保存します。', style: TextStyle(fontSize: 13)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nameCtrl, 
+                decoration: const InputDecoration(labelText: 'メニュー名 (例: インターバルA)'),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: contentCtrl, 
+                maxLines: 5,
+                decoration: const InputDecoration(labelText: 'メニュー内容'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          TextButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              final content = contentCtrl.text.trim();
+              if (name.isEmpty || content.isEmpty) return;
+              
+              await _firestoreService.saveMyMenu(MyMenu(
+                id: '', 
+                name: name, 
+                content: content, 
+                createdAt: DateTime.now(),
+              ));
+              if (ctx.mounted) Navigator.pop(ctx);
+            }, 
+            child: const Text('登録')
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditDialog(MyMenu menu) {
+    final nameCtrl = TextEditingController(text: menu.name);
+    final contentCtrl = TextEditingController(text: menu.content);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Myメニューの編集'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl, 
+                decoration: const InputDecoration(labelText: 'メニュー名'),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: contentCtrl, 
+                maxLines: 5,
+                decoration: const InputDecoration(labelText: '内容'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          TextButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              
+              await _firestoreService.saveMyMenu(MyMenu(
+                id: menu.id, 
+                name: name, 
+                content: contentCtrl.text.trim(), 
+                createdAt: menu.createdAt,
+              ));
+              if (ctx.mounted) Navigator.pop(ctx);
+            }, 
+            child: const Text('更新')
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirm(MyMenu menu) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('削除の確認'),
+        content: Text('「${menu.name}」を削除してもよろしいですか？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
+          TextButton(
+            onPressed: () async {
+              await _firestoreService.deleteMyMenu(menu.id);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -458,7 +458,7 @@ $chatContext
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.psychology, color: Colors.blueAccent, size: 24),
+                Image.asset('assets/images/app_icon.png', width: 24, height: 24),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(

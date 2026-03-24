@@ -282,7 +282,7 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
       child: ExpansionTile(
         dense: true,
         visualDensity: VisualDensity.compact,
-        leading: Icon(Icons.psychology, size: 18, color: Theme.of(context).colorScheme.primary),
+        leading: Image.asset('assets/images/app_icon.png', width: 18, height: 18),
         title: Text(
           'AI Thinking Log (${steps.length} steps)',
           style: TextStyle(
