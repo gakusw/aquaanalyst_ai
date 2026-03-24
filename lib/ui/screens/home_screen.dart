@@ -121,35 +121,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'バッジコレクション', 
-                          style: TextStyle(
-                            fontSize: 18, 
-                            fontWeight: FontWeight.bold, 
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment(value: true, label: Text('今月', style: TextStyle(fontSize: 11))),
-                            ButtonSegment(value: false, label: Text('累計', style: TextStyle(fontSize: 11))),
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1000),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'バッジコレクション', 
+                                  style: TextStyle(
+                                    fontSize: 18, 
+                                    fontWeight: FontWeight.bold, 
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                                SegmentedButton<bool>(
+                                  segments: const [
+                                    ButtonSegment(value: true, label: Text('今月', style: TextStyle(fontSize: 11))),
+                                    ButtonSegment(value: false, label: Text('累計', style: TextStyle(fontSize: 11))),
+                                  ],
+                                  selected: {_showMonthlyBadges},
+                                  onSelectionChanged: (val) => setState(() => _showMonthlyBadges = val.first),
+                                  showSelectedIcon: false,
+                                  style: SegmentedButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            _BadgeCountSection(
+                              showMonthly: _showMonthlyBadges,
+                            ),
                           ],
-                          selected: {_showMonthlyBadges},
-                          onSelectionChanged: (val) => setState(() => _showMonthlyBadges = val.first),
-                          showSelectedIcon: false,
-                          style: SegmentedButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                          ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _BadgeCountSection(
-                      showMonthly: _showMonthlyBadges,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     
@@ -1787,17 +1797,46 @@ class _BadgeCountSection extends ConsumerWidget {
         children: [
           const SizedBox.shrink(),
           const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            alignment: WrapAlignment.center,
-            children: [
-              _BadgeCountItem(icon: Icons.pool, color: AppColors.pool, count: showMonthly ? poolMonth : poolTotal, label: '水中'),
-              _BadgeCountItem(icon: Icons.fitness_center, color: AppColors.dryland, count: showMonthly ? drylandMonth : drylandTotal, label: '陸トレ'),
-              _BadgeCountItem(icon: Icons.restaurant, color: AppColors.protein, count: showMonthly ? pMonth : pTotal, label: 'P'),
-              _BadgeCountItem(icon: Icons.restaurant, color: AppColors.fat, count: showMonthly ? fMonth : fTotal, label: 'F'),
-              _BadgeCountItem(icon: Icons.restaurant, color: AppColors.carbs, count: showMonthly ? cMonth : cTotal, label: 'C'),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isNarrow = constraints.maxWidth < 450;
+              final trainingBadges = [
+                _BadgeCountItem(icon: Icons.pool, color: AppColors.pool, count: showMonthly ? poolMonth : poolTotal, label: '水中'),
+                _BadgeCountItem(icon: Icons.fitness_center, color: AppColors.dryland, count: showMonthly ? drylandMonth : drylandTotal, label: '陸トレ'),
+              ];
+              final nutrientBadges = [
+                _BadgeCountItem(icon: Icons.restaurant, color: AppColors.protein, count: showMonthly ? pMonth : pTotal, label: 'P'),
+                _BadgeCountItem(icon: Icons.restaurant, color: AppColors.fat, count: showMonthly ? fMonth : fTotal, label: 'F'),
+                _BadgeCountItem(icon: Icons.restaurant, color: AppColors.carbs, count: showMonthly ? cMonth : cTotal, label: 'C'),
+              ];
+
+              if (isNarrow) {
+                return Column(
+                  children: [
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      alignment: WrapAlignment.center,
+                      children: trainingBadges,
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      alignment: WrapAlignment.center,
+                      children: nutrientBadges,
+                    ),
+                  ],
+                );
+              } else {
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: [...trainingBadges, ...nutrientBadges],
+                );
+              }
+            },
           ),
         ],
       ),
