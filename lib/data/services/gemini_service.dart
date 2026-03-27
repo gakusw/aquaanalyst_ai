@@ -31,12 +31,24 @@ class GeminiService {
   static const String model31FlashLite = 'gemini-3.1-flash-lite-preview';
   static const String model30Flash = 'gemini-3.0-flash-preview-0514';
   static const String modelFlashLite = 'gemini-1.5-flash-8b';
+  static const String model21Flash = 'gemini-2.1-flash';
 
   static const String modelFlash = model25Flash; 
   static const String modelPro = model25Pro;
   static const String modelForChat = model25Flash;
   static const String modelForInsight = model25Flash;
   static const String modelForNutrition = model25Flash;
+
+  static const List<String> availableModels = [
+    model25Flash,
+    model25Pro,
+    model21Flash,
+    model15Flash,
+    model15Pro,
+    model31FlashLite,
+    model30Flash,
+    modelFlashLite,
+  ];
 
   Future<void> init() async {
     _apiKey = dotenv.env['GEMINI_API_KEY'];
@@ -61,6 +73,12 @@ class GeminiService {
     );
     
     final response = await model.generateContent([Content.text(prompt)]);
+    
+    // 統計のインクリメント
+    final inputT = response.usageMetadata?.promptTokenCount ?? 0;
+    final outputT = response.usageMetadata?.candidatesTokenCount ?? 0;
+    FirestoreService().incrementGlobalUsage(modelId ?? modelFlash, inputTokens: inputT, outputTokens: outputT);
+    
     return response.text;
   }
 
@@ -82,6 +100,12 @@ class GeminiService {
     ];
     
     final response = await model.generateContent(content);
+    
+    // 統計のインクリメント
+    final inputT = response.usageMetadata?.promptTokenCount ?? 0;
+    final outputT = response.usageMetadata?.candidatesTokenCount ?? 0;
+    FirestoreService().incrementGlobalUsage(modelId ?? modelFlash, inputTokens: inputT, outputTokens: outputT);
+
     return response.text;
   }
 
@@ -264,7 +288,7 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
       useRootNavigator: true,
       builder: (ctx) => AlertDialog(
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Text(msg),
+        content: SingleChildScrollView(child: Text(msg)),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx, rootNavigator: true).pop(), child: const Text('閉じる')),
         ],

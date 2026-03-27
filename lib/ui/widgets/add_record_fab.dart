@@ -30,7 +30,9 @@ class AddRecordFab extends StatelessWidget {
         ),
         content: SizedBox(
           width: double.maxFinite,
-          child: formBuilder(ctx, formKey),
+          child: SingleChildScrollView(
+            child: formBuilder(ctx, formKey),
+          ),
         ),
         actions: [
           TextButton(

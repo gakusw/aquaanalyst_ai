@@ -35,6 +35,7 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
   final List<CoachMessage> _messages = [];
   ChatSession? _chatSession;
   bool _isTyping = false;
+  bool _showScrollToBottom = false;
   String? _streamingResponse;
   String? _currentSessionId = _activeSessionId;
   String? _activeModelId;
@@ -42,7 +43,17 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_scrollListener);
     _initScreen();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.hasClients) {
+      final isScrollingUp = _scrollController.offset > 300;
+      if (isScrollingUp != _showScrollToBottom) {
+        setState(() => _showScrollToBottom = isScrollingUp);
+      }
+    }
   }
 
   Future<void> _initScreen() async {
@@ -361,73 +372,78 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder<List<ChatMessage>>(
-              stream: _firestoreService.getChatMessagesStream(_currentSessionId!),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                
-                final dbMessages = snapshot.data ?? [];
-                
-                // 初回読み込みでデータが空の場合の初期メッセージ
-                if (dbMessages.isEmpty && !_isTyping) {
-                   // 初回時のAIの挨拶。DBには保存しない。
-                   return ListView(
-                     padding: const EdgeInsets.all(16.0),
-                     children: [
-                       _buildMessageBubble(CoachMessage(
-                        text: 'こんにちは！専属コーチです。トレーニングの振り返りや、栄養、睡眠、今後の計画など、何でも相談してくださいね。',
-                        isAi: true,
-                       )),
-                     ],
-                   );
-                }
-
-                // reverse: true を使用して最新メッセージを下にする
-                final displayMessages = dbMessages.reversed.toList();
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  reverse: true,
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: displayMessages.length + (_isTyping || _streamingResponse != null ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if ((_isTyping || _streamingResponse != null) && index == 0) {
-                      if (_isTyping) {
-                        return const Align(
-                          alignment: Alignment.centerLeft,
-                          child: Padding(
-                            padding: EdgeInsets.only(bottom: 16.0),
-                            child: Chip(
-                              avatar: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                              label: Text('考え中...'),
-                            ),
-                          ),
-                        );
-                      } else {
-                        return _buildMessageBubble(CoachMessage(
-                          text: _streamingResponse!,
-                          isAi: true,
-                          type: MessageType.normal,
-                        ));
-                      }
+            child: Stack(
+              children: [
+                StreamBuilder<List<ChatMessage>>(
+                  stream: _firestoreService.getChatMessagesStream(_currentSessionId!),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
                     }
                     
-                    final mIndex = (_isTyping || _streamingResponse != null) ? index - 1 : index;
-                    final m = displayMessages[mIndex];
-                    return _buildMessageBubble(CoachMessage(
-                      text: m.text,
-                      isAi: m.isAi,
-                      type: MessageType.normal,
-                    ));
+                    final dbMessages = snapshot.data ?? [];
+                    
+                    // 初回読み込みでデータが空の場合の初期メッセージ
+                    if (dbMessages.isEmpty && !_isTyping) {
+                       // 初回時のAIの挨拶。DBには保存しない。
+                       return ListView(
+                         padding: const EdgeInsets.all(16.0),
+                         children: [
+                           _buildMessageBubble(CoachMessage(
+                            text: 'こんにちは！専属コーチです。トレーニングの振り返りや、栄養、睡眠、今後の計画など、何でも相談してくださいね。',
+                            isAi: true,
+                           )),
+                         ],
+                       );
+                    }
+
+                    // reverse: true を使用して最新メッセージを下にする
+                    final displayMessages = dbMessages.reversed.toList();
+
+                    return ListView.builder(
+                      controller: _scrollController,
+                      reverse: true,
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: displayMessages.length + (_isTyping || _streamingResponse != null ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if ((_isTyping || _streamingResponse != null) && index == 0) {
+                          if (_isTyping) {
+                            return const Align(
+                              alignment: Alignment.centerLeft,
+                              child: Padding(
+                                padding: EdgeInsets.only(bottom: 16.0),
+                                child: Chip(
+                                  avatar: SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                  label: Text('考え中...'),
+                                ),
+                              ),
+                            );
+                          } else {
+                            return _buildMessageBubble(CoachMessage(
+                              text: _streamingResponse!,
+                              isAi: true,
+                              type: MessageType.normal,
+                            ));
+                          }
+                        }
+                        
+                        final mIndex = (_isTyping || _streamingResponse != null) ? index - 1 : index;
+                        final m = displayMessages[mIndex];
+                        return _buildMessageBubble(CoachMessage(
+                          text: m.text,
+                          isAi: m.isAi,
+                          type: MessageType.normal,
+                        ));
+                      },
+                    );
                   },
-                );
-              },
+                ),
+                _buildScrollToBottomButton(),
+              ],
             ),
           ),
           const Divider(height: 1),
@@ -656,46 +672,36 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
                   color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20.0),
                 ),
-                  child: Focus(
-                  onKeyEvent: (node, event) {
-                    // Enterキーが押された際（KeyDownEvent）の処理
-                    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
-                      final bool isCtrl = HardwareKeyboard.instance.isControlPressed;
-                      final bool isShift = HardwareKeyboard.instance.isShiftPressed;
-
-                      // モバイル等でCtrl/Shiftキーが使えない場合は無視
-                      // PCで Ctrl+Enter または Shift+Enter の場合は改行（TextFieldが処理）
-                      if (isCtrl || isShift) {
-                        return KeyEventResult.ignored;
-                      }
-
-                      // 変換中 (Composing) でない場合のみ送信
-                      if (!_textController.value.composing.isValid) {
-                        final text = _textController.text;
-                        if (text.trim().isNotEmpty) {
-                          _handleSubmitted(text);
-                        }
-                        return KeyEventResult.handled; // 送信されたのでこれ以上のイベント伝播を防ぐ
-                      } else {
-                        // 変換中のEnterは変換確定としてTextFieldに任せる
-                        return KeyEventResult.ignored;
-                      }
-                    }
-                    return KeyEventResult.ignored;
-                  },
-                  child: TextField(
-                    controller: _textController,
-                    minLines: 1,
-                    maxLines: 5, // 5行まで自動で伸びるように変更。1だと使いにくい可能性があるため
-                    textAlignVertical: TextAlignVertical.top,
-                      keyboardType: TextInputType.multiline,
-                      textInputAction: TextInputAction.newline, // モバイルでも改行を優先
-                      decoration: const InputDecoration(
-                        hintText: 'メッセージを入力',
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
-                      ),
-                    ),
+                child: TextField(
+                  controller: _textController,
+                  minLines: 1,
+                  maxLines: 5,
+                  textAlignVertical: TextAlignVertical.top,
+                  style: const TextStyle(
+                    fontSize: 15, 
+                    height: 1.0,
+                    letterSpacing: 0.0,
+                    fontFamily: 'sans-serif',
+                    fontFeatures: [
+                      FontFeature.disable('kern'),
+                      FontFeature.disable('liga'),
+                    ],
+                  ),
+                  strutStyle: const StrutStyle(
+                    height: 1.0,
+                    forceStrutHeight: true,
+                  ),
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  smartDashesType: SmartDashesType.disabled,
+                  smartQuotesType: SmartQuotesType.disabled,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  decoration: const InputDecoration(
+                    hintText: 'メッセージを入力',
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 8.0),
+                  ),
                 ),
               ),
             ),
@@ -712,6 +718,30 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScrollToBottomButton() {
+    return Positioned(
+      right: 16.0,
+      bottom: 16.0,
+      child: AnimatedOpacity(
+        opacity: _showScrollToBottom ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        child: Visibility(
+          visible: _showScrollToBottom,
+          child: FloatingActionButton.small(
+            onPressed: () {
+              _scrollController.animateTo(
+                0,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            },
+            child: const Icon(Icons.arrow_downward),
+          ),
         ),
       ),
     );

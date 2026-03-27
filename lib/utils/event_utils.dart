@@ -26,17 +26,6 @@ class EventUtils {
     // 個人メドレー (IM)
     normalized = normalized.replaceAll(RegExp(r'\b(IM)\b', caseSensitive: false), '個人メドレー');
 
-    // 距離の数値に 'm' がない場合に自動付与 (25, 50, 100, 200, 400, 800, 1500 など)
-    // 10mから5000m程度の数値を対象とする
-    normalized = normalized.replaceAllMapped(RegExp(r'\b(\d+)\b(?!\s*m)'), (match) {
-      final val = match.group(1)!;
-      final numValue = int.tryParse(val);
-      if (numValue != null && numValue >= 10 && numValue <= 5000) {
-        return '${val}m';
-      }
-      return val;
-    });
-
     // 数値と 'm' の間のスペースを削除 (例: 100 m -> 100m)
     normalized = normalized.replaceAllMapped(RegExp(r'(\d+)\s+m'), (m) => '${m.group(1)}m');
 

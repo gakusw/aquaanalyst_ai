@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/firestore_service.dart';
 import '../models/training_record.dart';
 import '../models/personal_best.dart';
@@ -12,8 +13,17 @@ import '../models/my_menu.dart';
 
 final firestoreServiceProvider = Provider((ref) => FirestoreService());
 
+// 認証状態の監視
+final authStateProvider = StreamProvider<User?>((ref) {
+  return FirebaseAuth.instance.authStateChanges();
+});
+
 // ユーザープロフィール
 final userProfileProvider = StreamProvider.autoDispose<AppUser?>((ref) {
+  // 認証状態の変化を検知
+  final authState = ref.watch(authStateProvider);
+  if (authState.value == null) return Stream.value(null);
+
   final stream = ref.watch(firestoreServiceProvider).getUserProfileStream().asBroadcastStream();
   // 管理者の場合、設定を自動ロードする副作用を追加
   stream.listen((user) {
@@ -31,41 +41,57 @@ final systemSettingsProvider = StreamProvider.autoDispose<Map<String, dynamic>>(
 
 // 練習記録 (最新50件)
 final trainingRecordsProvider = StreamProvider.autoDispose<List<TrainingRecord>>((ref) {
+  final authState = ref.watch(authStateProvider);
+  if (authState.value == null) return Stream.value([]);
   return ref.watch(firestoreServiceProvider).getTrainingRecordsStream(limit: 50);
 });
 
 // 自己ベスト
 final personalBestsProvider = StreamProvider.autoDispose<List<PersonalBest>>((ref) {
+  final authState = ref.watch(authStateProvider);
+  if (authState.value == null) return Stream.value([]);
   return ref.watch(firestoreServiceProvider).getPersonalBestsStream();
 });
 
 // 目標タイム
 final goalTimesProvider = StreamProvider.autoDispose<List<GoalTime>>((ref) {
+  final authState = ref.watch(authStateProvider);
+  if (authState.value == null) return Stream.value([]);
   return ref.watch(firestoreServiceProvider).getGoalTimesStream();
 });
 
 // 最新の週間計画
 final latestWeeklyPlanProvider = StreamProvider.autoDispose<WeeklyPlan?>((ref) {
+  final authState = ref.watch(authStateProvider);
+  if (authState.value == null) return Stream.value(null);
   return ref.watch(firestoreServiceProvider).getLatestWeeklyPlanStream();
 });
 
 // すべての週間計画（履歴・バッジ判定用）
 final weeklyPlansProvider = StreamProvider.autoDispose<List<WeeklyPlan>>((ref) {
+  final authState = ref.watch(authStateProvider);
+  if (authState.value == null) return Stream.value([]);
   return ref.watch(firestoreServiceProvider).getWeeklyPlansStream();
 });
 
 // My食品リスト
 final myProductsProvider = StreamProvider.autoDispose<List<MyProduct>>((ref) {
+  final authState = ref.watch(authStateProvider);
+  if (authState.value == null) return Stream.value([]);
   return ref.watch(firestoreServiceProvider).getMyProductsStream();
 });
 
 // Myメニューリスト
 final myMenusProvider = StreamProvider.autoDispose<List<MyMenu>>((ref) {
+  final authState = ref.watch(authStateProvider);
+  if (authState.value == null) return Stream.value([]);
   return ref.watch(firestoreServiceProvider).getMyMenusStream();
 });
 
 // レース記録
 final raceRecordsProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  final authState = ref.watch(authStateProvider);
+  if (authState.value == null) return Stream.value([]);
   return ref.watch(firestoreServiceProvider).getRaceRecordsStream();
 });
 
@@ -177,16 +203,39 @@ final coachSystemContextProvider = Provider.autoDispose<String>((ref) {
 
   if (user == null) return "ユーザー情報がありません。";
 
-  final bodyCompRecords = records.where((r) => r.type == 'body_composition').toList();
-  final nutritionRecords = records.where((r) => r.type == 'nutrition').toList();
+  final poolRecords = records.where((r) => r.type == 'pool').toList();
+  final drylandRecords = records.where((r) => r.type == 'dryland').toList();
+  final bodyCompRecords = records.where((r) => 
+    r.type == 'body_composition' || (r.type == 'nutrition' && r.subjectiveMetrics['is_body_composition'] == true)
+  ).toList();
+  final nutritionRecords = records.where((r) => 
+    r.type == 'nutrition' && r.subjectiveMetrics['is_body_composition'] != true
+  ).toList();
   final sleepRecords = records.where((r) => r.type == 'sleep').toList();
 
-  String bodyCompText = bodyCompRecords.isEmpty ? "なし" : bodyCompRecords.take(5).map((r) => 
-    "- ${r.date.toIso8601String().substring(0,10)}: 体重 ${r.subjectiveMetrics['weight']}kg, 体脂肪 ${r.subjectiveMetrics['body_fat']}%").join('\n');
+  String poolText = poolRecords.isEmpty ? "なし" : poolRecords.take(5).map((r) {
+    final cond = r.subjectiveMetrics['condition'] ?? '-';
+    final feel = r.subjectiveMetrics['intensity_feeling'] ?? '-';
+    final dist = r.totalMeters;
+    return "- ${r.date.toIso8601String().substring(0,10)}: ${dist}m (調子:$cond, 疲労/感覚:$feel)";
+  }).join('\n');
+
+  String drylandText = drylandRecords.isEmpty ? "なし" : drylandRecords.take(5).map((r) {
+    final cond = r.subjectiveMetrics['condition'] ?? '-';
+    return "- ${r.date.toIso8601String().substring(0,10)}: ${r.durationMinutes}分 (調子:$cond)";
+  }).join('\n');
+
+  String bodyCompText = bodyCompRecords.isEmpty ? "なし" : bodyCompRecords.take(5).map((r) {
+    final w = r.subjectiveMetrics['weight'] ?? '-';
+    final f = r.subjectiveMetrics['body_fat'] ?? '-';
+    final m = r.subjectiveMetrics['muscle_mass'] ?? '-';
+    return "- ${r.date.toIso8601String().substring(0,10)}: 体重 ${w}kg, 体脂肪 ${f}%, 筋量 ${m}kg";
+  }).join('\n');
     
   String nutritionText = nutritionRecords.isEmpty ? "なし" : nutritionRecords.take(10).map((r) {
     final mealLabel = r.subjectiveMetrics['meal_label'] ?? '詳細なし';
-    return "- ${r.date.toIso8601String().substring(0,10)}: $mealLabel";
+    final cal = r.subjectiveMetrics['calories'] ?? '-';
+    return "- ${r.date.toIso8601String().substring(0,10)}: $mealLabel (${cal}kcal)";
   }).join('\n');
   
   String pbText = pbs.isEmpty ? "なし" : pbs.map((pb) => "- ${pb.event}: ${pb.value}${pb.category == 'swim' ? '秒' : 'kg'}").join('\n');
@@ -223,10 +272,16 @@ final coachSystemContextProvider = Provider.autoDispose<String>((ref) {
 - 目標摂取カロリー(標準): $targetCal kcal
 
 [最新の活動データ]
-■ 睡眠記録 (直近):
+■ 水中トレーニング (直近5件):
+$poolText
+
+■ 陸上トレーニング (直近5件):
+$drylandText
+
+■ 睡眠記録 (直近7日):
 $sleepText
 
-■ 体組成 (直近):
+■ 体組成 (直近5件):
 $bodyCompText
 
 ■ 食事記録 (直近):
@@ -279,5 +334,7 @@ final trainingInsightsProvider = StreamProvider.autoDispose<List<TrainingInsight
 
 // 本日のAI利用回数
 final dailyUsageProvider = StreamProvider.autoDispose<int>((ref) {
+  final authState = ref.watch(authStateProvider);
+  if (authState.value == null) return Stream.value(0);
   return ref.watch(firestoreServiceProvider).getDailyUsageStream();
 });

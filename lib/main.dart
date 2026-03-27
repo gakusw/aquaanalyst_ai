@@ -22,7 +22,7 @@ import 'ui/screens/nutrition_screen.dart';
 import 'ui/screens/body_composition_screen.dart';
 import 'ui/screens/analysis_sheet_form.dart';
 import 'ui/screens/auth_screen.dart';
-import 'ui/screens/deferred_admin_screen.dart';
+import 'ui/screens/admin_screen.dart';
 import 'ui/screens/maintenance_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -47,7 +47,7 @@ void main() async {
     debugPrint('.env file not found. Ensure GEMINI_API_KEY is available in platform runtime.');
   }
   
-  GeminiService().init();
+  await GeminiService().init();
   debugPrint('GeminiService Initialized');
 
   runApp(const ProviderScope(child: MyApp()));
@@ -123,7 +123,7 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/admin',
-      builder: (context, state) => const DeferredAdminScreen(),
+      builder: (context, state) => const AdminScreen(),
     ),
   ],
 );
@@ -166,6 +166,11 @@ class MyApp extends ConsumerWidget {
               secondary: secondaryColor,
               surface: const Color(0xFFF8FAFC),
             ),
+            textSelectionTheme: TextSelectionThemeData(
+              selectionColor: primaryColor.withValues(alpha: 0.25),
+              selectionHandleColor: primaryColor,
+              cursorColor: primaryColor,
+            ),
             useMaterial3: true,
             cardTheme: CardThemeData(
               elevation: 0,
@@ -200,6 +205,11 @@ class MyApp extends ConsumerWidget {
               secondary: secondaryColor,
               surface: const Color(0xFF020617), // Rich Black (was background)
               surfaceContainerHighest: const Color(0xFF0F172A), // Deep Navy (was surface)
+            ),
+            textSelectionTheme: TextSelectionThemeData(
+              selectionColor: primaryColor.withValues(alpha: 0.25),
+              selectionHandleColor: primaryColor,
+              cursorColor: primaryColor,
             ),
             useMaterial3: true,
             scaffoldBackgroundColor: const Color(0xFF020617),

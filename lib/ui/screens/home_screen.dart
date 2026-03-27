@@ -7,7 +7,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:go_router/go_router.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pasteboard/pasteboard.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/firestore_service.dart';
@@ -17,21 +16,186 @@ import '../../data/models/personal_best.dart';
 import '../../data/models/goal_time.dart';
 import '../../data/models/weekly_plan.dart';
 import '../../data/models/app_user.dart';
+import '../../data/providers/providers.dart';
 import '../../utils/event_utils.dart';
 import '../../utils/date_utils.dart';
 import '../../utils/app_colors.dart';
-import '../../utils/file_saver.dart'; // Add this
-import '../../data/providers/providers.dart';
+import '../../utils/file_saver.dart';
 import '../widgets/premium_card.dart';
 import '../widgets/training_form.dart';
 import '../widgets/nutrition_form.dart';
 import '../widgets/body_composition_form.dart';
+import '../widgets/add_record_fab.dart';
+import '../screens/agent_feedback_screen.dart';
+import '../screens/analysis_sheet_form.dart';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'package:intl/intl.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
+
+  static void showAddSleepDialog(BuildContext context, {TrainingRecord? initialRecord}) {
+    final firestoreService = FirestoreService();
+    final initialStart = initialRecord != null && initialRecord.subjectiveMetrics['sleep_start'] != null
+        ? DateTime.parse(initialRecord.subjectiveMetrics['sleep_start'] as String)
+        : null;
+    final initialEnd = initialRecord != null && initialRecord.subjectiveMetrics['sleep_end'] != null
+        ? DateTime.parse(initialRecord.subjectiveMetrics['sleep_end'] as String)
+        : null;
+
+    DateTime wakeDate = initialEnd ?? DateTime.now();
+    final sleepHourController = TextEditingController(text: initialStart?.hour.toString().padLeft(2, '0') ?? '23');
+    final sleepMinController = TextEditingController(text: initialStart?.minute.toString().padLeft(2, '0') ?? '00');
+    final wakeHourController = TextEditingController(text: initialEnd?.hour.toString().padLeft(2, '0') ?? '07');
+    final wakeMinController = TextEditingController(text: initialEnd?.minute.toString().padLeft(2, '0') ?? '00');
+
+    bool sleptYesterday = true;
+    if (initialStart != null && initialEnd != null) {
+      // 就寝日が起床日の前日ならチェックを入れる
+      sleptYesterday = initialStart.isBefore(DateTime(initialEnd.year, initialEnd.month, initialEnd.day, 0, 0, 0));
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.bedtime, color: AppColors.sleep),
+              SizedBox(width: 8),
+              Text('睡眠記録'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('就寝・起床の時刻を数値で入力してください', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(height: 16),
+                const Text('就寝時刻', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Expanded(child: TextField(controller: sleepHourController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '時'))),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: sleepMinController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '分'))),
+                  ],
+                ),
+                CheckboxListTile(
+                  title: const Text('前日の夜に寝た', style: TextStyle(fontSize: 12)),
+                  value: sleptYesterday,
+                  onChanged: (val) => setDialogState(() => sleptYesterday = val ?? true),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                ),
+                const SizedBox(height: 12),
+                const Text('起床時刻', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Expanded(child: TextField(controller: wakeHourController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '時'))),
+                    const SizedBox(width: 8),
+                    Expanded(child: TextField(controller: wakeMinController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '分'))),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  title: const Text('起床日', style: TextStyle(fontSize: 13)),
+                  subtitle: Text('${wakeDate.month}/${wakeDate.day}'),
+                  trailing: const Icon(Icons.calendar_today, size: 18),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: wakeDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) setDialogState(() => wakeDate = picked);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                context.go('/home');
+                Navigator.pop(ctx);
+              },
+              child: const Text('キャンセル'),
+            ),
+            (() {
+              bool isSaving = false;
+              return StatefulBuilder(
+                builder: (ctx, setBtnState) {
+                  return ElevatedButton(
+                    onPressed: isSaving ? null : () async {
+                      final sH = int.tryParse(sleepHourController.text) ?? 23;
+                      final sM = int.tryParse(sleepMinController.text) ?? 0;
+                      final wH = int.tryParse(wakeHourController.text) ?? 7;
+                      final wM = int.tryParse(wakeMinController.text) ?? 0;
+
+                      final sleepDate = sleptYesterday ? wakeDate.subtract(const Duration(days: 1)) : wakeDate;
+                      final sleepStart = DateTime(sleepDate.year, sleepDate.month, sleepDate.day, sH, sM);
+                      final sleepEnd = DateTime(wakeDate.year, wakeDate.month, wakeDate.day, wH, wM);
+                      
+                      if (sleepEnd.isBefore(sleepStart)) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('起床時刻が入眠時刻より前になっています')));
+                        return;
+                      }
+
+                      final duration = sleepEnd.difference(sleepStart).inMinutes;
+                      
+                      // 同期不備を防ぐため、date には起床日の 12:00:00 を設定して「実効的な当日」に確実に入れる
+                      final recordDate = DateTime(wakeDate.year, wakeDate.month, wakeDate.day, 12, 0, 0);
+
+                      final record = TrainingRecord(
+                        id: initialRecord?.id ?? '',
+                        type: 'sleep',
+                        date: recordDate,
+                        durationMinutes: duration,
+                        subjectiveMetrics: {
+                          'sleep_start': sleepStart.toIso8601String(),
+                          'sleep_end': sleepEnd.toIso8601String(),
+                        },
+                        details: [],
+                      );
+                      
+                      setBtnState(() => isSaving = true);
+                      try {
+                        if (initialRecord != null) {
+                          await firestoreService.updateTrainingRecord(initialRecord.id, record.toMap());
+                        } else {
+                          await firestoreService.addTrainingRecord(record);
+                        }
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                          context.go('/home'); 
+                        }
+                      } catch (e) {
+                          if (ctx.mounted) {
+                            GeminiService.showErrorDialog(ctx, e, title: '保存エラー');
+                          }
+                      } finally {
+                        if (ctx.mounted) setBtnState(() => isSaving = false);
+                      }
+                    },
+                    child: isSaving 
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('保存'),
+                  );
+                }
+              );
+            })(),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
@@ -39,6 +203,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final int _bodyCompOffset = 1; // デフォルトで今月を右から2番目にするためのオフセット
   bool _showMonthlyBadges = true; // バッジ表示切替フラグ
   bool _isRaceRecordsExpanded = false; // レース記録の開閉状態
+  bool _isDrylandPbsExpanded = false; // 陸トレ自己ベストの開閉状態
 
   bool _isShowingSleepDialog = false;
 
@@ -53,7 +218,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _isShowingSleepDialog = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            _showAddSleepDialog(context);
+            HomeScreen.showAddSleepDialog(context);
           }
         });
       }
@@ -259,14 +424,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('ウエイトトレーニング自己ベスト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                IconButton(icon: const Icon(Icons.add_circle, color: Colors.amber), onPressed: () => _showAddPbDialog(context, 'dryland')),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => setState(() => _isDrylandPbsExpanded = !_isDrylandPbsExpanded),
+                      icon: Icon(_isDrylandPbsExpanded ? Icons.expand_less : Icons.expand_more, size: 18),
+                      label: Text(_isDrylandPbsExpanded ? 'たたむ' : 'すべて表示', style: const TextStyle(fontSize: 12)),
+                    ),
+                    IconButton(icon: const Icon(Icons.add_circle, color: Colors.amber), onPressed: () => _showAddPbDialog(context, 'dryland')),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 16),
             if (latestDrylandPbs.isEmpty) const Text('自己ベストがまだ登録されていません。', style: TextStyle(color: Colors.grey)),
-            ...latestDrylandPbs.values.toList().reversed.map((pb) => 
-               _buildWeightBestCard(context, pb, drylandPbHistory[pb.event]!)
-            ),
+            ...(() {
+              final pbs = latestDrylandPbs.values.toList().reversed.toList();
+              final displayPbs = _isDrylandPbsExpanded ? pbs : pbs.take(3).toList();
+              return displayPbs.map((pb) => 
+                 _buildWeightBestCard(context, pb, drylandPbHistory[pb.event]!)
+              );
+            })(),
+            if (!_isDrylandPbsExpanded && latestDrylandPbs.length > 3)
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text('ほか ${latestDrylandPbs.length - 3} 件の記録があります', 
+                    style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic)),
+                ),
+              ),
             const SizedBox(height: 24),
 
             // 目標タイム
@@ -395,148 +581,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _showAddSleepDialog(BuildContext context) {
-    final now = DateTime.now();
-    DateTime wakeDate = now;
-    final sleepHourController = TextEditingController(text: '23');
-    final sleepMinController = TextEditingController(text: '00');
-    final wakeHourController = TextEditingController(text: '07');
-    final wakeMinController = TextEditingController(text: '00');
-    bool sleptYesterday = true;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.bedtime, color: AppColors.sleep),
-              SizedBox(width: 8),
-              Text('睡眠記録'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('就寝・起床の時刻を数値で入力してください', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                const SizedBox(height: 16),
-                const Text('就寝時刻', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                Row(
-                  children: [
-                    Expanded(child: TextField(controller: sleepHourController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '時'))),
-                    const SizedBox(width: 8),
-                    Expanded(child: TextField(controller: sleepMinController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '分'))),
-                  ],
-                ),
-                CheckboxListTile(
-                  title: const Text('前日の夜に寝た', style: TextStyle(fontSize: 12)),
-                  value: sleptYesterday,
-                  onChanged: (val) => setDialogState(() => sleptYesterday = val ?? true),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                ),
-                const SizedBox(height: 12),
-                const Text('起床時刻', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                Row(
-                  children: [
-                    Expanded(child: TextField(controller: wakeHourController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '時'))),
-                    const SizedBox(width: 8),
-                    Expanded(child: TextField(controller: wakeMinController, keyboardType: TextInputType.number, decoration: const InputDecoration(suffixText: '分'))),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  title: const Text('起床日', style: TextStyle(fontSize: 13)),
-                  subtitle: Text('${wakeDate.month}/${wakeDate.day}'),
-                  trailing: const Icon(Icons.calendar_today, size: 18),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: wakeDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now(),
-                    );
-                    if (picked != null) setDialogState(() => wakeDate = picked);
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                context.go('/home');
-                Navigator.pop(ctx);
-              },
-              child: const Text('キャンセル'),
-            ),
-            (() {
-              bool isSaving = false;
-              return StatefulBuilder(
-                builder: (ctx, setBtnState) {
-                  return ElevatedButton(
-                    onPressed: isSaving ? null : () async {
-                      final sH = int.tryParse(sleepHourController.text) ?? 23;
-                      final sM = int.tryParse(sleepMinController.text) ?? 0;
-                      final wH = int.tryParse(wakeHourController.text) ?? 7;
-                      final wM = int.tryParse(wakeMinController.text) ?? 0;
-
-                      final sleepDate = sleptYesterday ? wakeDate.subtract(const Duration(days: 1)) : wakeDate;
-                      final sleepStart = DateTime(sleepDate.year, sleepDate.month, sleepDate.day, sH, sM);
-                      final sleepEnd = DateTime(wakeDate.year, wakeDate.month, wakeDate.day, wH, wM);
-                      
-                      if (sleepEnd.isBefore(sleepStart)) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('起床時刻が入眠時刻より前になっています')));
-                        return;
-                      }
-
-                      final duration = sleepEnd.difference(sleepStart).inMinutes;
-                      
-                      // 同期不備を防ぐため、date には起床日の 12:00:00 を設定して「実効的な当日」に確実に入れる
-                      final recordDate = DateTime(wakeDate.year, wakeDate.month, wakeDate.day, 12, 0, 0);
-
-                      final record = TrainingRecord(
-                        id: '',
-                        type: 'sleep',
-                        date: recordDate,
-                        durationMinutes: duration,
-                        subjectiveMetrics: {
-                          'sleep_start': sleepStart.toIso8601String(),
-                          'sleep_end': sleepEnd.toIso8601String(),
-                        },
-                        details: [],
-                      );
-                      
-                      setBtnState(() => isSaving = true);
-                      try {
-                        await _firestoreService.addTrainingRecord(record);
-                        if (ctx.mounted) {
-                          Navigator.pop(ctx);
-                          context.go('/home'); 
-                        }
-                      } catch (e) {
-                          if (ctx.mounted) {
-                            GeminiService.showErrorDialog(ctx, e, title: '保存エラー');
-                          }
-                      } finally {
-                        if (ctx.mounted) setBtnState(() => isSaving = false);
-                      }
-                    },
-                    child: isSaving 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('保存'),
-                  );
-                }
-              );
-            })(),
-          ],
-        ),
-      ),
-    );
-  }
 
   void _showAddPbDialog(BuildContext context, String category) {
     final eventController = TextEditingController();
@@ -548,28 +592,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           title: Text(category == 'swim' ? '水泳のPBを追加' : '陸トレのPBを追加'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: eventController, decoration: InputDecoration(labelText: category == 'swim' ? '種目 (例: 50m Fr)' : '種目 (例: ベンチプレス)')),
-              TextField(controller: valueController, decoration: InputDecoration(labelText: category == 'swim' ? 'タイム (秒)' : '重量 (kg)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-              ListTile(
-                title: const Text('記録日', style: TextStyle(fontSize: 14)),
-                subtitle: Text('${selectedDate.year}/${selectedDate.month}/${selectedDate.day}'),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: selectedDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now(),
-                  );
-                  if (picked != null) {
-                    setDialogState(() => selectedDate = picked);
-                  }
-                },
-              ),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: eventController, decoration: InputDecoration(labelText: category == 'swim' ? '種目 (例: 50m Fr)' : '種目 (例: ベンチプレス)')),
+                TextField(controller: valueController, decoration: InputDecoration(labelText: category == 'swim' ? 'タイム (秒)' : '重量 (kg)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                ListTile(
+                  title: const Text('記録日', style: TextStyle(fontSize: 14)),
+                  subtitle: Text('${selectedDate.year}/${selectedDate.month}/${selectedDate.day}'),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setDialogState(() => selectedDate = picked);
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('キャンセル')),
@@ -667,9 +713,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               content: SizedBox(
                 width: double.maxFinite,
                 height: 350,
-                child: selectedIndex == 0 && isTime
-                  ? _buildPbDetailView(bestPb, bestRecord, isLoadingRecord)
-                  : _buildPbTrendView(event, sortedHistory, isTime),
+                child: SingleChildScrollView(
+                  child: selectedIndex == 0 && isTime
+                    ? _buildPbDetailView(bestPb, bestRecord, isLoadingRecord)
+                    : _buildPbTrendView(event, sortedHistory, isTime),
+                ),
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('閉じる')),
@@ -907,147 +955,150 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         content: SizedBox(
           width: double.maxFinite,
           height: 350,
-          child: Column(
-            children: [
-              Expanded(
-                child: LineChart(
-                  LineChartData(
-                    minX: minX,
-                    maxX: maxX,
-                    minY: minKg,
-                    maxY: maxKg,
-                    clipData: const FlClipData.all(),
-                    lineBarsData: [
-                      if (weightSpots.isNotEmpty)
-                        LineChartBarData(
-                          spots: weightSpots,
-                          color: Colors.blue,
-                          barWidth: 3,
-                          isCurved: false,
-                          dotData: FlDotData(
-                            show: true,
-                            getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                              radius: 3,
-                              color: Colors.blue,
-                              strokeWidth: 1.5,
-                              strokeColor: Colors.white,
-                            ),
-                          ),
-                        ),
-                      if (muscleSpots.isNotEmpty)
-                        LineChartBarData(
-                          spots: muscleSpots,
-                          color: Colors.green,
-                          barWidth: 3,
-                          isCurved: false,
-                          dotData: FlDotData(
-                            show: true,
-                            getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                              radius: 3,
-                              color: Colors.green,
-                              strokeWidth: 1.5,
-                              strokeColor: Colors.white,
-                            ),
-                          ),
-                        ),
-                      if (normalizedFatSpots.isNotEmpty)
-                        LineChartBarData(
-                          spots: normalizedFatSpots,
-                          color: Colors.orange,
-                          barWidth: 3,
-                          isCurved: false,
-                          dotData: FlDotData(
-                            show: true,
-                            getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                              radius: 3,
-                              color: Colors.orange,
-                              strokeWidth: 1.5,
-                              strokeColor: Colors.white,
-                            ),
-                          ),
-                        ),
-                    ],
-                    titlesData: FlTitlesData(
-                      rightTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 40,
-                          getTitlesWidget: (v, m) {
-                            if (maxKg == minKg) return const SizedBox.shrink();
-                            final fatVal = (v - minKg) / (maxKg - minKg) * (maxFat - minFat) + minFat;
-                            return Text(fatVal.toStringAsFixed(1), style: const TextStyle(fontSize: 10, color: Colors.orange));
-                          },
-                        ),
-                      ),
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 40,
-                          getTitlesWidget: (v, m) => Text(v.toStringAsFixed(1), style: const TextStyle(fontSize: 10, color: Colors.blue)),
-                        ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 30,
-                          interval: (maxX - minX) / 4 > 86400000 ? (maxX - minX) / 4 : 86400000,
-                          getTitlesWidget: (v, m) {
-                            if (v % m.appliedInterval != 0 && v != m.max && v != m.min) {
-                               return const SizedBox.shrink();
-                            }
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: Text(
-                                AppDateUtils.getMonthlyChartLabel(v, previousValue: m.min == v ? null : v - m.appliedInterval),
-                                style: const TextStyle(fontSize: 8, color: Colors.grey),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 250, // チャートの高さを少し固定気味にする
+                  child: LineChart(
+                    LineChartData(
+                      minX: minX,
+                      maxX: maxX,
+                      minY: minKg,
+                      maxY: maxKg,
+                      clipData: const FlClipData.all(),
+                      lineBarsData: [
+                        if (weightSpots.isNotEmpty)
+                          LineChartBarData(
+                            spots: weightSpots,
+                            color: Colors.blue,
+                            barWidth: 3,
+                            isCurved: false,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                                radius: 3,
+                                color: Colors.blue,
+                                strokeWidth: 1.5,
+                                strokeColor: Colors.white,
                               ),
-                            );
-                          },
+                            ),
+                          ),
+                        if (muscleSpots.isNotEmpty)
+                          LineChartBarData(
+                            spots: muscleSpots,
+                            color: Colors.green,
+                            barWidth: 3,
+                            isCurved: false,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                                radius: 3,
+                                color: Colors.green,
+                                strokeWidth: 1.5,
+                                strokeColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        if (normalizedFatSpots.isNotEmpty)
+                          LineChartBarData(
+                            spots: normalizedFatSpots,
+                            color: Colors.orange,
+                            barWidth: 3,
+                            isCurved: false,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                                radius: 3,
+                                color: Colors.orange,
+                                strokeWidth: 1.5,
+                                strokeColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                      ],
+                      titlesData: FlTitlesData(
+                        rightTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 40,
+                            getTitlesWidget: (v, m) {
+                              if (maxKg == minKg) return const SizedBox.shrink();
+                              final fatVal = (v - minKg) / (maxKg - minKg) * (maxFat - minFat) + minFat;
+                              return Text(fatVal.toStringAsFixed(1), style: const TextStyle(fontSize: 10, color: Colors.orange));
+                            },
+                          ),
+                        ),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 40,
+                            getTitlesWidget: (v, m) => Text(v.toStringAsFixed(1), style: const TextStyle(fontSize: 10, color: Colors.blue)),
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 30,
+                            interval: (maxX - minX) / 4 > 86400000 ? (maxX - minX) / 4 : 86400000,
+                            getTitlesWidget: (v, m) {
+                              if (v % m.appliedInterval != 0 && v != m.max && v != m.min) {
+                                 return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(
+                                  AppDateUtils.getMonthlyChartLabel(v, previousValue: m.min == v ? null : v - m.appliedInterval),
+                                  style: const TextStyle(fontSize: 8, color: Colors.grey),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
-                    ),
-                    gridData: const FlGridData(show: false),
-                    borderData: FlBorderData(show: false),
-                    lineTouchData: LineTouchData(
-                      touchTooltipData: LineTouchTooltipData(
-                        getTooltipColor: (_) => Colors.blueGrey,
-                        getTooltipItems: (touchedSpots) {
-                          return touchedSpots.map((s) {
-                            String unit = ' kg';
-                            double displayValue = s.y;
-                            if (s.bar.color == Colors.orange) {
-                              unit = ' %';
-                              // 正規化を解除して元の体脂肪率に戻す
-                              if (maxKg != minKg) {
-                                displayValue = (s.y - minKg) / (maxKg - minKg) * (maxFat - minFat) + minFat;
-                              } else {
-                                displayValue = minFat;
+                      gridData: const FlGridData(show: false),
+                      borderData: FlBorderData(show: false),
+                      lineTouchData: LineTouchData(
+                        touchTooltipData: LineTouchTooltipData(
+                          getTooltipColor: (_) => Colors.blueGrey,
+                          getTooltipItems: (touchedSpots) {
+                            return touchedSpots.map((s) {
+                              String unit = ' kg';
+                              double displayValue = s.y;
+                              if (s.bar.color == Colors.orange) {
+                                unit = ' %';
+                                // 正規化を解除して元の体脂肪率に戻す
+                                if (maxKg != minKg) {
+                                  displayValue = (s.y - minKg) / (maxKg - minKg) * (maxFat - minFat) + minFat;
+                                } else {
+                                  displayValue = minFat;
+                                }
                               }
-                            }
-                            return LineTooltipItem(
-                              '${displayValue.toStringAsFixed(1)}$unit',
-                              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            );
-                          }).toList();
-                        },
+                              return LineTooltipItem(
+                                '${displayValue.toStringAsFixed(1)}$unit',
+                                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              );
+                            }).toList();
+                          },
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: [
-                  _buildLegend(Colors.blue, '体重(kg)'),
-                  _buildLegend(Colors.green, '骨格筋量(kg)'),
-                  _buildLegend(Colors.orange, '体脂肪率(%)'),
-                ],
-              )
-            ],
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _buildLegend(Colors.blue, '体重(kg)'),
+                    _buildLegend(Colors.green, '骨格筋量(kg)'),
+                    _buildLegend(Colors.orange, '体脂肪率(%)'),
+                  ],
+                )
+              ],
+            ),
           ),
         ),
         actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('閉じる'))],
@@ -1074,12 +1125,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('「${pb.event}」の自己ベスト'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: eventController, decoration: const InputDecoration(labelText: '種目名')),
-            TextField(controller: valueController, decoration: InputDecoration(labelText: pb.category == 'swim' ? 'タイム (秒)' : '重量 (kg)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: eventController, decoration: const InputDecoration(labelText: '種目名')),
+              TextField(controller: valueController, decoration: InputDecoration(labelText: pb.category == 'swim' ? 'タイム (秒)' : '重量 (kg)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1142,13 +1195,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('目標タイムを追加'),
         content: SizedBox(
-          width: 300, // 幅を固定
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: eventController, decoration: const InputDecoration(labelText: '種目 (例: 100m Fr)')),
-              TextField(controller: valueController, decoration: const InputDecoration(labelText: '目標タイム (秒)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-            ],
+          width: 300, 
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: eventController, decoration: const InputDecoration(labelText: '種目 (例: 100m Fr)')),
+                TextField(controller: valueController, decoration: const InputDecoration(labelText: '目標タイム (秒)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -1184,13 +1239,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (ctx) => AlertDialog(
         title: Text('「${gt.event}」の目標'),
         content: SizedBox(
-          width: 300, // 幅を固定
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: eventController, decoration: const InputDecoration(labelText: '種目名')),
-              TextField(controller: valueController, decoration: const InputDecoration(labelText: '目標タイム (秒)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
-            ],
+          width: 300, 
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: eventController, decoration: const InputDecoration(labelText: '種目名')),
+                TextField(controller: valueController, decoration: const InputDecoration(labelText: '目標タイム (秒)'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -1499,36 +1556,37 @@ return PremiumCard(
         title: Text('$event 詳細'),
         content: SizedBox(
           width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('日時: ${date.year}/${date.month}/${date.day}', style: const TextStyle(fontSize: 14)),
-              Text('距離/コース: $distance / $course', style: const TextStyle(fontSize: 14)),
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.skyBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('日時: ${date.year}/${date.month}/${date.day}', style: const TextStyle(fontSize: 14)),
+                Text('距離/コース: $distance / $course', style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.skyBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text('TOTAL TIME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      Text(totalTime, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.skyBlue)),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    const Text('TOTAL TIME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                    Text(totalTime, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.skyBlue)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text('ラップ・反省', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-              const Divider(),
-              if (laps.isEmpty)
-                const Text('ラップデータがありません', style: TextStyle(color: Colors.grey))
-              else
-                Flexible(
-                  child: ListView.separated(
+                const SizedBox(height: 16),
+                const Text('ラップ・反省', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                const Divider(),
+                if (laps.isEmpty)
+                  const Text('ラップデータがありません', style: TextStyle(color: Colors.grey))
+                else
+                  ListView.separated(
                     shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(), // 親がスクロールするので
                     itemCount: laps.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, i) {
@@ -1556,8 +1614,8 @@ return PremiumCard(
                       );
                     },
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -2162,13 +2220,17 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
       final dist = r.subjectiveMetrics['total_distance'] as num?;
       return sum + (dist?.toInt() ?? 0);
     });
-    final poolDist = totalPoolDistance > 0 ? '$totalPoolDistance m' : '0 m';
-    final poolDuration = totalPoolDuration > 0 ? '$totalPoolDuration min' : '';
+    final poolDistLabel = totalPoolDistance > 0 ? '$totalPoolDistance m' : '';
+    final poolDurationLabel = totalPoolDuration > 0 ? '$totalPoolDuration min' : '';
     final double avgFeeling = widget.poolRecords.isEmpty ? 0 : 
         widget.poolRecords.fold(0.0, (sum, r) => sum + (r.subjectiveMetrics['feeling'] ?? 0.0)) / widget.poolRecords.length;
-    final poolDistanceLabel = totalPoolDistance > 0 
-        ? '$poolDist ($poolDuration)${avgFeeling > 0 ? ' [Cond: ${avgFeeling.toStringAsFixed(1)}]' : ''}' 
-        : '未入力';
+    
+    final List<String> parts = [];
+    if (poolDistLabel.isNotEmpty) parts.add(poolDistLabel);
+    if (poolDurationLabel.isNotEmpty) parts.add('($poolDurationLabel)');
+    if (avgFeeling > 0) parts.add('${avgFeeling.toStringAsFixed(1)}/10');
+    
+    final poolDistanceLabel = parts.isNotEmpty ? parts.join(' ') : '未入力';
 
     final poolMenuLabel = widget.poolRecords.isNotEmpty
         ? widget.poolRecords.map((r) {
@@ -2268,12 +2330,6 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
           topTrailing: isPosterMode ? poolDistanceLabel : null,
           children: [
             if (!isPosterMode) ...[
-              _DetailRow(label: '総練習時間', value: poolDistanceLabel),
-              if (widget.poolRecords.isNotEmpty)
-                _DetailRow(
-                  label: 'コンディション',
-                  value: '${(widget.poolRecords.fold(0.0, (sum, r) => sum + (r.subjectiveMetrics['feeling'] ?? 0.0)) / widget.poolRecords.length).toStringAsFixed(1)} / 10',
-                ),
               const SizedBox(height: 8),
               ...widget.poolRecords.map((r) => Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
@@ -2342,7 +2398,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
           topTrailing: isPosterMode ? '$drylandSubjective/10' : null,
           children: [
             if (!isPosterMode) ...[
-              _DetailRow(label: '主観平均', value: '$drylandSubjective / 10'),
+              const SizedBox(height: 8),
               const SizedBox(height: 8),
               ...widget.drylandRecords.map((r) {
                 final String menu = () {
@@ -2941,7 +2997,7 @@ class _ActivityCalendarState extends ConsumerState<_ActivityCalendar> {
                         icon: Icons.pool,
                         color: AppColors.pool,
                         records: poolRecords,
-                        summary: poolRecords.isEmpty ? '記録なし' : '${poolRecords.fold(0, (sum, r) => sum + r.durationMinutes)}分',
+                        summary: poolRecords.isEmpty ? '記録なし' : '${poolRecords.fold(0, (acc, r) => acc + r.durationMinutes)}分',
                         contentPreview: poolRecords.map((r) => r.details.firstOrNull?['content'] ?? '記録あり').join(', '),
                         onTapRecord: (r) { Navigator.pop(ctx); _showEditRecordDialog(context, r); },
                       ),
@@ -2992,7 +3048,7 @@ class _ActivityCalendarState extends ConsumerState<_ActivityCalendar> {
                         color: AppColors.sleep,
                         records: sleepRecords,
                         summary: sleepRecords.isEmpty ? '記録なし' : () {
-                          final totalMins = sleepRecords.fold(0, (sum, r) => sum + r.durationMinutes);
+                          final totalMins = sleepRecords.fold(0, (acc, r) => acc + r.durationMinutes);
                           return '${(totalMins / 60).floor()}時間 ${totalMins % 60}分';
                         }(),
                         contentPreview: sleepRecords.isEmpty ? '' : '記録あり',
@@ -3074,6 +3130,11 @@ class _ActivityCalendarState extends ConsumerState<_ActivityCalendar> {
   }
 
   void _showEditRecordDialog(BuildContext context, TrainingRecord record) {
+    if (record.type == 'sleep') {
+      HomeScreen.showAddSleepDialog(context, initialRecord: record);
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (ctx) {

@@ -76,7 +76,30 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
 
   Future<void> _runOcr(String type) async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('ギャラリーから選択'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('カメラで撮影'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+    final pickedFile = await picker.pickImage(source: source);
     if (pickedFile == null) return;
 
     setState(() => _isOcrLoading = true);
@@ -155,12 +178,14 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
             builder: (ctx) => AlertDialog(
               icon: const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 48),
               title: const Text('異常な推定値を検出'),
-              content: Text(
-                'AIの推定結果に異常な数値が含まれています：\n\n'
-                '・タンパク質: ${result.protein.round()}g (上限250)\n'
-                '・脂質: ${result.fat.round()}g (上限150)\n'
-                '・炭水化物: ${result.carbs.round()}g (上限400)\n\n'
-                'このまま上限値に丸めて反映しますか？'
+              content: SingleChildScrollView(
+                child: Text(
+                  'AIの推定結果に異常な数値が含まれています：\n\n'
+                  '・タンパク質: ${result.protein.round()}g (上限250)\n'
+                  '・脂質: ${result.fat.round()}g (上限150)\n'
+                  '・炭水化物: ${result.carbs.round()}g (上限400)\n\n'
+                  'このまま上限値に丸めて反映しますか？'
+                ),
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('キャンセル')),
@@ -234,23 +259,6 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
               const Icon(Icons.fitness_center, color: Colors.white, size: 20),
               const SizedBox(width: 8),
               const Text('食事内容・メモ', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-              const Spacer(),
-              if (_isOcrLoading)
-                const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              else ...[
-                TextButton.icon(
-                  onPressed: _showMyProductSheet,
-                  icon: const Icon(Icons.bookmark, size: 16, color: Colors.orange),
-                  label: const Text('My食品', style: TextStyle(fontSize: 12, color: Colors.orange)),
-                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                ),
-                TextButton.icon(
-                  onPressed: () => _runOcr('食事'),
-                  icon: const Icon(Icons.camera_alt, size: 16),
-                  label: const Text('写真解析', style: TextStyle(fontSize: 12)),
-                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                ),
-              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -278,6 +286,30 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
             controller: _memoController,
             lines: 6,
             hintText: '例: カップヌードル 1個、サラダチキン 110g...',
+          ),
+          const SizedBox(height: 8),
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (_isOcrLoading)
+                const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              else ...[
+                TextButton.icon(
+                  onPressed: _showMyProductSheet,
+                  icon: const Icon(Icons.bookmark, size: 16, color: Colors.orange),
+                  label: const Text('My食品', style: TextStyle(fontSize: 12, color: Colors.orange)),
+                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: () => _runOcr('食事'),
+                  icon: const Icon(Icons.camera_alt, size: 16),
+                  label: const Text('写真解析', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 12),
           

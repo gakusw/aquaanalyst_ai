@@ -18,6 +18,23 @@
 
   <title>aquaanalyst_ai</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Flutter Web の隠し入力要素の装飾を強制的に排除する */
+    .flt-text-editing-element {
+      text-decoration: none !important;
+      border: none !important;
+      outline: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      /* 水平方向の累積ズレを防ぐための設定 */
+      font-family: sans-serif !important;
+      font-kerning: none !important;
+      font-variant-ligatures: none !important;
+      letter-spacing: 0 !important;
+    }
+  </style>
+
 </head>
 <body>
   <!-- Flutter 3.22 以降の最新かつ標準的なブートストラップ方式 -->

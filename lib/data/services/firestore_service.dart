@@ -88,6 +88,11 @@ class FirestoreService {
     await updateUserProfileFields(uid, {'role': 'admin'});
   }
 
+  /// 管理者権限を解除する（一般ユーザーに戻る）
+  Future<void> demoteUserFromAdmin(String uid) async {
+    await updateUserProfileFields(uid, {'role': 'user'});
+  }
+
   // --- トレーニング・栄養記録関連 ---
 
   /// 特定の期間の記録を取得するStream
@@ -717,6 +722,60 @@ class FirestoreService {
       if (!doc.exists) return 0;
       return (doc.data()?['count'] as num?)?.toInt() ?? 0;
     });
+  }
+
+  // --- グローバル統計 (管理者用) ---
+
+  /// グローバルなAI利用統計をインクリメントする
+  Future<void> incrementGlobalUsage(String modelId, {int inputTokens = 0, int outputTokens = 0}) async {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final batch = _db.batch();
+
+    // 1. 日別統計
+    final dailyRef = _db.collection('system_stats').doc('gemini_daily').collection('days').doc(today);
+    batch.set(dailyRef, {
+      'total_requests': FieldValue.increment(1),
+      'models': {
+        modelId: {
+          'requests': FieldValue.increment(1),
+          'input_tokens': FieldValue.increment(inputTokens),
+          'output_tokens': FieldValue.increment(outputTokens),
+        }
+      },
+      'last_updated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    // 2. 累計統計
+    final totalRef = _db.collection('system_stats').doc('gemini_total');
+    batch.set(totalRef, {
+      'total_requests': FieldValue.increment(1),
+      'models': {
+        modelId: {
+          'requests': FieldValue.increment(1),
+          'input_tokens': FieldValue.increment(inputTokens),
+          'output_tokens': FieldValue.increment(outputTokens),
+        }
+      },
+      'last_updated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    await batch.commit();
+  }
+
+  /// 本日のグローバル統計を取得する
+  Stream<Map<String, dynamic>> getGlobalDailyUsageStream() {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    return _db.collection('system_stats').doc('gemini_daily').collection('days').doc(today).snapshots().map((doc) => doc.data() ?? {});
+  }
+
+  /// 累計のグローバル統計を取得する
+  Stream<Map<String, dynamic>> getGlobalTotalUsageStream() {
+    return _db.collection('system_stats').doc('gemini_total').snapshots().map((doc) => doc.data() ?? {});
+  }
+
+  /// グローバル統計をリセットする (実務上は慎重に)
+  Future<void> resetGlobalTotalUsage() async {
+    await _db.collection('system_stats').doc('gemini_total').delete();
   }
 
   /// メッセージを追加する

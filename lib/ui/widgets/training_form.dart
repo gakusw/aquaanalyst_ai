@@ -31,6 +31,7 @@ class _TrainingFormState extends ConsumerState<TrainingForm> {
   final TextEditingController _durationController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
   final TextEditingController _drylLandController = TextEditingController();
+  final TextEditingController _distanceController = TextEditingController();
   double _subjectiveFeeling = 5.0; // 水中主観感覚 1-10
   double _drylLandFeeling = 5.0; // 陸上主観感覚 1-10
   bool _isOcrLoading = false;
@@ -46,6 +47,7 @@ class _TrainingFormState extends ConsumerState<TrainingForm> {
         _menuController.text = r.details.where((d) => d['type'] == 'menu_text').firstOrNull?['content'] ?? '';
         _timeController.text = r.details.where((d) => d['type'] == 'main_set_time').firstOrNull?['content'] ?? '';
         _durationController.text = r.durationMinutes > 0 ? r.durationMinutes.toString() : '';
+        _distanceController.text = r.subjectiveMetrics['total_distance']?.toString() ?? '';
         _subjectiveFeeling = r.subjectiveMetrics['feeling']?.toDouble() ?? 5.0;
       } else if (r.type == 'dryland') {
         _drylLandController.text = r.details.where((d) => d['type'] == 'menu_text').firstOrNull?['content'] ?? '';
@@ -60,12 +62,16 @@ class _TrainingFormState extends ConsumerState<TrainingForm> {
     _durationController.dispose();
     _timeController.dispose();
     _drylLandController.dispose();
+    _distanceController.dispose();
     super.dispose();
   }
 
   Future<void> _runOcr() async {
+    final source = await _showImageSourcePicker();
+    if (source == null) return;
+    
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(source: source);
     if (pickedFile == null) return;
 
     setState(() => _isOcrLoading = true);
@@ -107,8 +113,11 @@ class _TrainingFormState extends ConsumerState<TrainingForm> {
   }
 
   Future<void> _runDrylLandOcr() async {
+    final source = await _showImageSourcePicker();
+    if (source == null) return;
+
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(source: source);
     if (pickedFile == null) return;
 
     setState(() => _isDrylLandOcrLoading = true);
@@ -155,6 +164,37 @@ class _TrainingFormState extends ConsumerState<TrainingForm> {
         setState(() => _isDrylLandOcrLoading = false);
       }
     }
+  }
+
+  Future<ImageSource?> _showImageSourcePicker() async {
+    return await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('画像ソースを択', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('ギャラリーから選択'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('カメラで撮影'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showMyMenuSheet() {
@@ -265,6 +305,17 @@ class _TrainingFormState extends ConsumerState<TrainingForm> {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          const Text('合計距離 (m)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          TextField(
+            controller: _distanceController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              hintText: '例: 2500',
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(vertical: 8),
+            ),
+          ),
           const SizedBox(height: 20),
 
           const Text('水中主観感覚 (1-10)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
@@ -350,30 +401,37 @@ class _TrainingFormState extends ConsumerState<TrainingForm> {
         final normalizedTime = EventUtils.normalizeEventName(_timeController.text);
         poolDetails.add({'type': 'main_set_time', 'content': normalizedTime});
       }
-      final poolTime = int.tryParse(_durationController.text) ?? 0;
-      
-      if (poolDetails.isNotEmpty || poolTime > 0) {
-        final recordData = {
-          'type': 'pool',
-          'durationMinutes': poolTime,
-          'details': poolDetails,
-          'subjectiveMetrics': {'feeling': _subjectiveFeeling},
-        };
+        final poolTime = int.tryParse(_durationController.text) ?? 0;
+        final poolDist = int.tryParse(_distanceController.text) ?? 0;
+        
+        if (poolDetails.isNotEmpty || poolTime > 0 || poolDist > 0) {
+          final recordData = {
+            'type': 'pool',
+            'durationMinutes': poolTime,
+            'details': poolDetails,
+            'subjectiveMetrics': {
+              'feeling': _subjectiveFeeling,
+              'total_distance': poolDist,
+            },
+          };
 
-        if (widget.initialRecord != null && widget.initialRecord!.type == 'pool') {
-          await _firestoreService.updateTrainingRecord(widget.initialRecord!.id, recordData);
-        } else {
-          final poolRecord = TrainingRecord(
-            id: '', 
-            date: DateTime.now(),
-            type: 'pool',
-            durationMinutes: poolTime,
-            details: poolDetails,
-            subjectiveMetrics: {'feeling': _subjectiveFeeling},
-          );
-          await _firestoreService.addTrainingRecord(poolRecord);
+          if (widget.initialRecord != null && widget.initialRecord!.type == 'pool') {
+            await _firestoreService.updateTrainingRecord(widget.initialRecord!.id, recordData);
+          } else {
+            final poolRecord = TrainingRecord(
+              id: '', 
+              date: DateTime.now(),
+              type: 'pool',
+              durationMinutes: poolTime,
+              details: poolDetails,
+              subjectiveMetrics: {
+                'feeling': _subjectiveFeeling,
+                'total_distance': poolDist,
+              },
+            );
+            await _firestoreService.addTrainingRecord(poolRecord);
+          }
         }
-      }
 
       final drylandText = _drylLandController.text.trim();
       final List<Map<String, dynamic>> drylandDetails = [];

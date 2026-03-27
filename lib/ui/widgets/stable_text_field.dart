@@ -57,13 +57,29 @@ class _StableTextFieldState extends State<StableTextField> {
           TextField(
             key: _key,
             controller: widget.controller,
-            // コーチ画面 (image3) の使い心地に合わせ、2行程度をベースにする
             minLines: widget.lines > 1 ? 2 : 1, 
             maxLines: widget.lines > 1 ? widget.lines : 1,
             keyboardType: widget.keyboardType,
             textInputAction: widget.textInputAction,
             onChanged: widget.onChanged,
-            style: const TextStyle(fontSize: 15, height: 1.4),
+            style: const TextStyle(
+              fontSize: 15, 
+              height: 1.0,
+              letterSpacing: 0.0,
+              fontFamily: 'sans-serif',
+              fontFeatures: [
+                FontFeature.disable('kern'),
+                FontFeature.disable('liga'),
+              ],
+            ),
+            strutStyle: const StrutStyle(
+              height: 1.0,
+              forceStrutHeight: true,
+            ),
+            autocorrect: false,
+            enableSuggestions: false,
+            smartDashesType: SmartDashesType.disabled,
+            smartQuotesType: SmartQuotesType.disabled,
             textAlignVertical: TextAlignVertical.top,
             decoration: InputDecoration(
               hintText: widget.hintText,
@@ -73,7 +89,6 @@ class _StableTextFieldState extends State<StableTextField> {
               ),
               filled: true,
               fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.1),
-              // 境界線を明確にし、右端を認識させる
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.2)),
@@ -86,7 +101,7 @@ class _StableTextFieldState extends State<StableTextField> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5), width: 1.5),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
               isDense: true,
             ),
           ),

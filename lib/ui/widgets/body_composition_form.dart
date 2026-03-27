@@ -33,8 +33,11 @@ class _BodyCompositionFormState extends State<BodyCompositionForm> {
   }
 
   Future<void> _runOcr() async {
+    final source = await _showImageSourcePicker();
+    if (source == null) return;
+
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    final pickedFile = await picker.pickImage(source: source);
     if (pickedFile == null) return;
 
     setState(() => _isOcrLoading = true);
@@ -85,6 +88,37 @@ class _BodyCompositionFormState extends State<BodyCompositionForm> {
     } finally {
       if (mounted) setState(() => _isOcrLoading = false);
     }
+  }
+
+  Future<ImageSource?> _showImageSourcePicker() async {
+    return await showModalBottomSheet<ImageSource>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('画像ソースを選択', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('ギャラリーから選択'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('カメラで撮影'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> saveRecord() async {

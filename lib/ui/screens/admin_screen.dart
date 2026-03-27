@@ -37,7 +37,7 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 8, vsync: this);
+    _tabController = TabController(length: 9, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       setState(() => _currentIndex = _tabController.index);
@@ -132,14 +132,16 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
       appBar: AppBar(
         title: const Text('管理者メニュー'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.close),
           onPressed: () => context.go('/settings'),
+          tooltip: '管理者メニューを閉じる',
         ),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
           tabs: const [
             Tab(text: 'ダッシュボード'),
+            Tab(text: '利用状況'),
             Tab(text: '全般'),
             Tab(text: 'コーチ'),
             Tab(text: '食事OCR'),
@@ -162,13 +164,14 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
   Widget _buildCurrentTab() {
     switch (_currentIndex) {
       case 0: return _buildDashboardTab();
-      case 1: return _buildGeneralTab();
-      case 2: return _buildPromptTab('coach_base', 'コーチ基本人格', 'エージェントの基本的な性格、専門知識レベル、行動指針。');
-      case 3: return _buildPromptTab('nutrition_ocr', '食事OCR', '画像から料理名と分量を抽出する際の指示。');
-      case 4: return _buildPromptTab('nutrition_analysis', '栄養解析', '料理名からPFCバランスを推定する思考プロセス。');
-      case 5: return _buildPromptTab('swim_analysis', '分析シート解析', 'タイムペーパーからラップタイムを抽出する指示。');
-      case 6: return _buildPromptTab('insight_guideline', 'タイム予測指針', '予測における科学的な制約事項。');
-      case 7: return _buildPromptTab('insight_prediction', '予測プロンプト', '予測実行時のメインテンプレート。{swimPbs} 等が置換されます。');
+      case 1: return _buildUsageTab();
+      case 2: return _buildGeneralTab();
+      case 3: return _buildPromptTab('coach_base', 'コーチ基本人格', 'エージェントの基本的な性格、専門知識レベル、行動指針。');
+      case 4: return _buildPromptTab('nutrition_ocr', '食事OCR', '画像から料理名と分量を抽出する際の指示。');
+      case 5: return _buildPromptTab('nutrition_analysis', '栄養解析', '料理名からPFCバランスを推定する思考プロセス。');
+      case 6: return _buildPromptTab('swim_analysis', '分析シート解析', 'タイムペーパーからラップタイムを抽出する指示。');
+      case 7: return _buildPromptTab('insight_guideline', 'タイム予測指針', '予測における科学的な制約事項。');
+      case 8: return _buildPromptTab('insight_prediction', '予測プロンプト', '予測実行時のメインテンプレート。{swimPbs} 等が置換されます。');
       default: return const SizedBox.shrink();
     }
   }
@@ -203,6 +206,23 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           ),
         ),
         const SizedBox(height: 24),
+        _buildSectionHeader('AI利用サマリー (本日)'),
+        StreamBuilder<Map<String, dynamic>>(
+          stream: _firestoreService.getGlobalDailyUsageStream(),
+          builder: (context, snapshot) {
+            final data = snapshot.data ?? {};
+            final total = data['total_requests'] ?? 0;
+            return Card(
+              child: ListTile(
+                leading: const Icon(Icons.auto_awesome, color: Colors.purple),
+                title: const Text('本日の総リクエスト数'),
+                trailing: Text('$total 回', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                subtitle: const Text('詳細な内訳は「利用状況」タブを確認してください。'),
+              ),
+            );
+          }
+        ),
+        const SizedBox(height: 24),
         _buildSectionHeader('緊急設定'),
         Card(
           color: _isMaintenanceMode ? Colors.red.shade50 : null,
@@ -221,6 +241,98 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildUsageTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildSectionHeader('AI利用統計 (累積)'),
+        StreamBuilder<Map<String, dynamic>>(
+          stream: _firestoreService.getGlobalTotalUsageStream(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            final data = snapshot.data!;
+            return _buildUsageCard(data, 'サービス開始以来の累計');
+          },
+        ),
+        const SizedBox(height: 24),
+        _buildSectionHeader('AI利用統計 (本日)'),
+        StreamBuilder<Map<String, dynamic>>(
+          stream: _firestoreService.getGlobalDailyUsageStream(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            final data = snapshot.data!;
+            return _buildUsageCard(data, '本日の稼働状況');
+          },
+        ),
+        const SizedBox(height: 24),
+        _buildSectionHeader('管理操作'),
+        Card(
+          child: ListTile(
+            title: const Text('統計データのリセット'),
+            subtitle: const Text('累計統計データを削除します。※慎重に実行してください'),
+            trailing: ElevatedButton(
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('統計リセットの確認'),
+                    content: const Text('全てのAI利用統計（累計）を削除しますか？'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('キャンセル')),
+                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('リセット実行', style: TextStyle(color: Colors.red))),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await _firestoreService.resetGlobalTotalUsage();
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade100, foregroundColor: Colors.red),
+              child: const Text('統計リセット'),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUsageCard(Map<String, dynamic> data, String subtitle) {
+    final totalRequests = data['total_requests'] ?? 0;
+    final Map<String, dynamic> models = data['models'] ?? {};
+
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            title: Text('総リクエスト数: $totalRequests 回', style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(subtitle),
+            trailing: const Icon(Icons.analytics_outlined),
+          ),
+          const Divider(),
+          if (models.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('データなし', style: TextStyle(color: Colors.grey)),
+            )
+          else
+            ...models.entries.map((entry) {
+              final modelId = entry.key;
+              final stats = entry.value as Map<String, dynamic>;
+              final requests = stats['requests'] ?? 0;
+              final inputT = stats['input_tokens'] ?? 0;
+              final outputT = stats['output_tokens'] ?? 0;
+              
+              return ListTile(
+                title: Text(modelId.replaceFirst('gemini-', ''), style: const TextStyle(fontSize: 14)),
+                subtitle: Text('Input: $inputT tokens / Output: $outputT tokens'),
+                trailing: Text('$requests calls', style: const TextStyle(fontWeight: FontWeight.w500)),
+              );
+            }),
+        ],
+      ),
     );
   }
 
@@ -251,11 +363,10 @@ class _AdminScreenState extends State<AdminScreen> with SingleTickerProviderStat
                 subtitle: const Text('標準的な推論に使用するモデル'),
                 trailing: DropdownButton<String>(
                   value: _selectedModel,
-                  items: [
-                    GeminiService.model25Flash,
-                    GeminiService.model31FlashLite,
-                    GeminiService.model30Flash,
-                  ].map((m) => DropdownMenuItem(value: m, child: Text(m.replaceFirst('gemini-', '')))).toList(),
+                  items: GeminiService.availableModels.map((m) => DropdownMenuItem(
+                    value: m, 
+                    child: Text(m.replaceFirst('gemini-', ''))
+                  )).toList(),
                   onChanged: (val) {
                     if (val != null) setState(() => _selectedModel = val);
                   },
