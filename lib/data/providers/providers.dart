@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/firestore_service.dart';
 import '../models/training_record.dart';
@@ -26,11 +27,16 @@ final userProfileProvider = StreamProvider.autoDispose<AppUser?>((ref) {
 
   final stream = ref.watch(firestoreServiceProvider).getUserProfileStream().asBroadcastStream();
   // 管理者の場合、設定を自動ロードする副作用を追加
-  stream.listen((user) {
-    if (user?.role == 'admin') {
-      GeminiService().ensureSettingsLoaded(isAdmin: true);
-    }
-  });
+  stream.listen(
+    (user) {
+      if (user?.role == 'admin') {
+        GeminiService().ensureSettingsLoaded(isAdmin: true);
+      }
+    },
+    onError: (e) {
+      debugPrint('userProfileProvider listen error: $e');
+    },
+  );
   return stream;
 });
 

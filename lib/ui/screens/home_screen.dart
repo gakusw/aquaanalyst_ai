@@ -2168,33 +2168,49 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                // PC用オフスクリーンキャプチャ (幅1400px, 高さは動的)
+                // PC用オフスクリーンキャプチャ (幅1400px)
+                // left:5000等の大きな値はCanvasKitのWebGL最大テクスチャサイズ(4096等)を超えるため
+                // クラッシュの原因になる。SizedBox(0x0)+OverflowBoxで安全に非表示化する。
                 Positioned(
-                  left: 5000,
+                  left: 0,
                   top: 0,
-                  child: IgnorePointer(
-                    child: UnconstrainedBox(
-                      child: Screenshot(
-                        controller: _posterScreenshotController,
-                        child: SizedBox(
-                          width: 1400,
-                          child: _buildSummaryPosterWidget(context, true, true),
+                  child: SizedBox(
+                    width: 0,
+                    height: 0,
+                    child: IgnorePointer(
+                      child: OverflowBox(
+                        alignment: Alignment.topLeft,
+                        maxWidth: double.infinity,
+                        maxHeight: double.infinity,
+                        child: Screenshot(
+                          controller: _posterScreenshotController,
+                          child: SizedBox(
+                            width: 1400,
+                            child: _buildSummaryPosterWidget(context, true, true),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-                // スマホ用オフスクリーンキャプチャ (幅480px, 高さは動的)
+                // スマホ用オフスクリーンキャプチャ (幅480px)
                 Positioned(
-                  left: 7000,
+                  left: 0,
                   top: 0,
-                  child: IgnorePointer(
-                    child: UnconstrainedBox(
-                      child: Screenshot(
-                        controller: _mobilePosterScreenshotController,
-                        child: SizedBox(
-                          width: 480,
-                          child: _buildSummaryPosterWidget(context, true, true, isMobilePoster: true),
+                  child: SizedBox(
+                    width: 0,
+                    height: 0,
+                    child: IgnorePointer(
+                      child: OverflowBox(
+                        alignment: Alignment.topLeft,
+                        maxWidth: double.infinity,
+                        maxHeight: double.infinity,
+                        child: Screenshot(
+                          controller: _mobilePosterScreenshotController,
+                          child: SizedBox(
+                            width: 480,
+                            child: _buildSummaryPosterWidget(context, true, false, isMobilePoster: true),
+                          ),
                         ),
                       ),
                     ),
