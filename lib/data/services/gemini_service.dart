@@ -224,8 +224,8 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
       }
     } catch (e) {
       debugPrint('Nutrition Analysis Error: $e');
+      rethrow;
     }
-    return null;
   }
 
   /// タイムペーパー/スコアボードの画像からラップデータを抽出する
@@ -245,8 +245,8 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
       }
     } catch (e) {
       debugPrint('Swimming Analysis Error: $e');
+      rethrow;
     }
-    return null;
   }
 
   String _sanitizeJson(String input) {
