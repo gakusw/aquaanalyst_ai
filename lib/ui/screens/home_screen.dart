@@ -31,6 +31,7 @@ import '../screens/analysis_sheet_form.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
+import '../widgets/error_display.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -246,6 +247,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // 読み込み中またはエラー時の表示
     if (recordsAsync.isLoading || userAsync.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // エラー時の明示的なガード
+    if (recordsAsync.hasError || userAsync.hasError) {
+      final error = recordsAsync.error ?? userAsync.error;
+      return Scaffold(
+        body: ErrorDisplay(
+          title: 'データの取得に失敗しました',
+          message: 'Firestoreへのアクセス権限がないか、通信エラーが発生しました。',
+          onRetry: () {
+            ref.invalidate(trainingRecordsProvider);
+            ref.invalidate(userProfileProvider);
+          },
+        ),
+      );
     }
 
     final plan = planAsync.value;

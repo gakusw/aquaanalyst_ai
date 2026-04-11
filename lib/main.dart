@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 import 'data/services/gemini_service.dart';
 import 'data/services/firestore_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'data/providers/providers.dart';
 
 import 'ui/layouts/responsive_layout.dart';
@@ -158,8 +159,12 @@ class MyApp extends ConsumerWidget {
         return MaterialApp.router(
           title: 'AquaAnalyst AI',
           theme: ThemeData(
-            fontFamily: 'sans-serif',
-            fontFamilyFallback: const ['sans-serif'],
+            fontFamily: 'Noto Sans JP',
+            textTheme: const TextTheme(
+              titleLarge: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 20),
+              bodyLarge: TextStyle(color: Color(0xFF1E293B), fontSize: 16),
+              bodyMedium: TextStyle(color: Color(0xFF334155), fontSize: 14),
+            ),
             colorScheme: ColorScheme.fromSeed(
               seedColor: primaryColor,
               brightness: Brightness.light,
@@ -187,28 +192,28 @@ class MyApp extends ConsumerWidget {
               backgroundColor: Colors.transparent,
               elevation: 0,
               titleTextStyle: TextStyle(
+                fontFamily: 'Noto Sans JP',
                 color: Color(0xFF0F172A),
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            textTheme: const TextTheme(
-              titleLarge: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold),
-              bodyLarge: TextStyle(color: Color(0xFF1E293B)),
-              bodyMedium: TextStyle(color: Color(0xFF334155)),
-            ),
           ),
           darkTheme: ThemeData(
-            fontFamily: 'sans-serif',
-            fontFamilyFallback: const ['sans-serif'],
+            fontFamily: 'Noto Sans JP',
+            textTheme: const TextTheme(
+              titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+              bodyLarge: TextStyle(color: Colors.white, fontSize: 16),
+              bodyMedium: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
             colorScheme: ColorScheme.fromSeed(
               seedColor: primaryColor,
               brightness: Brightness.dark,
             ).copyWith(
               primary: primaryColor,
               secondary: secondaryColor,
-              surface: const Color(0xFF020617), // Rich Black (was background)
-              surfaceContainerHighest: const Color(0xFF0F172A), // Deep Navy (was surface)
+              surface: const Color(0xFF020617), // Rich Black
+              surfaceContainerHighest: const Color(0xFF0F172A), // Deep Navy
             ),
             textSelectionTheme: TextSelectionThemeData(
               selectionColor: primaryColor.withValues(alpha: 0.25),
@@ -223,7 +228,7 @@ class MyApp extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
               ),
-              color: const Color(0xFF1E293B).withValues(alpha: 0.5), // Glassy effect base
+              color: const Color(0xFF1E293B).withValues(alpha: 0.5),
             ),
             appBarTheme: const AppBarTheme(
               centerTitle: false,
@@ -234,17 +239,49 @@ class MyApp extends ConsumerWidget {
           themeMode: mode,
           routerConfig: _router,
           builder: (context, child) {
-            final userAsync = ref.watch(userProfileProvider);
-            final user = userAsync.value;
-            final isAdmin = user?.role == 'admin';
+            try {
+              // 1. システム設定の取得（セキュリティルールで公開済）
+              final settingsAsync = ref.watch(systemSettingsProvider);
+              final settings = settingsAsync.valueOrNull ?? {};
+              final isMaintenance = settings['maintenance_mode'] == true;
 
-            final settingsAsync = ref.watch(systemSettingsProvider);
-            final isMaintenance = settingsAsync.value?['maintenance_mode'] == true;
+              // 2. 認証状態の確認
+              final isLoggedIn = FirebaseAuth.instance.currentUser != null;
+              
+              // 3. ログイン済みの場合のみユーザープロフィールを監視（事前アクセス防止）
+              bool isAdmin = false;
+              if (isLoggedIn) {
+                final userAsync = ref.watch(userProfileProvider);
+                isAdmin = userAsync.valueOrNull?.role == 'admin';
+              }
 
-            if (isMaintenance && !isAdmin) {
-              return const MaintenanceScreen();
+              // メンテナンスモード判定
+              if (isMaintenance && !isAdmin) {
+                return const MaintenanceScreen();
+              }
+
+              // 通常の表示
+              return child ?? const SizedBox.shrink();
+            } catch (e) {
+              debugPrint('MaterialApp.builder critical error: $e');
+              // クラッシュ回避のための最低限のフォールバック
+              return Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      const Text('アプリの起動中にエラーが発生しました'),
+                      TextButton(
+                        onPressed: () => context.go('/auth'),
+                        child: const Text('ログイン画面へ戻る'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             }
-            return child!;
           },
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,

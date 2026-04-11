@@ -23,9 +23,15 @@ final authStateProvider = StreamProvider<User?>((ref) {
 final userProfileProvider = StreamProvider.autoDispose<AppUser?>((ref) {
   // 認証状態の変化を検知
   final authState = ref.watch(authStateProvider);
-  if (authState.value == null) return Stream.value(null);
+  
+  // authState.value が null または読み込み中の場合は早めに null を返す
+  if (authState.asData?.value == null) return Stream.value(null);
 
-  final stream = ref.watch(firestoreServiceProvider).getUserProfileStream().asBroadcastStream();
+  // Firestoreストリームの取得
+  final stream = ref.watch(firestoreServiceProvider)
+      .getUserProfileStream()
+      .asBroadcastStream();
+
   // 管理者の場合、設定を自動ロードする副作用を追加
   stream.listen(
     (user) {
@@ -34,14 +40,16 @@ final userProfileProvider = StreamProvider.autoDispose<AppUser?>((ref) {
       }
     },
     onError: (e) {
-      debugPrint('userProfileProvider listen error: $e');
+      // listen内でもエラーを握り潰し、クラッシュを防ぐ
+      debugPrint('userProfileProvider listen error (silenced): $e');
     },
   );
   return stream;
 });
 
-// システム設定（メンテナンスモード等）
 final systemSettingsProvider = StreamProvider.autoDispose<Map<String, dynamic>>((ref) {
+  // 認証前でも参照される可能性がある。
+  // rulesにて公開設定にしたため基本は通るはずだが、エラー時はUIに任せる
   return ref.watch(firestoreServiceProvider).getSystemSettingsStream();
 });
 

@@ -172,6 +172,9 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
           dryland: d.dryland,
           intensity: d.intensity,
           targetCalories: d.targetCalories,
+          targetProtein: d.targetProtein,
+          targetFat: d.targetFat,
+          targetCarbs: d.targetCarbs,
         );
       }).toList();
 

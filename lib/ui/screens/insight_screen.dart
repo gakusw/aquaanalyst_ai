@@ -11,6 +11,7 @@ import '../../data/models/app_user.dart';
 import '../../utils/date_utils.dart';
 import '../../utils/app_colors.dart';
 import '../../data/providers/providers.dart';
+import '../widgets/error_display.dart';
 
 class InsightScreen extends ConsumerStatefulWidget {
   const InsightScreen({super.key});
@@ -181,6 +182,20 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
     // インサイトデータとユーザーデータの両方が読み込み中の場合
     if (insightAsync.isLoading || userAsync.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    // エラー時の明示的なガード
+    if (insightAsync.hasError || userAsync.hasError) {
+      return Scaffold(
+        body: ErrorDisplay(
+          title: '分析データの取得に失敗しました',
+          message: 'インサイト情報の取得中にエラーが発生しました。インターネット接続を確認してください。',
+          onRetry: () {
+            ref.invalidate(latestInsightProvider);
+            ref.invalidate(userProfileProvider);
+          },
+        ),
+      );
     }
 
     final insightData = insightAsync.value;

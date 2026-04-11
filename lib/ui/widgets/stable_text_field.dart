@@ -63,7 +63,8 @@ class _StableTextFieldState extends State<StableTextField> {
             textInputAction: widget.textInputAction,
             onChanged: widget.onChanged,
             style: TextStyle(
-              fontSize: 15, 
+              fontSize: 15,
+              height: 1.4, // 15 * 1.4 = 21.0px（整数ピクセルで周期的縦ズレを防止）
               color: theme.textTheme.bodyMedium?.color,
             ),
             autocorrect: false,
@@ -91,8 +92,7 @@ class _StableTextFieldState extends State<StableTextField> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5), width: 1.5),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
           ),
         ],

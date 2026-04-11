@@ -18,20 +18,53 @@
 
   <title>aquaanalyst_ai</title>
   <link rel="manifest" href="manifest.json">
+  <!-- CanvasKit とブラウザの隠し textarea で同一フォントファイルを使うために、
+       Noto Sans JP を HTML 側にも読み込む -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
-    /* Flutter Web の隠し入力要素の装飾を強制的に排除する */
+    /* Flutter Web の隠し入力要素（textarea/input）の装飾を排除し、
+       CanvasKit と同一のフォント・文字間隔を強制する。
+       ※ font-size / line-height / padding は Flutter エンジンが
+       自動的に設定するため、CSS での上書きは禁止（位置計算が狂うため） */
+    flt-text-editing-host textarea,
+    flt-text-editing-host input,
     .flt-text-editing-element {
       text-decoration: none !important;
       border: none !important;
       outline: none !important;
       background: transparent !important;
       box-shadow: none !important;
-      /* 水平方向の累積ズレを防ぐための設定 */
-      font-family: sans-serif !important;
+
+      /* CanvasKit が使用する Noto Sans JP と同一フォントを
+         ブラウザの textarea にも強制適用することで、
+         文字ごとの幅の差による水平方向の累積ズレを防ぐ */
+      font-family: 'Noto Sans JP', sans-serif !important;
+      font-weight: 400 !important;
+      font-stretch: 100% !important;
       font-kerning: none !important;
       font-variant-ligatures: none !important;
-      letter-spacing: 0 !important;
+      font-variant-caps: normal !important;
+      font-variant-numeric: normal !important;
+      font-variant-east-asian: normal !important;
+      font-optical-sizing: auto !important;
+      letter-spacing: 0px !important;
+      word-spacing: 0px !important;
+
+      /* OpenType 機能を完全に無効化し、Skia のデフォルト動作と一致させる。
+         calt（文脈依存字形）、liga（合字）、kern（カーニング）等を
+         ブラウザが独自に適用することで生じる文字幅の微小差を排除する */
+      font-feature-settings: 'kern' 0, 'liga' 0, 'clig' 0, 'calt' 0, 'locl' 0, 'ccmp' 0 !important;
+      font-variation-settings: normal !important;
+
+      /* サブピクセル精度で Skia（CanvasKit）と同一のグリフ配置を再現する */
+      text-rendering: geometricPrecision !important;
+      -webkit-text-size-adjust: 100% !important;
+      text-size-adjust: 100% !important;
+      -moz-osx-font-smoothing: auto !important;
+      -webkit-font-smoothing: auto !important;
     }
   </style>
 

@@ -674,11 +674,13 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
                 ),
                 child: TextField(
                   controller: _textController,
+                  focusNode: _focusNode,
                   minLines: 1,
                   maxLines: 5,
                   textAlignVertical: TextAlignVertical.top,
                   style: const TextStyle(
-                    fontSize: 15, 
+                    fontSize: 15,
+                    height: 1.4, // 15 * 1.4 = 21.0px（整数ピクセルで周期的縦ズレを防止）
                   ),
                   autocorrect: false,
                   enableSuggestions: false,
@@ -689,7 +691,7 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
                   decoration: const InputDecoration(
                     hintText: 'メッセージを入力',
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 8.0),
+                    contentPadding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
                   ),
                 ),
               ),
