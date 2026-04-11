@@ -158,6 +158,8 @@ class MyApp extends ConsumerWidget {
         return MaterialApp.router(
           title: 'AquaAnalyst AI',
           theme: ThemeData(
+            fontFamily: 'sans-serif',
+            fontFamilyFallback: const ['sans-serif'],
             colorScheme: ColorScheme.fromSeed(
               seedColor: primaryColor,
               brightness: Brightness.light,
@@ -197,6 +199,8 @@ class MyApp extends ConsumerWidget {
             ),
           ),
           darkTheme: ThemeData(
+            fontFamily: 'sans-serif',
+            fontFamilyFallback: const ['sans-serif'],
             colorScheme: ColorScheme.fromSeed(
               seedColor: primaryColor,
               brightness: Brightness.dark,

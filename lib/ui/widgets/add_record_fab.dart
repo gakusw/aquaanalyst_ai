@@ -20,6 +20,7 @@ class AddRecordFab extends StatelessWidget {
 
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
@@ -75,6 +76,7 @@ class AddRecordFab extends StatelessWidget {
   void _showAddMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: false,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => SafeArea(

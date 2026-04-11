@@ -49,7 +49,7 @@ final systemSettingsProvider = StreamProvider.autoDispose<Map<String, dynamic>>(
 final trainingRecordsProvider = StreamProvider.autoDispose<List<TrainingRecord>>((ref) {
   final authState = ref.watch(authStateProvider);
   if (authState.value == null) return Stream.value([]);
-  return ref.watch(firestoreServiceProvider).getTrainingRecordsStream(limit: 50);
+  return ref.watch(firestoreServiceProvider).getTrainingRecordsStream(limit: 500);
 });
 
 // 自己ベスト

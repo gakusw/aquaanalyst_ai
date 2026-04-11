@@ -29,7 +29,7 @@ class GeminiService {
   static const String model15Flash = 'gemini-1.5-flash';
   static const String model25Flash = 'gemini-2.5-flash';
   static const String model31FlashLite = 'gemini-3.1-flash-lite-preview';
-  static const String model30Flash = 'gemini-3.0-flash-preview-0514';
+  static const String model30Flash = 'gemini-3.0-flash';
   static const String modelFlashLite = 'gemini-1.5-flash-8b';
   static const String model21Flash = 'gemini-2.1-flash';
 
@@ -54,6 +54,13 @@ class GeminiService {
     _apiKey = dotenv.env['GEMINI_API_KEY'];
   }
 
+  static final List<SafetySetting> _defaultSafetySettings = [
+    SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none),
+    SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none),
+    SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none),
+    SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none),
+  ];
+
   /// 必要に応じて設定をロードする (管理者のみ)
   Future<void> ensureSettingsLoaded({bool isAdmin = false}) async {
     if (_cachedSettings == null && isAdmin) {
@@ -68,6 +75,7 @@ class GeminiService {
     final model = GenerativeModel(
       model: modelId ?? modelFlash,
       apiKey: _apiKey!,
+      safetySettings: _defaultSafetySettings,
       systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
       generationConfig: responseMimeType != null ? GenerationConfig(responseMimeType: responseMimeType) : null,
     );
@@ -79,6 +87,10 @@ class GeminiService {
     final outputT = response.usageMetadata?.candidatesTokenCount ?? 0;
     FirestoreService().incrementGlobalUsage(modelId ?? modelFlash, inputTokens: inputT, outputTokens: outputT);
     
+    if (response.text == null || response.text!.trim().isEmpty) {
+      throw Exception('生成結果が空でした（安全フィルター等により強制終了された可能性があります）');
+    }
+    
     return response.text;
   }
 
@@ -89,6 +101,7 @@ class GeminiService {
     final model = GenerativeModel(
       model: modelId ?? modelFlash,
       apiKey: _apiKey!,
+      safetySettings: _defaultSafetySettings,
       generationConfig: responseMimeType != null ? GenerationConfig(responseMimeType: responseMimeType) : null,
     );
     
@@ -106,6 +119,10 @@ class GeminiService {
     final outputT = response.usageMetadata?.candidatesTokenCount ?? 0;
     FirestoreService().incrementGlobalUsage(modelId ?? modelFlash, inputTokens: inputT, outputTokens: outputT);
 
+    if (response.text == null || response.text!.trim().isEmpty) {
+      throw Exception('生成結果が空でした（安全フィルター等により強制終了された可能性があります）');
+    }
+
     return response.text;
   }
 
@@ -116,6 +133,7 @@ class GeminiService {
     final model = GenerativeModel(
       model: modelId ?? modelChatDefault,
       apiKey: _apiKey!,
+      safetySettings: _defaultSafetySettings,
       systemInstruction: systemInstruction != null ? Content.system(systemInstruction) : null,
     );
     

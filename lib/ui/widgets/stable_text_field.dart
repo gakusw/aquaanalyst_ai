@@ -57,24 +57,14 @@ class _StableTextFieldState extends State<StableTextField> {
           TextField(
             key: _key,
             controller: widget.controller,
-            minLines: widget.lines > 1 ? 2 : 1, 
+            minLines: widget.lines > 1 ? (widget.lines >= 10 ? 5 : (widget.lines >= 5 ? 3 : 2)) : 1, 
             maxLines: widget.lines > 1 ? widget.lines : 1,
             keyboardType: widget.keyboardType,
             textInputAction: widget.textInputAction,
             onChanged: widget.onChanged,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15, 
-              height: 1.0,
-              letterSpacing: 0.0,
-              fontFamily: 'sans-serif',
-              fontFeatures: [
-                FontFeature.disable('kern'),
-                FontFeature.disable('liga'),
-              ],
-            ),
-            strutStyle: const StrutStyle(
-              height: 1.0,
-              forceStrutHeight: true,
+              color: theme.textTheme.bodyMedium?.color,
             ),
             autocorrect: false,
             enableSuggestions: false,
@@ -101,7 +91,7 @@ class _StableTextFieldState extends State<StableTextField> {
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5), width: 1.5),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               isDense: true,
             ),
           ),

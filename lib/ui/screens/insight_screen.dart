@@ -791,7 +791,10 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
   }
 
 
-  // ============== A. 種目別自己ベスト推移ビュー ==============
+  String _getBaseEventName(String eventName) {
+    return eventName.replaceAll(RegExp(r'\s*\((長|短)水路\)$'), '').trim();
+  }
+
   Widget _buildPbTrendView(
     BuildContext context, 
     List<PersonalBest> pbs, 
@@ -801,12 +804,12 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
   ) {
     final Set<String> eventNames = pbs
         .where((pb) => pb.category == 'swim')
-        .map((pb) => pb.event)
+        .map((pb) => _getBaseEventName(pb.event))
         .toSet();
     
     if (insight?.predictions != null) {
       final swimPredictionEvents = insight!.predictions
-          .map((p) => p.eventName)
+          .map((p) => _getBaseEventName(p.eventName))
           .where((name) => eventNames.contains(name) || name.contains('m'));
       eventNames.addAll(swimPredictionEvents);
     }
@@ -818,15 +821,31 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
 
     final String selectedEvent = sortedEvents.isNotEmpty ? sortedEvents[_selectedEventIndex] : '種目未登録';
     
-    // 指定種目の履歴データを取得し、日付順（昇順）にソート
-    final historyList = pbs
-        .where((pb) => pb.event == selectedEvent && pb.category == 'swim')
-        .toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
-    
-    final historySpots = historyList
+    // 短水路
+    final shortCourseList = pbs
+        .where((pb) => pb.category == 'swim' && _getBaseEventName(pb.event) == selectedEvent && pb.event.contains('短水路'))
+        .toList()..sort((a, b) => a.date.compareTo(b.date));
+    final shortCourseSpots = shortCourseList
         .map((pb) => FlSpot(pb.date.millisecondsSinceEpoch.toDouble(), -pb.value))
         .toList();
+
+    // 長水路
+    final longCourseList = pbs
+        .where((pb) => pb.category == 'swim' && _getBaseEventName(pb.event) == selectedEvent && pb.event.contains('長水路'))
+        .toList()..sort((a, b) => a.date.compareTo(b.date));
+    final longCourseSpots = longCourseList
+        .map((pb) => FlSpot(pb.date.millisecondsSinceEpoch.toDouble(), -pb.value))
+        .toList();
+
+    // 未指定
+    final unknownCourseList = pbs
+        .where((pb) => pb.category == 'swim' && _getBaseEventName(pb.event) == selectedEvent && !pb.event.contains('長水路') && !pb.event.contains('短水路'))
+        .toList()..sort((a, b) => a.date.compareTo(b.date));
+    final unknownCourseSpots = unknownCourseList
+        .map((pb) => FlSpot(pb.date.millisecondsSinceEpoch.toDouble(), -pb.value))
+        .toList();
+        
+    final bool hasAnyData = shortCourseSpots.isNotEmpty || longCourseSpots.isNotEmpty || unknownCourseSpots.isNotEmpty;
 
     return _buildPremiumCard(
       icon: Icons.trending_up,
@@ -866,18 +885,17 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
           const SizedBox(height: 16),
   
           // 折れ線グラフ
-          if (historySpots.isNotEmpty)
+          if (hasAnyData)
             Builder(
               builder: (context) {
-                final xValues = historySpots.map((s) => s.x).toList();
-                // 1週間分 (604800000ms) のパディングを持たせる
-                // パディングを1ヶ月分（約30日）程度に拡張して見切れを防止
-    final buffer = 86400000.0 * 30; 
-    final minX = xValues.length == 1 ? xValues.first - buffer : xValues.reduce((a, b) => a < b ? a : b) - buffer;
-    final maxX = xValues.length == 1 ? xValues.first + buffer : xValues.reduce((a, b) => a > b ? a : b) + buffer;
+                final allSpots = [...shortCourseSpots, ...longCourseSpots, ...unknownCourseSpots];
+                final xValues = allSpots.map((s) => s.x).toList();
+                
+                final buffer = 86400000.0 * 30; 
+                final minX = xValues.length == 1 ? xValues.first - buffer : xValues.reduce((a, b) => a < b ? a : b) - buffer;
+                final maxX = xValues.length == 1 ? xValues.first + buffer : xValues.reduce((a, b) => a > b ? a : b) + buffer;
 
-                // Y軸の範囲に上下バッファを持たせる
-                final yValues = historySpots.map((s) => s.y).toList();
+                final yValues = allSpots.map((s) => s.y).toList();
                 final minYData = yValues.reduce((a, b) => a < b ? a : b);
                 final maxYData = yValues.reduce((a, b) => a > b ? a : b);
                 final yBuffer = (maxYData - minYData).abs() * 0.15 + 1.0;
@@ -895,25 +913,45 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                       maxY: maxY,
                       clipData: const FlClipData.all(),
                       lineBarsData: [
-                        LineChartBarData(
-                          spots: historySpots,
-                          isCurved: false,
-                          color: const Color(0xFF00B0FF), // Updated to vibrant blue
-                          barWidth: 4,
-                          dotData: FlDotData(
-                            show: true,
-                            getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                              radius: 3,
-                              color: const Color(0xFF00B0FF),
-                              strokeWidth: 1.5,
-                              strokeColor: Colors.white,
+                        if (shortCourseSpots.isNotEmpty)
+                          LineChartBarData(
+                            spots: shortCourseSpots,
+                            isCurved: false,
+                            color: const Color(0xFF00B0FF),
+                            barWidth: 4,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                                radius: 3, color: const Color(0xFF00B0FF), strokeWidth: 1.5, strokeColor: Colors.white,
+                              ),
                             ),
                           ),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            color: AppColors.pool.withValues(alpha: 0.1),
+                        if (longCourseSpots.isNotEmpty)
+                          LineChartBarData(
+                            spots: longCourseSpots,
+                            isCurved: false,
+                            color: const Color(0xFFFF4081),
+                            barWidth: 4,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                                radius: 3, color: const Color(0xFFFF4081), strokeWidth: 1.5, strokeColor: Colors.white,
+                              ),
+                            ),
                           ),
-                        ),
+                        if (unknownCourseSpots.isNotEmpty)
+                          LineChartBarData(
+                            spots: unknownCourseSpots,
+                            isCurved: false,
+                            color: const Color(0xFF9E9E9E),
+                            barWidth: 4,
+                            dotData: FlDotData(
+                              show: true,
+                              getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                                radius: 3, color: const Color(0xFF9E9E9E), strokeWidth: 1.5, strokeColor: Colors.white,
+                              ),
+                            ),
+                          ),
                       ],
                       titlesData: FlTitlesData(
                         bottomTitles: AxisTitles(
@@ -964,6 +1002,18 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
                 padding: EdgeInsets.symmetric(vertical: 20.0),
                 child: Text('この種目のデータがまだありません', style: TextStyle(color: Colors.grey, fontSize: 13)),
               ),
+            ),
+          const SizedBox(height: 8),
+          if (hasAnyData)
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _LegendItem(label: '短水路', color: Color(0xFF00B0FF)),
+                SizedBox(width: 16),
+                _LegendItem(label: '長水路', color: Color(0xFFFF4081)),
+                SizedBox(width: 16),
+                _LegendItem(label: '未指定', color: Color(0xFF9E9E9E)),
+              ],
             ),
         ],
       ),

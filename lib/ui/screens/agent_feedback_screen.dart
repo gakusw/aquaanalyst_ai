@@ -679,17 +679,6 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
                   textAlignVertical: TextAlignVertical.top,
                   style: const TextStyle(
                     fontSize: 15, 
-                    height: 1.0,
-                    letterSpacing: 0.0,
-                    fontFamily: 'sans-serif',
-                    fontFeatures: [
-                      FontFeature.disable('kern'),
-                      FontFeature.disable('liga'),
-                    ],
-                  ),
-                  strutStyle: const StrutStyle(
-                    height: 1.0,
-                    forceStrutHeight: true,
                   ),
                   autocorrect: false,
                   enableSuggestions: false,

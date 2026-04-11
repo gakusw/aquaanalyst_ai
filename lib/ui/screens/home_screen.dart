@@ -1230,6 +1230,151 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  void _showPbActionOptions(BuildContext context, PersonalBest pb) {
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: false,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('自己ベストの操作', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('編集'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showEditPbDialog(context, pb);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('削除', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showDeletePbDialog(context, pb);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeletePbDialog(BuildContext context, PersonalBest pb) {
+    showDialog(
+      context: context,
+      useRootNavigator: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('自己ベストの削除'),
+        content: Text('${pb.event} の記録を削除してもよろしいですか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _firestoreService.deletePersonalBest(pb.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('削除しました')));
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditPbDialog(BuildContext context, PersonalBest pb) {
+    final eventCtrl = TextEditingController(text: pb.event);
+    final valueCtrl = TextEditingController(text: pb.value.toString());
+    DateTime selectedDate = pb.date;
+    
+    showDialog(
+      context: context,
+      useRootNavigator: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('自己ベストの編集'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   TextField(
+                     controller: eventCtrl,
+                     decoration: const InputDecoration(labelText: '種目 / エクササイズ名'),
+                   ),
+                   const SizedBox(height: 8),
+                   TextField(
+                     controller: valueCtrl,
+                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                     decoration: InputDecoration(
+                       labelText: pb.category == 'swim' ? 'タイム (秒)' : '重量 (kg)'
+                     ),
+                   ),
+                   const SizedBox(height: 8),
+                   ListTile(
+                     contentPadding: EdgeInsets.zero,
+                     title: const Text('達成日'),
+                     subtitle: Text('${selectedDate.year}/${selectedDate.month}/${selectedDate.day}'),
+                     trailing: const Icon(Icons.calendar_today),
+                     onTap: () async {
+                       final dt = await showDatePicker(
+                         context: context,
+                         initialDate: selectedDate,
+                         firstDate: DateTime(2000),
+                         lastDate: DateTime.now(),
+                       );
+                       if (dt != null) {
+                         setState(() => selectedDate = dt);
+                       }
+                     },
+                   ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('キャンセル'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final newVal = double.tryParse(valueCtrl.text);
+                    if (newVal == null || eventCtrl.text.isEmpty) return;
+                    
+                    final newPb = PersonalBest(
+                      id: pb.id,
+                      category: pb.category,
+                      event: eventCtrl.text,
+                      value: newVal,
+                      date: selectedDate,
+                      trainingRecordId: pb.trainingRecordId,
+                    );
+                    Navigator.pop(ctx);
+                    await _firestoreService.savePersonalBest(newPb);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('保存しました')));
+                    }
+                  },
+                  child: const Text('保存'),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
+
   void _showGoalOptionsDialog(BuildContext context, GoalTime gt) {
     final eventController = TextEditingController(text: gt.event);
     final valueController = TextEditingController(text: gt.value.toString());
@@ -1358,7 +1503,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildBestTimeCard(BuildContext context, PersonalBest pb, List<PersonalBest> history) {
     return PremiumCard(
-      onTap: () => _showPbHistoryDialog(context, pb.event, history, isTime: true),
+      onTap: null,
+      onLongPress: () => _showPbActionOptions(context, pb),
       icon: Icons.timer_outlined,
       child: Row(
         children: [
@@ -1395,7 +1541,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildWeightBestCard(BuildContext context, PersonalBest pb, List<PersonalBest> history) {
     return PremiumCard(
-      onTap: () => _showPbHistoryDialog(context, pb.event, history, isTime: false),
+      onTap: null,
+      onLongPress: () => _showPbActionOptions(context, pb),
       icon: Icons.fitness_center_outlined,
       child: Row(
         children: [
@@ -2171,22 +2318,25 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 // PC用オフスクリーンキャプチャ (幅1400px)
                 // left:5000等の大きな値はCanvasKitのWebGL最大テクスチャサイズ(4096等)を超えるため
                 // クラッシュの原因になる。SizedBox(0x0)+OverflowBoxで安全に非表示化する。
+                // さらにはみ出しが画面上に描画されないようにClipRectで囲む。
                 Positioned(
                   left: 0,
                   top: 0,
-                  child: SizedBox(
-                    width: 0,
-                    height: 0,
-                    child: IgnorePointer(
-                      child: OverflowBox(
-                        alignment: Alignment.topLeft,
-                        maxWidth: double.infinity,
-                        maxHeight: double.infinity,
-                        child: Screenshot(
-                          controller: _posterScreenshotController,
-                          child: SizedBox(
-                            width: 1400,
-                            child: _buildSummaryPosterWidget(context, true, true),
+                  child: ClipRect(
+                    child: SizedBox(
+                      width: 0,
+                      height: 0,
+                      child: IgnorePointer(
+                        child: OverflowBox(
+                          alignment: Alignment.topLeft,
+                          maxWidth: double.infinity,
+                          maxHeight: double.infinity,
+                          child: Screenshot(
+                            controller: _posterScreenshotController,
+                            child: SizedBox(
+                              width: 1400,
+                              child: _buildSummaryPosterWidget(context, true, true),
+                            ),
                           ),
                         ),
                       ),
@@ -2197,19 +2347,21 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 Positioned(
                   left: 0,
                   top: 0,
-                  child: SizedBox(
-                    width: 0,
-                    height: 0,
-                    child: IgnorePointer(
-                      child: OverflowBox(
-                        alignment: Alignment.topLeft,
-                        maxWidth: double.infinity,
-                        maxHeight: double.infinity,
-                        child: Screenshot(
-                          controller: _mobilePosterScreenshotController,
-                          child: SizedBox(
-                            width: 480,
-                            child: _buildSummaryPosterWidget(context, true, false, isMobilePoster: true),
+                  child: ClipRect(
+                    child: SizedBox(
+                      width: 0,
+                      height: 0,
+                      child: IgnorePointer(
+                        child: OverflowBox(
+                          alignment: Alignment.topLeft,
+                          maxWidth: double.infinity,
+                          maxHeight: double.infinity,
+                          child: Screenshot(
+                            controller: _mobilePosterScreenshotController,
+                            child: SizedBox(
+                              width: 480,
+                              child: _buildSummaryPosterWidget(context, true, false, isMobilePoster: true),
+                            ),
                           ),
                         ),
                       ),
@@ -2451,35 +2603,32 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 );
               }),
             ] else
-              // ポスター用：陸トレメニューを段組み表示（テキストが長い場合）
+              // ポスター用：陸トレメニューを段組み表示（文字サイズは縮小せずタイルの高さを拡張する）
               Builder(builder: (context) {
                 final lines = drylandMenuLabel.split('\n').where((l) => l.trim().isNotEmpty).toList();
                 
-                // ポスター用：陸トレメニューを段組み表示
-                if (isPosterMode && !isMobilePoster) {
-                  if (lines.length > 10) {
-                    // 2段組み
+                // 項目が多い場合は2段組みにする（フォントサイズはPC幅に余裕があるので維持）
+                if (isPosterMode && !isMobilePoster && lines.length > 10) {
                     final mid = (lines.length / 2).ceil();
                     final col1 = lines.sublist(0, mid).join('\n');
                     final col2 = lines.sublist(mid).join('\n');
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: Text(col1, style: const TextStyle(fontSize: 10, height: 1.3))),
+                        Expanded(child: Text(col1, style: const TextStyle(fontSize: 12, height: 1.5))),
                         const SizedBox(width: 8),
-                        Expanded(child: Text(col2, style: const TextStyle(fontSize: 10, height: 1.3))),
+                        Expanded(child: Text(col2, style: const TextStyle(fontSize: 12, height: 1.5))),
                       ],
                     );
-                  }
                 } else if (isMobilePoster && lines.length > 15) {
-                  // モバイルポスターでの2段組み
+                  // モバイルの場合のみ、非常に長い場合は段組み
                   final mid = (lines.length / 2).ceil();
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: Text(lines.sublist(0, mid).join('\n'), style: const TextStyle(fontSize: 9, height: 1.3))),
+                      Expanded(child: Text(lines.sublist(0, mid).join('\n'), style: const TextStyle(fontSize: 11, height: 1.5))),
                       const SizedBox(width: 4),
-                      Expanded(child: Text(lines.sublist(mid).join('\n'), style: const TextStyle(fontSize: 9, height: 1.3))),
+                      Expanded(child: Text(lines.sublist(mid).join('\n'), style: const TextStyle(fontSize: 11, height: 1.5))),
                     ],
                   );
                 }
@@ -2803,7 +2952,16 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                     ),
                     Padding(
                       padding: EdgeInsets.fromLTRB(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding + 40),
-                      child: body,
+                      child: isMobilePoster 
+                        ? FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.topCenter,
+                            child: SizedBox(
+                              width: 480 - horizontalPadding * 2,
+                              child: body,
+                            ),
+                          )
+                        : body,
                     ),
                     Positioned(
                       bottom: 16,
