@@ -37,4 +37,22 @@ class AppUser {
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
+
+  AppUser copyWith({
+    String? uid,
+    String? displayName,
+    Map<String, dynamic>? baseProfile,
+    String? vision,
+    String? role,
+    DateTime? createdAt,
+  }) {
+    return AppUser(
+      uid: uid ?? this.uid,
+      displayName: displayName ?? this.displayName,
+      baseProfile: baseProfile ?? this.baseProfile,
+      vision: vision ?? this.vision,
+      role: role ?? this.role,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
 }

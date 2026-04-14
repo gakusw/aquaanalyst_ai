@@ -28,31 +28,38 @@ import 'ui/screens/maintenance_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'core/app_config.dart';
+
 /// アプリ全体で共有するテーマ通知子（グローバル）
 final ValueNotifier<ThemeMode> appThemeMode = ValueNotifier(ThemeMode.dark);
 
 void main() async {
-  debugPrint('--- APP STARTING ---');
-  WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('WidgetsFlutterBinding Initialized');
-  
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  debugPrint('Firebase Initialized');
-
+  debugPrint('--- AQUAANALYST AI v${AppConfig.version} STARTING ---');
   try {
-    await dotenv.load(fileName: ".env");
-    debugPrint('.env loaded');
-  } catch (e) {
-    debugPrint('.env file not found. Ensure GEMINI_API_KEY is available in platform runtime.');
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint('Firebase Initialized');
+
+    try {
+      await dotenv.load(fileName: ".env");
+    } catch (e) {
+      debugPrint('.env file not found. Ensure GEMINI_API_KEY is available.');
+    }
+    
+    await GeminiService().init();
+    debugPrint('GeminiService Initialized');
+
+    // ローカルAIブリッジの初期化（非同期）
+    // ※ 起動を妨げないようにここではエラーをキャッチして続行
+  } catch (e, stack) {
+    debugPrint('CRITICAL INIT ERROR: $e\n$stack');
+    // 必要に応じてエラー画面への遷移を検討
   }
-  
-  await GeminiService().init();
-  debugPrint('GeminiService Initialized');
 
   runApp(const ProviderScope(child: MyApp()));
-  debugPrint('runApp called');
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -149,6 +156,7 @@ class MyApp extends ConsumerWidget {
         }
       }
     });
+    
 
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: appThemeMode,

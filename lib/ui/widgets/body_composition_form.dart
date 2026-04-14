@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/services/firestore_service.dart';
+import '../../data/providers/providers.dart';
+import '../../data/providers/ai_provider.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
 import '../widgets/stable_text_field.dart';
 
-class BodyCompositionForm extends StatefulWidget {
+class BodyCompositionForm extends ConsumerStatefulWidget {
   final bool isDialog;
   final VoidCallback? onSaveSuccess;
   const BodyCompositionForm({super.key, this.onSaveSuccess, this.isDialog = false});
 
   @override
-  State<BodyCompositionForm> createState() => _BodyCompositionFormState();
+  ConsumerState<BodyCompositionForm> createState() => _BodyCompositionFormState();
 }
 
-class _BodyCompositionFormState extends State<BodyCompositionForm> {
+class _BodyCompositionFormState extends ConsumerState<BodyCompositionForm> {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _weightController = TextEditingController();
   final TextEditingController _muscleController = TextEditingController();
@@ -37,7 +40,12 @@ class _BodyCompositionFormState extends State<BodyCompositionForm> {
     if (source == null) return;
 
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
+    final pickedFile = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
     if (pickedFile == null) return;
 
     setState(() => _isOcrLoading = true);
@@ -53,7 +61,8 @@ class _BodyCompositionFormState extends State<BodyCompositionForm> {
 2. AIの挨拶や不要な装飾、解説などは一切省いてください。
 """;
 
-      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType);
+      final aiService = ref.read(aiServiceProvider);
+      final result = await aiService.generateContentWithImage(prompt, bytes, mimeType);
       
       if (!mounted) return;
       if (result != null && result.isNotEmpty && !result.startsWith('AIの処理中')) {

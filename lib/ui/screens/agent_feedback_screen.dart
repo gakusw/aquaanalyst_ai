@@ -6,6 +6,8 @@ import '../../data/services/gemini_service.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/models/chat_session.dart';
 import '../../data/providers/providers.dart';
+import '../../data/providers/ai_provider.dart';
+import '../../utils/event_utils.dart';
 import '../widgets/premium_card.dart';
 import '../../utils/app_colors.dart';
 
@@ -88,10 +90,9 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
       final user = ref.read(userProfileProvider).value;
       if (user == null) throw Exception('ユーザー情報が見つかりません');
       
-      final modelId = user.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
-      _activeModelId = modelId;
+      final aiService = ref.read(aiServiceProvider);
       // 共通メソッドを使用してシステム指示を生成
-      final fullSysInst = await GeminiService().getCoachSystemInstruction(
+      final fullSysInst = await (aiService as GeminiService).getCoachSystemInstruction(
         user,
         supplementaryContext: sysInstContext,
       );
@@ -101,7 +102,9 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
         m.isAi ? Content.model([TextPart(m.text)]) : Content.text(m.text)
       ).toList();
 
-      _chatSession = GeminiService().startChat(
+      _activeModelId = user.baseProfile['aiModelId'] as String? ?? GeminiService.modelFlash;
+
+      _chatSession = (aiService as GeminiService).startChat(
         systemInstruction: fullSysInst,
         history: geminiHistory,
         modelId: _activeModelId,
@@ -141,16 +144,16 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
     try {
       final user = ref.read(userProfileProvider).value;
       if (user == null) throw Exception('ユーザー情報が見つかりません');
-      final modelId = user.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
-      _activeModelId = modelId;
-
+      final aiService = ref.read(aiServiceProvider);
       final sysInstContext = ref.read(coachSystemContextProvider);
-      final sysInst = await GeminiService().getCoachSystemInstruction(
+      final sysInst = await aiService.getCoachSystemInstruction(
         user,
         supplementaryContext: sysInstContext,
       );
 
-      _chatSession = GeminiService().startChat(
+      _activeModelId = user.baseProfile['aiModelId'] as String? ?? GeminiService.modelFlash;
+
+      _chatSession = aiService.startChat(
         systemInstruction: sysInst,
         history: [],
         modelId: _activeModelId,
@@ -181,7 +184,7 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
   }
 
 
-  void _handleSubmitted(String text) async {
+  void _handleSubmitted(String text, {bool isRetry = false}) async {
     if (text.trim().isEmpty) return;
     final sessionId = _currentSessionId;
     
@@ -199,8 +202,10 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
     _scrollToBottom();
 
     try {
-      // ユーザーメッセージをDB保存（awaitを外してストリーム開始のラグを解消）
-      _firestoreService.addChatMessage(sessionId, ChatMessage(text: text, isAi: false, timestamp: DateTime.now()));
+      if (!isRetry) {
+        // ユーザーメッセージをDB保存（初回のみ。リトライ時は保存済み）
+        _firestoreService.addChatMessage(sessionId, ChatMessage(text: text, isAi: false, timestamp: DateTime.now()));
+      }
 
       // ストリーミング応答の開始
       final stream = _chatSession!.sendMessageStream(Content.text(text));
@@ -241,11 +246,45 @@ class _AgentFeedbackScreenState extends ConsumerState<AgentFeedbackScreen> {
       _firestoreService.incrementDailyUsage();
 
     } catch (e) {
+      final user = ref.read(userProfileProvider).value;
+      final nextModel = GeminiService().getNextModelInHierarchy(_activeModelId ?? GeminiService.modelFlash);
+
+        // 429 (Quota), 404 (Not Found), 503 (Overloaded) の場合に自動切り替え
+        if (nextModel != null && (e.toString().contains('429') || e.toString().contains('quota') || e.toString().contains('404') || e.toString().contains('503'))) {
+          debugPrint('Chat Error: $e. Switching to $nextModel and retrying...');
+
+          try {
+            if (user != null) {
+              await _firestoreService.updateUserAiModel(user.uid, nextModel);
+            }
+
+            final aiService = ref.read(aiServiceProvider);
+            final history = _chatSession!.history.toList();
+            _chatSession = (aiService as GeminiService).startChat(
+              modelId: nextModel,
+              history: history,
+            );
+            _activeModelId = nextModel;
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('制限のためモデルを ${GeminiService.getModelDisplayName(nextModel)} に切り替えて再試行します...', style: const TextStyle(fontSize: 12))
+              ));
+            }
+            
+            _handleSubmitted(text, isRetry: true);
+            return;
+          } catch (fallbackError) {
+            debugPrint('Sequential fallback creation failed: $fallbackError');
+          }
+        }
+
       if (mounted) {
         setState(() {
           _isTyping = false;
           _streamingResponse = null;
-          final msg = GeminiService().translateError(e, modelId: _activeModelId);
+          final aiService = ref.read(aiServiceProvider);
+          final msg = (aiService as GeminiService).translateError(e, modelId: _activeModelId);
           _messages.add(CoachMessage(text: msg, isAi: true, type: MessageType.warning));
         });
       }

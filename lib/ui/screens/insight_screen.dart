@@ -11,6 +11,7 @@ import '../../data/models/app_user.dart';
 import '../../utils/date_utils.dart';
 import '../../utils/app_colors.dart';
 import '../../data/providers/providers.dart';
+import '../../data/providers/ai_provider.dart';
 import '../widgets/error_display.dart';
 
 class InsightScreen extends ConsumerStatefulWidget {
@@ -110,11 +111,12 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
           })
           .toList();
 
+      final aiService = ref.read(aiServiceProvider);
       final systemInstruction = user != null 
-          ? await ai.GeminiService().getCoachSystemInstruction(user, supplementaryContext: await ai.GeminiService().insightGuidelineInstruction)
+          ? await aiService.getCoachSystemInstruction(user, supplementaryContext: await aiService.insightGuidelineInstruction)
           : "あなたは世界トップレベルの競泳データアナリスト兼コーチングスペシャリストです。";
 
-      final promptTemplate = await ai.GeminiService().insightPredictionInstruction;
+      final promptTemplate = await aiService.insightPredictionInstruction;
       final prompt = promptTemplate
           .replaceAll('{swimPbs}', swimPbs.toString())
           .replaceAll('{goalBaselineTimes}', goalBaselineTimes.toString())
@@ -122,12 +124,14 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
           .replaceAll('{nutritionSummary}', nutritionSummary.toString())
           .replaceAll('{trainingSummary}', trainingSummary.toString());
 
-      final modelId = user?.baseProfile['aiModel'] as String? ?? ai.GeminiService.modelForInsight;
-      final response = await ai.GeminiService().generateContent(
+      final modelId = user?.baseProfile['aiModel'] as String? ?? ai.GeminiService.modelFlash;
+      
+      final response = await aiService.generateContent(
         prompt, 
         systemInstruction: systemInstruction,
         modelId: modelId,
         responseMimeType: 'application/json',
+        userId: user?.uid,
       );
 
       if (response == null || response.isEmpty) throw Exception('AIからの応答が空でした。');
@@ -162,7 +166,10 @@ class _InsightScreenState extends ConsumerState<InsightScreen> {
       }
     } catch (e) {
       if (mounted) {
+      if (mounted) {
+        aiServiceProvider; // Just to keep reference to provider if needed, though usually GeminiService.showErrorDialog is static
         ai.GeminiService.showErrorDialog(context, e, title: '分析エラー');
+      }
       }
     } finally {
       if (mounted) setState(() => _isPredicting = false);

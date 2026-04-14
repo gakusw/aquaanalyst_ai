@@ -6,6 +6,7 @@ import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
 import '../widgets/stable_text_field.dart';
 import '../../data/providers/providers.dart';
+import '../../data/providers/ai_provider.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/date_utils.dart';
 import '../../data/models/my_product.dart';
@@ -99,36 +100,56 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
     );
 
     if (source == null) return;
-    final pickedFile = await picker.pickImage(source: source);
+    final pickedFile = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
     if (pickedFile == null) return;
 
     setState(() => _isOcrLoading = true);
     try {
       final bytes = await pickedFile.readAsBytes();
       final mimeType = pickedFile.mimeType ?? 'image/jpeg';
-      final prompt = await GeminiService().nutritionOcrInstruction;
-
       final user = ref.read(userProfileProvider).value;
-      final modelId = user?.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
+      final modelId = user?.baseProfile['aiModel'] as String?;
+      final myProducts = ref.read(myProductsProvider).value;
 
-      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType, modelId: modelId);
+      final aiService = ref.read(aiServiceProvider);
+      final result = await aiService.analyzeNutritionFromImage(
+        bytes, 
+        mimeType, 
+        modelId: modelId,
+        myProducts: myProducts,
+        userId: user?.uid,
+      );
       
       if (!mounted) return;
-      if (result != null && result.isNotEmpty && !result.startsWith('AIの処理中')) {
+      if (result != null) {
         setState(() {
+          // メモ欄の更新
           final current = _memoController.text;
-          _memoController.text = current.isEmpty ? "【自動解析: $type】\n$result" : "$current\n\n【自動解析: $type】\n$result";
+          final desc = result.description ?? '内容の抽出に失敗しました';
+          // 理由（計算式）はテキストフィールドには表示せず、SnackBar等で裏側の通知にとどめるか、ここでは表示しない
+          final appendText = "【自動解析: $type】\n$desc";
+          _memoController.text = current.isEmpty ? appendText : "$current\n\n$appendText";
+
+          // PFCの自動入力と推定完了フラグの付与
+          _pController.text = result.protein.clamp(0.0, 250.0).round().toString();
+          _fController.text = result.fat.clamp(0.0, 150.0).round().toString();
+          _cController.text = result.carbs.clamp(0.0, 400.0).round().toString();
+          _hasAnalyzed = true;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$typeの画像解析が完了しました')),
+          SnackBar(content: Text('$typeの画像解析とPFC推定が完了しました')),
         );
-        _runAiAnalysis();
       } else {
-        throw Exception(result ?? '解析失敗');
+        throw Exception('解析結果が取得できませんでした');
       }
     } catch (e) {
       if (!mounted) return;
-      GeminiService.showErrorDialog(context, e, title: '解析エラー');
+      GeminiService.showErrorDialog(context, e, title: '写真解析エラー');
     } finally {
       if (mounted) setState(() => _isOcrLoading = false);
     }
@@ -165,10 +186,12 @@ class _NutritionFormState extends ConsumerState<NutritionForm> {
       final modelId = user?.baseProfile['aiModel'] as String?;
       final myProducts = ref.read(myProductsProvider).value;
       
-      final result = await GeminiService().analyzeNutrition(
+      final aiService = ref.read(aiServiceProvider);
+      final result = await aiService.analyzeNutrition(
         _memoController.text, 
         modelId: modelId,
         myProducts: myProducts,
+        userId: user?.uid,
       );
       if (result != null) {
         if (result.protein > 250 || result.fat > 150 || result.carbs > 400) {

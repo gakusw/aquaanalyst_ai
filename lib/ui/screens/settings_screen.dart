@@ -7,7 +7,9 @@ import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
 import '../../data/models/app_user.dart';
 import '../widgets/stable_text_field.dart';
+import '../../core/app_config.dart';
 import '../../data/providers/providers.dart';
+import '../../data/providers/ai_provider.dart';
 import '../../utils/app_colors.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -352,7 +354,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _editAiModel(BuildContext context, AppUser currentUser) async {
-    final currentModel = currentUser.baseProfile['aiModel'] as String? ?? 'Gemini 2.5 Flash';
+    final currentModel = currentUser.baseProfile['aiModel'] as String? ?? GeminiService.model31FlashLite;
     final result = await showDialog<String>(
       context: context,
       builder: (context) {
@@ -365,23 +367,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                     RadioListTile<String>(
-                      title: const Text('Gemini 2.5 Flash (推奨)'),
-                      subtitle: const Text('【高速・高能率】2026年標準モデル。'),
-                      value: GeminiService.model25Flash,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('Gemini 3.1 Flash-Lite (Preview)'),
-                      subtitle: const Text('【新世代・最速】瞬時の応答。'),
+                      title: Text(GeminiService.getModelDisplayName(GeminiService.model31FlashLite)),
+                      subtitle: const Text('【高速・既定】次世代の最速モデル。制限が緩く安定しています。'),
                       value: GeminiService.model31FlashLite,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
-                      title: const Text('Gemini 3.0 Flash (Preview)'),
-                      subtitle: const Text('【バランス】新世代の標準。'),
-                      value: GeminiService.model30Flash,
+                      title: Text(GeminiService.getModelDisplayName(GeminiService.model15Flash)),
+                      subtitle: const Text('【安定】最も実績のある標準モデル。3.1が不安定な時に。'),
+                      value: GeminiService.model15Flash,
+                      groupValue: selected,
+                      onChanged: (val) => setDialogState(() => selected = val!),
+                    ),
+                    RadioListTile<String>(
+                      title: Text(GeminiService.getModelDisplayName(GeminiService.model25Flash)),
+                      subtitle: const Text('【高性能・高負荷】深い思考が必要な時に。1日の利用回数制限が厳しいです。'),
+                      value: GeminiService.model25Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
@@ -391,18 +393,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '💡 クォータについて',
+                            '💡 自動切り替え機能',
                             style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue),
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'ProモデルはFlashモデルと比べて1日あたりに使える回数が「30分の1」程度と非常に限られています。通常はFlash推奨です。',
+                            '選択中のモデルがリミット（429エラー）に達した場合、アプリが自動的に階層（3.1FL → 1.5F → 2.5F）を辿って設定を更新し、中断なく利用を継続できるようになっています。',
                             style: TextStyle(fontSize: 10, color: Colors.grey),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            '※ サーバー混雑(503)時、アプリ側で自動的に安定版(1.5 Flash)へ切り替えてエラーを防ぐ場合があります。',
-                            style: TextStyle(fontSize: 10, color: Colors.grey, fontStyle: FontStyle.italic),
                           ),
                         ],
                       ),
@@ -554,6 +551,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               const Divider(),
 
+              // AI設定（ローカル）
+              ListTile(
+                title: Text('AIプロセッサ設定 (v2.0)', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
+              ),
+              SwitchListTile(
+                secondary: const Icon(Icons.memory),
+                title: const Text('Gemma 4 ローカル推論'),
+                subtitle: const Text('テキスト解析（PFC推定、分析）を端末内で行います。プライバシー向上と503エラー抑止に効果的です。'),
+                value: currentUser.baseProfile['useLocalAi'] == true,
+                onChanged: (val) async {
+                  try {
+                    Map<String, dynamic> updatedProfile = Map.from(currentUser.baseProfile);
+                    updatedProfile['useLocalAi'] = val;
+                    final updatedUser = currentUser.copyWith(baseProfile: updatedProfile);
+                    await _firestoreService.saveUserProfile(updatedUser);
+                  } catch (e) {
+                    if (mounted) _showErrorDialog(context, '設定保存エラー', e.toString());
+                  }
+                },
+              ),
+              Consumer(
+                builder: (context, ref, _) {
+                  final localAiState = ref.watch(localAiManagerProvider);
+                  if (localAiState.isModelLoaded) {
+                    return const ListTile(
+                      leading: Icon(Icons.check_circle, color: Colors.green),
+                      title: Text('ローカルAIモデル: 準備完了'),
+                      subtitle: Text('Gemma 4 (2B) が利用可能です'),
+                    );
+                  }
+                  
+                  return ListTile(
+                    leading: localAiState.downloadProgress > 0 
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.download_for_offline_outlined),
+                    title: Text(localAiState.downloadProgress > 0 
+                      ? 'モデルをダウンロード中... (${(localAiState.downloadProgress * 100).toInt()}%)' 
+                      : 'ローカルAIモデルをダウンロード'),
+                    subtitle: const Text('初回のみ約2GBの通信が発生します。Wi-Fi環境推奨。'),
+                    onTap: localAiState.downloadProgress > 0 ? null : () {
+                      ref.read(localAiManagerProvider.notifier).downloadModel();
+                    },
+                  );
+                },
+              ),
+              const Divider(),
+
           // テーマ設定
           ListTile(
             title: Text('表示設定', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
@@ -639,7 +683,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('バージョン 1.0.0 (Prototype)'),
+            title: Text('バージョン ${AppConfig.version}+${AppConfig.buildNumber}'),
             onTap: () async {
               if (currentUser.role == 'admin') return;
               setState(() {
@@ -666,7 +710,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (ok == true && pwController.text == 'Admin2026') {
                   await _firestoreService.elevateUserToAdmin(currentUser.uid);
                   ref.invalidate(userProfileProvider); // プロバイダーを強制再読み込み
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('管理者権限を付与しました', style: TextStyle(color: Colors.amber))));
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('管理者権限を付与しました', style: TextStyle(color: Colors.amber))));
+                    context.go('/admin'); // 即座に管理者メニューに遷移させる
+                  }
                 }
               }
             },

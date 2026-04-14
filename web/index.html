@@ -70,7 +70,23 @@
 
 </head>
 <body>
-  <!-- Flutter 3.22 以降の最新かつ標準的なブートストラップ方式 -->
-  <script src="flutter_bootstrap.js" async></script>
+  <!-- Flutter の起動前にフォントの読み込みを待機し、文字化けやレイアウト崩れ（トーフ現象）を防ぐ -->
+  <script>
+    // Gemma 4 ローカルAIブリッジの読み込み
+    var gemmaScript = document.createElement('script');
+    gemmaScript.src = 'gemma_bridge.js';
+    gemmaScript.type = 'module';
+    document.body.appendChild(gemmaScript);
+
+    window.addEventListener('load', function() {
+      document.fonts.ready.then(function() {
+        // フォントが準備完了したらFlutterのブートストラップスクリプトを読み込む
+        var script = document.createElement('script');
+        script.src = 'flutter_bootstrap.js';
+        script.async = true;
+        document.body.appendChild(script);
+      });
+    });
+  </script>
 </body>
 </html>

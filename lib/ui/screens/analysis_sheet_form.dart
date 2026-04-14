@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/services/firestore_service.dart';
 import '../../data/services/gemini_service.dart';
+import '../../data/providers/ai_provider.dart';
 import '../../data/models/training_record.dart';
 import '../../utils/event_utils.dart';
 import '../../utils/app_colors.dart';
 
 /// レース結果記録入力フォーム
-class AnalysisSheetForm extends StatefulWidget {
+class AnalysisSheetForm extends ConsumerStatefulWidget {
   final bool isDialog;
   final VoidCallback? onSaveSuccess;
   const AnalysisSheetForm({super.key, this.isDialog = false, this.onSaveSuccess});
 
   @override
-  State<AnalysisSheetForm> createState() => _AnalysisSheetFormState();
+  ConsumerState<AnalysisSheetForm> createState() => _AnalysisSheetFormState();
 }
 
-class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
+class _AnalysisSheetFormState extends ConsumerState<AnalysisSheetForm> {
   final FirestoreService _firestoreService = FirestoreService();
   DateTime _selectedDate = DateTime.now();
   String _event = '100m 自由形';
@@ -87,7 +89,12 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
     );
 
     if (source == null) return;
-    final image = await picker.pickImage(source: source);
+    final image = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
     if (image == null) return;
 
     setState(() => _isOcrLoading = true);
@@ -96,11 +103,12 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
       final extension = image.path.split('.').last.toLowerCase();
       final mimeType = extension == 'png' ? 'image/png' : 'image/jpeg';
 
-      final result = await _firestoreService.analyzeAnalysisSheetWithGemini(bytes, mimeType);
+      final aiService = ref.read(aiServiceProvider);
+      final resultData = await aiService.analyzeSwimmingAnalysisSheet(bytes, mimeType);
       
-      if (result != null) {
+      if (resultData != null) {
         setState(() {
-          final rawEvent = EventUtils.normalizeEventName(result['event']?.toString() ?? '');
+          final rawEvent = EventUtils.normalizeEventName(resultData['event']?.toString() ?? '');
           if (_eventOptions.contains(rawEvent)) {
             _event = rawEvent;
           } else if (rawEvent.isNotEmpty) {
@@ -118,8 +126,8 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
             }
           }
 
-          if (result['course'] != null) {
-            final rawCourse = result['course']?.toString() ?? '';
+          if (resultData['course'] != null) {
+            final rawCourse = resultData['course']?.toString() ?? '';
             if (rawCourse.contains('25') || rawCourse.contains('短')) {
               _course = '短水路 (25m)';
             } else if (rawCourse.contains('50') || rawCourse.contains('長')) {
@@ -127,9 +135,9 @@ class _AnalysisSheetFormState extends State<AnalysisSheetForm> {
             }
           }
           
-          if (result['laps'] != null) {
+          if (resultData['laps'] != null) {
             _laps.clear();
-            for (var lapData in result['laps']) {
+            for (var lapData in resultData['laps']) {
               final lap = _LapEntry(section: lapData['section'] ?? '');
               lap.timeController.text = lapData['time']?.toString() ?? '';
               lap.strokeController.text = lapData['stroke']?.toString() ?? '';

@@ -6,6 +6,7 @@ import '../../data/services/gemini_service.dart';
 import '../../data/models/training_record.dart';
 import '../../data/models/my_menu.dart';
 import '../../data/providers/providers.dart';
+import '../../data/providers/ai_provider.dart';
 import '../../utils/event_utils.dart';
 import '../widgets/stable_text_field.dart';
 import '../../utils/app_colors.dart';
@@ -71,7 +72,12 @@ class _TrainingFormState extends ConsumerState<TrainingForm> {
     if (source == null) return;
     
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
+    final pickedFile = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
     if (pickedFile == null) return;
 
     setState(() => _isOcrLoading = true);
@@ -86,10 +92,11 @@ class _TrainingFormState extends ConsumerState<TrainingForm> {
 1. 「Category|Distance...」のような表のヘッダー行や、「|||」のようなエクセルの枠線・空セルの記号はすべて除外してください。
 2. ページ下部の「Strength Table」などの補足情報は読み取らないでください。
 3. 種目（W-Up, Drill, Kick, Swim, Down等）、距離、本数、サイクルタイム、指定強度や補足説明だけを抜き出し、シンプルなテキスト（例: W-Up 300 x 1 6:00 A1）として出力してください。
-4. プロンプトに対するAIの返答（挨拶や解説）や不要な装飾は一切省き、抽出したメニュー内容のみを出力してください。
 """;
-
-      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType, modelId: GeminiService.modelFlash);
+      final user = ref.read(userProfileProvider).value;
+      final aiModel = user?.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
+      final aiService = ref.read(aiServiceProvider);
+      final result = await aiService.generateContentWithImage(prompt, bytes, mimeType, modelId: aiModel, userId: user?.uid);
       
       if (!mounted) return;
       if (result != null && result.isNotEmpty && !result.startsWith('AIの処理中')) {
@@ -117,7 +124,12 @@ class _TrainingFormState extends ConsumerState<TrainingForm> {
     if (source == null) return;
 
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source);
+    final pickedFile = await picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
     if (pickedFile == null) return;
 
     setState(() => _isDrylLandOcrLoading = true);
@@ -125,25 +137,24 @@ class _TrainingFormState extends ConsumerState<TrainingForm> {
     try {
       final bytes = await pickedFile.readAsBytes();
       final mimeType = pickedFile.mimeType ?? 'image/jpeg';
-      const prompt = """
-画像内の陸上トレーニング（筋トレなど）の記録をテキストとして抽出してください。
-ホワイトボードの手書きメニューや、トレーニング記録アプリのスクリーンショットなど、どのような形式の画像でも対応してください。
+      const prompt = '画像内の陸上トレーニング（筋トレなど）の記録をテキストとして抽出してください。\n'
+          'ホワイトボードの手書きメニューや、トレーニング記録アプリのスクリーンショットなど、どのような形式の画像でも対応してください。\n\n'
+          'システムで自己ベストなどを自動認識するため、以下の点に注意して整形してください。\n'
+          '1. 各トレーニングの「種目名」を1行目に書く\n'
+          '2. その下に各セットの情報を「1セット目 30.0kg 10回」のように書く\n'
+          '3. 種目が変わる場合は、新しい種目名を1行書いてからセット情報を続ける\n'
+          '4. AIの挨拶や解説文などは一切含めないこと\n\n'
+          '出力例：\n'
+          'ベンチプレス\n'
+          '1セット目 60.0kg 10回\n'
+          '2セット目 60.0kg 8回\n'
+          'スクワット\n'
+          '1セット目 80.0kg 12回';
 
-システムで自己ベストなどを自動認識するため、以下の点に注意して整形してください。
-1. 各トレーニングの「種目名」を1行目に書く
-2. その下に各セットの情報を「1セット目 30.0kg 10回」のように書く
-3. 種目が変わる場合は、新しい種目名を1行書いてからセット情報を続ける
-4. AIの挨拶や解説文などは一切含めないこと
-
-出力例：
-ベンチプレス
-1セット目 60.0kg 10回
-2セット目 60.0kg 8回
-スクワット
-1セット目 80.0kg 12回
-""";
-
-      final result = await GeminiService().generateContentWithImage(prompt, bytes, mimeType, modelId: GeminiService.modelFlash);
+      final user = ref.read(userProfileProvider).value;
+      final aiModel = user?.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
+      final aiService = ref.read(aiServiceProvider);
+      final result = await aiService.generateContentWithImage(prompt, bytes, mimeType, modelId: aiModel, userId: user?.uid);
       
       if (!mounted) return;
       if (result != null && result.isNotEmpty && !result.startsWith('AIの処理中')) {

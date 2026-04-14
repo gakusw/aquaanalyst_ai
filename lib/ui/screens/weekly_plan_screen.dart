@@ -9,6 +9,7 @@ import '../../data/models/personal_best.dart';
 import '../widgets/stable_text_field.dart';
 import '../../utils/date_utils.dart';
 import '../../data/providers/providers.dart';
+import '../../data/providers/ai_provider.dart';
 import '../widgets/premium_card.dart';
 import '../../utils/app_colors.dart';
 
@@ -249,7 +250,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
     }
     setState(() => _isGenerating = true);
     try {
-      final gemini = GeminiService();
+      final aiService = ref.read(aiServiceProvider);
       final targetDryland = _drylController.text;
       final targetSleep = _sleepController.text;
       final profile = currentUser.baseProfile.toString();
@@ -294,7 +295,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
       String medicalHistory = currentUser.baseProfile['medicalHistory'] as String? ?? 'なし';
 
       // 共通メソッドを使用してシステム指示（人格）を生成
-      final sysInst = await gemini.getCoachSystemInstruction(
+      final sysInst = await aiService.getCoachSystemInstruction(
         currentUser,
         supplementaryContext: """
 【分析対象データ】
@@ -369,10 +370,12 @@ $chatContext
 ''';
 
       final modelId = currentUser.baseProfile['aiModel'] as String? ?? GeminiService.modelFlash;
-      final response = await gemini.generateContent(
-        prompt, 
+      final response = await aiService.generateContent(
+        prompt,
+        systemInstruction: sysInst,
         modelId: modelId,
         responseMimeType: 'application/json',
+        userId: currentUser.uid,
       );
       if (response != null) {
         // 先頭や末尾にマークダウンの```があった場合は取り除く

@@ -88,9 +88,11 @@ class FirestoreService {
     await updateUserProfileFields(uid, {'role': 'admin'});
   }
 
-  /// 管理者権限を解除する（一般ユーザーに戻る）
-  Future<void> demoteUserFromAdmin(String uid) async {
-    await updateUserProfileFields(uid, {'role': 'user'});
+  /// ユーザープロパティのAIモデル設定のみを更新する
+  Future<void> updateUserAiModel(String uid, String modelId) async {
+    await _db.collection('users').doc(uid).update({
+      'baseProfile.aiModel': modelId,
+    });
   }
 
   // --- トレーニング・栄養記録関連 ---

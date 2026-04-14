@@ -35,9 +35,7 @@ final userProfileProvider = StreamProvider.autoDispose<AppUser?>((ref) {
   // 管理者の場合、設定を自動ロードする副作用を追加
   stream.listen(
     (user) {
-      if (user?.role == 'admin') {
-        GeminiService().ensureSettingsLoaded(isAdmin: true);
-      }
+      // 以前はここでAI設定をロードしていましたが、現在はHybridAiServiceで統合管理されています
     },
     onError: (e) {
       // listen内でもエラーを握り潰し、クラッシュを防ぐ
