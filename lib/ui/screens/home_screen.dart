@@ -2241,6 +2241,33 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
     Share.share(_generateSummaryText());
   }
 
+  String _compressDrylandSets(String text) {
+    final lines = text.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    final result = <String>[];
+    String currentSets = '';
+    
+    for (var line in lines) {
+      if (line.contains('セット') || RegExp(r'^\d+set').hasMatch(line) || RegExp(r'^\d+kg').hasMatch(line) || RegExp(r'^\d+回').hasMatch(line)) {
+        String formatted = line.replaceAll('セット目', 'set').replaceAll('セット', 'set');
+        if (currentSets.isEmpty) {
+          currentSets = formatted;
+        } else {
+          currentSets += ' / ' + formatted;
+        }
+      } else {
+        if (currentSets.isNotEmpty) {
+          result.add(currentSets);
+          currentSets = '';
+        }
+        result.add(line);
+      }
+    }
+    if (currentSets.isNotEmpty) {
+      result.add(currentSets);
+    }
+    return result.join('\n');
+  }
+
   String _generateSummaryText() {
     final int totalPoolDuration = widget.poolRecords.fold(0, (sum, r) => sum + r.durationMinutes);
     final poolDist = totalPoolDuration > 0 ? '$totalPoolDuration 分' : '未入力';
@@ -2431,7 +2458,10 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
         ? widget.drylandRecords.map((r) {
             if (r.details.isEmpty) return '記録あり';
             final menuTexts = r.details.where((d) => d['type'] == 'menu_text').map((d) => (d['content'] as String?)?.trim() ?? '記録あり').where((s) => s.isNotEmpty);
-            if (menuTexts.isNotEmpty) return menuTexts.join(', ');
+            if (menuTexts.isNotEmpty) {
+               // 共有用に文字列を圧縮する（"セット目"を繋ぐ）
+               return isPosterMode ? _compressDrylandSets(menuTexts.join('\n')) : menuTexts.join('\n');
+            }
             
             final sets = r.details.where((d) => d['type'] == 'dryland_set');
             if (sets.isNotEmpty) {
@@ -2542,7 +2572,7 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 
                 // ポスター用：水中メニューを段組み表示
                 if (isPosterMode && !isMobilePoster) {
-                  if (lines.length > 15) {
+                  if (lines.length > 10) {
                     // 2段組み（PCポスターでの可読性重視）
                     final mid = (lines.length / 2).ceil();
                     final col1 = lines.sublist(0, mid).join('\n');
@@ -2556,19 +2586,19 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                       ],
                     );
                   }
-                } else if (isMobilePoster && lines.length > 20) {
-                  // モバイルポスターでの2段組み
+                } else if (isMobilePoster && lines.length > 8) {
+                  // モバイルポスターでの2段組み (要素が多い時に行数を半分にする)
                   final mid = (lines.length / 2).ceil();
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: Text(lines.sublist(0, mid).join('\n'), style: const TextStyle(fontSize: 9, height: 1.3))),
-                      const SizedBox(width: 4),
-                      Expanded(child: Text(lines.sublist(mid).join('\n'), style: const TextStyle(fontSize: 9, height: 1.3))),
+                      Expanded(child: Text(lines.sublist(0, mid).join('\n'), style: const TextStyle(fontSize: 10, height: 1.3))),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text(lines.sublist(mid).join('\n'), style: const TextStyle(fontSize: 10, height: 1.3))),
                     ],
                   );
                 }
-                return Text(poolMenuLabel, style: const TextStyle(fontSize: 12, height: 1.5));
+                return Text(poolMenuLabel, style: const TextStyle(fontSize: 12, height: 1.4));
               }),
           ],
         );
@@ -2619,36 +2649,36 @@ class _TodaySummaryCardState extends State<_TodaySummaryCard> {
                 );
               }),
             ] else
-              // ポスター用：陸トレメニューを段組み表示（文字サイズは縮小せずタイルの高さを拡張する）
+              // ポスター用：陸トレメニューを段組み表示
               Builder(builder: (context) {
                 final lines = drylandMenuLabel.split('\n').where((l) => l.trim().isNotEmpty).toList();
                 
-                // 項目が多い場合は2段組みにする（フォントサイズはPC幅に余裕があるので維持）
-                if (isPosterMode && !isMobilePoster && lines.length > 10) {
+                // 項目が多い場合は2段組みにする（PC幅）
+                if (isPosterMode && !isMobilePoster && lines.length > 8) {
                     final mid = (lines.length / 2).ceil();
                     final col1 = lines.sublist(0, mid).join('\n');
                     final col2 = lines.sublist(mid).join('\n');
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: Text(col1, style: const TextStyle(fontSize: 12, height: 1.5))),
+                        Expanded(child: Text(col1, style: const TextStyle(fontSize: 11, height: 1.4))),
                         const SizedBox(width: 8),
-                        Expanded(child: Text(col2, style: const TextStyle(fontSize: 12, height: 1.5))),
+                        Expanded(child: Text(col2, style: const TextStyle(fontSize: 11, height: 1.4))),
                       ],
                     );
-                } else if (isMobilePoster && lines.length > 15) {
-                  // モバイルの場合のみ、非常に長い場合は段組み
+                } else if (isMobilePoster && lines.length > 8) {
+                  // モバイルの場合、2段組みにして縦幅を節約する
                   final mid = (lines.length / 2).ceil();
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: Text(lines.sublist(0, mid).join('\n'), style: const TextStyle(fontSize: 11, height: 1.5))),
-                      const SizedBox(width: 4),
-                      Expanded(child: Text(lines.sublist(mid).join('\n'), style: const TextStyle(fontSize: 11, height: 1.5))),
+                      Expanded(child: Text(lines.sublist(0, mid).join('\n'), style: const TextStyle(fontSize: 10, height: 1.3))),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text(lines.sublist(mid).join('\n'), style: const TextStyle(fontSize: 10, height: 1.3))),
                     ],
                   );
                 }
-                return Text(drylandMenuLabel, style: const TextStyle(fontSize: 12, height: 1.5));
+                return Text(drylandMenuLabel, style: const TextStyle(fontSize: 12, height: 1.4));
               }),
           ],
         );
