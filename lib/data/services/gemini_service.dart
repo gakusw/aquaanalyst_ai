@@ -442,6 +442,18 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
     _cachedSettings = settings;
   }
 
+  /// 指定モデルの次の優先順位のモデルを取得（チャット等の手動フォールバック用）
+  String? getNextModelInHierarchy(String currentId) {
+    final index = modelHierarchy.indexOf(currentId);
+    if (index != -1 && index < modelHierarchy.length - 1) {
+      return modelHierarchy[index + 1];
+    } else if (index == -1) {
+      // 現在のモデルがリスト外の場合、最優先のモデルにフォールバック
+      return modelHierarchy.firstWhere((id) => id != currentId, orElse: () => modelHierarchy.first);
+    }
+    return null; // フォールバック先なし
+  }
+
   /// エラーダイアログの表示
   static void showErrorDialog(BuildContext context, dynamic error, {String title = 'エラー'}) {
     final msg = GeminiService().translateError(error);
