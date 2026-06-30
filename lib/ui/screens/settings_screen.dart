@@ -365,24 +365,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: const Text('AIコーチモデルの設定'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
+                  children: [
+                    RadioListTile<String>(
+                      title: Text(GeminiService.getModelDisplayName(GeminiService.model31FlashLite)),
+                      subtitle: const Text('【超軽量・推奨】制限枠が非常に大きく安定。日常利用に最適です。'),
+                      value: GeminiService.model31FlashLite,
+                      groupValue: selected,
+                      onChanged: (val) => setDialogState(() => selected = val!),
+                    ),
+                    RadioListTile<String>(
+                      title: Text(GeminiService.getModelDisplayName(GeminiService.model35Flash)),
+                      subtitle: const Text('【最新・高性能】次世代の強力なモデル。制限が厳しめです。'),
+                      value: GeminiService.model35Flash,
+                      groupValue: selected,
+                      onChanged: (val) => setDialogState(() => selected = val!),
+                    ),
+                    RadioListTile<String>(
+                      title: Text(GeminiService.getModelDisplayName(GeminiService.model3Flash)),
+                      subtitle: const Text('【標準】Gemini 3系の標準モデル。'),
+                      value: GeminiService.model3Flash,
+                      groupValue: selected,
+                      onChanged: (val) => setDialogState(() => selected = val!),
+                    ),
                     RadioListTile<String>(
                       title: Text(GeminiService.getModelDisplayName(GeminiService.model25Flash)),
-                      subtitle: const Text('【高速・推奨】最新の高速モデル。動作が安定しています。'),
+                      subtitle: const Text('【高速・安定】実績のある高速モデル。'),
                       value: GeminiService.model25Flash,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),
                     ),
                     RadioListTile<String>(
-                      title: Text(GeminiService.getModelDisplayName(GeminiService.model20Flash)),
-                      subtitle: const Text('【標準】高いバランス性能を持つモデル。2.5が不安定な時に。'),
-                      value: GeminiService.model20Flash,
-                      groupValue: selected,
-                      onChanged: (val) => setDialogState(() => selected = val!),
-                    ),
-                    RadioListTile<String>(
                       title: Text(GeminiService.getModelDisplayName(GeminiService.model25Pro)),
-                      subtitle: const Text('【高精度・高負荷】深い思考が必要な時に。1日の利用回数制限が厳しいです。'),
+                      subtitle: const Text('【高精度・高負荷】深い思考が必要な時に。'),
                       value: GeminiService.model25Pro,
                       groupValue: selected,
                       onChanged: (val) => setDialogState(() => selected = val!),

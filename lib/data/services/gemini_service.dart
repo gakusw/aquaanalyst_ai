@@ -20,17 +20,25 @@ class GeminiService implements AIService {
   Map<String, dynamic>? _cachedSettings;
   
   static const String model15Pro = 'gemini-1.5-pro'; // Deprecated, kept for compat maps
-  static const String model25Pro = 'gemini-2.5-pro';
   static const String model15Flash = 'gemini-1.5-flash'; // Deprecated
+  static const String model31FlashLite = 'gemini-3.1-flash-lite';
+  static const String model35Flash = 'gemini-3.5-flash';
+  static const String model3Flash = 'gemini-3-flash-preview';
   static const String model25Flash = 'gemini-2.5-flash';
+  static const String model25FlashLite = 'gemini-2.5-flash-lite';
+  static const String model25Pro = 'gemini-2.5-pro';
   static const String model20Flash = 'gemini-2.0-flash';
   static const String model20FlashLite = 'gemini-2.0-flash-lite';
 
-  static const String modelFlash = model25Flash; 
+  static const String modelFlash = model31FlashLite; 
   static const String modelPro = model25Pro;
   
   static const List<String> modelHierarchy = [
+    model31FlashLite,
+    model35Flash,
+    model3Flash,
     model25Flash,
+    model25FlashLite,
     model20Flash,
     model20FlashLite,
   ];
@@ -39,7 +47,11 @@ class GeminiService implements AIService {
 
   static String getModelDisplayName(String id) {
     switch (id) {
-      case model25Flash: return 'Gemini 2.5 Flash (高速・推奨)';
+      case model31FlashLite: return 'Gemini 3.1 Flash Lite (推奨・制限大)';
+      case model35Flash: return 'Gemini 3.5 Flash (最新・高性能)';
+      case model3Flash: return 'Gemini 3 Flash';
+      case model25Flash: return 'Gemini 2.5 Flash';
+      case model25FlashLite: return 'Gemini 2.5 Flash Lite';
       case model25Pro: return 'Gemini 2.5 Pro (高精度)';
       case model20Flash: return 'Gemini 2.0 Flash';
       case model20FlashLite: return 'Gemini 2.0 Flash Lite';
@@ -49,7 +61,11 @@ class GeminiService implements AIService {
 
   static String getModelDescription(String id) {
     switch (id) {
-      case model25Flash: return '最新の高速モデル。動作が安定しており、第一選択として推奨されます。';
+      case model31FlashLite: return '最新の超軽量モデル。利用制限枠が非常に大きく、日常的な利用に最適です。';
+      case model35Flash: return '次世代の強力なFlashモデル。';
+      case model3Flash: return 'Gemini 3系の標準モデル。';
+      case model25Flash: return '実績のある高速モデル。動作が安定しています。';
+      case model25FlashLite: return '2.5系の軽量モデル。';
       case model25Pro: return 'より複雑な推論が可能な高精度モデル。';
       case model20Flash: return '高いバランス性能を持つモデル。';
       case model20FlashLite: return 'コストパフォーマンスに優れた軽量モデル。';
@@ -57,7 +73,7 @@ class GeminiService implements AIService {
     }
   }
 
-  static String get modelForVision => model25Flash;
+  static String get modelForVision => model31FlashLite;
 
   Future<void> init([String? key]) async {
     _apiKey = key ?? dotenv.env['GEMINI_API_KEY'];
@@ -77,14 +93,14 @@ class GeminiService implements AIService {
     int retryCount = 0;
     const int maxRetries = 3;
     String currentModelId = initialModelId ?? modelFlash;
+    final List<String> triedModels = [currentModelId];
 
     while (true) {
       try {
         return await action(currentModelId);
       } catch (e) {
         final isRetryable = isRetryableError(e);
-        final nextModel = getNextModelInHierarchy(currentModelId);
-
+        
         if (isRetryable && retryCount < maxRetries) {
           retryCount++;
           final waitSeconds = retryCount * 2; // 2s, 4s, 6s
@@ -94,9 +110,18 @@ class GeminiService implements AIService {
         }
 
         // リトライ上限に達した、またはリトライ不可なエラーの場合にモデル切り替えを試行
-        if (nextModel != null && (isRetryable || e.toString().contains('404') || e.toString().toLowerCase().contains('unavailable'))) {
+        String? nextModel;
+        for (final model in modelHierarchy) {
+          if (!triedModels.contains(model)) {
+            nextModel = model;
+            break;
+          }
+        }
+
+        if (nextModel != null && (isRetryable || e.toString().contains('404') || e.toString().toLowerCase().contains('unavailable') || e.toString().contains('429') || e.toString().contains('quota'))) {
           debugPrint('Switching model from $currentModelId to $nextModel due to error: $e');
           currentModelId = nextModel;
+          triedModels.add(nextModel);
           retryCount = 0; // 新しいモデルでリトライ回数をリセット
 
           if (userId != null) {
@@ -410,14 +435,6 @@ ${supplementaryContext != null ? '【追加の分析指針】\n$supplementaryCon
       return '処理中にエラーが発生しました。しばらく待ってから再度お試しください。（ERR_UNKNOWN）';
     }
     return 'エラーが発生しました：$cleanMsg';
-  }
-
-  String? getNextModelInHierarchy(String currentId) {
-    final index = modelHierarchy.indexOf(currentId);
-    if (index != -1 && index < modelHierarchy.length - 1) {
-      return modelHierarchy[index + 1];
-    }
-    return null;
   }
 
   /// 設定の更新
