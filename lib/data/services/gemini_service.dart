@@ -19,48 +19,45 @@ class GeminiService implements AIService {
   String? _apiKey;
   Map<String, dynamic>? _cachedSettings;
   
-  static const String model15Pro = 'gemini-1.5-pro';
+  static const String model15Pro = 'gemini-1.5-pro'; // Deprecated, kept for compat maps
   static const String model25Pro = 'gemini-2.5-pro';
-  static const String model15Flash = 'gemini-1.5-flash';
+  static const String model15Flash = 'gemini-1.5-flash'; // Deprecated
   static const String model25Flash = 'gemini-2.5-flash';
-  static const String model25FlashLite = 'gemini-2.5-flash-lite';
-  static const String model31FlashLite = 'gemini-3.1-flash-lite-preview';
-  static const String model30Flash = 'gemini-3.0-flash';
-  static const String modelFlashLite = 'gemini-1.5-flash-8b';
-  static const String model21Flash = 'gemini-2.1-flash';
+  static const String model20Flash = 'gemini-2.0-flash';
+  static const String model20FlashLite = 'gemini-2.0-flash-lite';
 
-  static const String modelFlash = model31FlashLite; 
+  static const String modelFlash = model25Flash; 
   static const String modelPro = model25Pro;
   
   static const List<String> modelHierarchy = [
-    model31FlashLite,
     model25Flash,
-    model25FlashLite,
+    model20Flash,
+    model20FlashLite,
   ];
 
   static const List<String> availableModels = modelHierarchy;
 
   static String getModelDisplayName(String id) {
     switch (id) {
-      case model31FlashLite: return 'Gemini 3.1 Flash Lite (高速・推奨)';
-      case model25Flash: return 'Gemini 2.5 Flash';
-      case model25FlashLite: return 'Gemini 2.5 Flash Lite';
-      case model15Flash: return 'Gemini 1.5 Flash';
-      case model15Pro: return 'Gemini 1.5 Pro';
+      case model25Flash: return 'Gemini 2.5 Flash (高速・推奨)';
+      case model25Pro: return 'Gemini 2.5 Pro (高精度)';
+      case model20Flash: return 'Gemini 2.0 Flash';
+      case model20FlashLite: return 'Gemini 2.0 Flash Lite';
       default: return id;
     }
   }
 
   static String getModelDescription(String id) {
     switch (id) {
-      case model31FlashLite: return '最新の高速軽量モデル（プレビュー版）。動作が安定しており、第一選択として推奨されます。';
-      case model25Flash: return '高いバランス性能を持つ次世代モデル。';
-      case model25FlashLite: return 'コストパフォーマンスに優れた次世代軽量モデル。';
+      case model25Flash: return '最新の高速モデル。動作が安定しており、第一選択として推奨されます。';
+      case model25Pro: return 'より複雑な推論が可能な高精度モデル。';
+      case model20Flash: return '高いバランス性能を持つモデル。';
+      case model20FlashLite: return 'コストパフォーマンスに優れた軽量モデル。';
       default: return '標準的なGeminiモデル';
     }
   }
 
-  static String get modelForVision => model15Flash;
+  static String get modelForVision => model25Flash;
 
   Future<void> init([String? key]) async {
     _apiKey = key ?? dotenv.env['GEMINI_API_KEY'];
